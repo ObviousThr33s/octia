@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+
+# Loom's decompiled/remapped caches and the generated run directory
+.fabric/
+run/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Eclipse, and everything the Java language server (JDT.LS) generates on its
+# own. Merely opening this project with jdtls creates .factorypath and bin/,
+# so these appear without anyone asking for them.
+.settings/
+.classpath
+.project
+.factorypath
+bin/
+
+# Personal Claude Code settings (the shared ones are tracked)
+.claude/settings.local.json

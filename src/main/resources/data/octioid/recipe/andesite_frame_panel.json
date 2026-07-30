@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "A": {
+      "item": "minecraft:polished_andesite"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    }
+  },
+  "pattern": [
+    "AAA",
+    "AGA",
+    "AAA"
+  ],
+  "result": {
+    "count": 8,
+    "id": "octioid:andesite_frame_panel"
+  }
+}
