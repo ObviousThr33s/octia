@@ -52,6 +52,25 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
+// ---- Headless in-world tests ---------------------------------------------
+// Minecraft's own GameTest framework, driven by fabric-gametest-api-v1. This
+// boots a real dedicated server, runs every @GameTest, writes a JUnit XML
+// report, and exits non-zero on failure — so it works identically on a laptop
+// and in CI, with no display and no account.
+loom {
+    runs {
+        create("gametest") {
+            server()
+            name = "Game Test"
+            source(sourceSets.main.get())
+            vmArg("-Dfabric-api.gametest")
+            vmArg("-Dfabric-api.gametest.report-file=" +
+                    layout.buildDirectory.file("test-results/gametest/report.xml").get().asFile.absolutePath)
+            runDir("build/gametest")
+        }
+    }
+}
+
 // ---- fabric.mod.json is generated, never edited by hand -------------------
 // Every placeholder must sit INSIDE a JSON string. Loom parses the raw source
 // file at configure time to discover the mod id, so a placeholder in a bare
@@ -66,6 +85,7 @@ tasks.processResources {
         "mod_description" to modDescription,
         "mod_license" to modLicense,
         "mod_sources" to modSources,
+        "mod_package" to modPackage,
         "mod_entrypoint" to "$modPackage.$modMainClass",
         "minecraft_version" to minecraftVersion,
         "fabric_loader_version" to fabricLoaderVersion,

@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Renames the mod: id, namespace, Java package, resource trees, and the
-    single Java constant — in one pass.
+    single Java constant - in one pass.
 
 .DESCRIPTION
     The mod's name is expected to change as goals, milestones, and metrics
@@ -21,7 +21,7 @@
     generated or derived and needs no edit.
 
     Afterwards it greps for the old id and reports any survivor, which is
-    almost always a hardcoded "oldid:something" string literal — the one
+    almost always a hardcoded "oldid:something" string literal - the one
     thing a rename cannot find on its own. Fix those by routing them
     through the id(String) helper.
 
@@ -61,7 +61,7 @@ Set-Location $repo
 
 # ---- Validate against Fabric's actual rule, not a guess ----------------
 if ($NewModId -cnotmatch '^[a-z][a-z0-9_-]{1,63}$') {
-    throw "Invalid mod id '$NewModId'. Fabric requires ^[a-z][a-z0-9_-]{1,63}`$ — lowercase, starts with a letter, 2-64 chars, only a-z 0-9 _ and -."
+    throw "Invalid mod id '$NewModId'. Fabric requires ^[a-z][a-z0-9_-]{1,63}`$ - lowercase, starts with a letter, 2-64 chars, only a-z 0-9 _ and -."
 }
 
 $propsPath = Join-Path $repo 'gradle.properties'

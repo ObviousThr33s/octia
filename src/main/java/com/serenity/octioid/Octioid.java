@@ -28,9 +28,13 @@ public final class Octioid implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private Octioid() {
-        // Fabric constructs this reflectively; the private ctor is for the
-        // static helpers below, which are the class's real purpose.
+    /**
+     * Must stay public and no-arg. Fabric Loader instantiates the entrypoint
+     * reflectively through {@code DefaultLanguageAdapter}, so a private
+     * constructor compiles clean and then dies at load with
+     * {@code IllegalAccessException} - a failure no amount of building catches.
+     */
+    public Octioid() {
     }
 
     /**

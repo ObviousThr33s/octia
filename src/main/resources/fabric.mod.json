@@ -12,7 +12,8 @@
   "icon": "assets/${mod_id}/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": ["${mod_entrypoint}"]
+    "main": ["${mod_entrypoint}"],
+    "fabric-gametest": ["${mod_package}.gametest.AndesiteFramePanelGameTest"]
   },
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",

@@ -10,17 +10,35 @@ them. Nothing is registered yet.
 
 Scaffold only. `onInitialize` logs a line and returns.
 
-## Build
+## Two scripts
+
+**Play it yourself** — builds, then launches the real game with the mod loaded:
+
+```powershell
+.\tools\play.ps1
+```
+
+**Verify it** — builds, then runs every in-world test on a headless server and
+exits non-zero on failure. No display, no account, no window:
+
+```powershell
+.\tools\verify.ps1
+```
+
+They are separate on purpose. Verification that needs a person watching a
+window is a demo, not verification. See [docs/DEVOPS.md](docs/DEVOPS.md) for
+why the tests are GameTests rather than unit tests.
+
+The dev client writes to `run/` inside this repo, so your real `.minecraft`
+saves are never touched by development.
+
+## Build directly
 
 ```bash
 ./gradlew build
 ```
 
-The jar lands in `build/libs/octioid-<version>.jar`. To run a dev client:
-
-```bash
-./gradlew runClient
-```
+The jar lands in `build/libs/octioid-<version>.jar`.
 
 This machine has JDK 24 and no 21, so `settings.gradle.kts` applies the foojay
 toolchain resolver and Gradle provisions the pinned JDK 21 itself. The first
@@ -60,14 +78,22 @@ octioid/
 ├─ gradle.properties                    identity + version control panel
 ├─ settings.gradle.kts                  rootProject.name, toolchain resolver
 ├─ build.gradle.kts                     loom, deps, fabric.mod.json templating
+├─ .github/workflows/verify.yml         CI: the same two gates on every push
 ├─ docs/
 │  ├─ NAMING.md                         conventions + rename procedure
+│  ├─ DEVOPS.md                         why GameTest, and how it stays open
 │  ├─ LSP.md                            shared Java language server setup
 │  └─ NUMERIC_MODEL.md                  which design quantities are measurable
-├─ tools/rename-mod.ps1                 the rename
+├─ tools/
+│  ├─ play.ps1                          build + launch the game
+│  ├─ verify.ps1                        build + headless in-world tests
+│  └─ rename-mod.ps1                    the rename
 └─ src/main/
    ├─ java/com/serenity/octioid/
-   │  └─ Octioid.java                   entrypoint; MOD_ID and id() live here
+   │  ├─ Octioid.java                   entrypoint; MOD_ID and id() live here
+   │  ├─ OctioidBlocks.java             registration, one place
+   │  ├─ block/                          the andesite frame panel
+   │  └─ gametest/                       in-world tests (ship in the jar)
    └─ resources/
       ├─ fabric.mod.json                TEMPLATE — generated, do not hand-edit
       ├─ assets/octioid/                textures, models, blockstates, lang
