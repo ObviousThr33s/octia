@@ -36,6 +36,19 @@ dependencies {
     "mappings"(loom.officialMojangMappings())
     "modImplementation"("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     "modImplementation"("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+
+    // The codex types are pure Java with no Minecraft on the classpath, so
+    // they get plain JUnit. In-world behaviour is tested by @GameTest instead
+    // - see docs/DEVOPS.md for why that split is deliberate.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
 }
 
 java {
