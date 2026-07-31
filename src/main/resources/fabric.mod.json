@@ -16,7 +16,8 @@
     "client": ["${mod_package}.client.OctiaClient"],
     "fabric-gametest": [
       "${mod_package}.gametest.AndesiteFramePanelGameTest",
-      "${mod_package}.gametest.ShipGameTest"
+      "${mod_package}.gametest.ShipGameTest",
+      "${mod_package}.gametest.OctiaWorldGameTest"
     ]
   },
   "depends": {

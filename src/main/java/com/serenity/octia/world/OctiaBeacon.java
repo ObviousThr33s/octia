@@ -37,27 +37,87 @@ public final class OctiaBeacon {
     private OctiaBeacon() {
     }
 
-    /** Raises the mast at the level's spawn, once per save. */
+    /** Half-width of the plinth. A 5x5 pad reads as built, not as an accident. */
+    private static final int PAD = 2;
+
+    /**
+     * Finds honest ground at the given column and raises the beacon there.
+     *
+     * <p>Seed-independence lives in this method. WORLD_SURFACE alone is not
+     * enough: it stops on the first non-air block, which over an ocean is the
+     * water surface and under a jungle is a leaf. MOTION_BLOCKING_NO_LEAVES
+     * ignores foliage, and the walk-down afterwards drops through any fluid
+     * until it stands on something solid. An ocean spawn therefore gets a
+     * beacon on the seabed with its mast breaking the surface, rather than a
+     * column of panels bobbing in open water.
+     */
     public static void raise(ServerLevel level) {
         BlockPos spawn = level.getSharedSpawnPos();
-        BlockPos base = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, spawn);
 
-        for (int dy = 0; dy < HEIGHT; dy++) {
-            BlockPos at = base.above(dy);
-            // The panel cycles dark / generic / styled; STYLED is the lit one, so the
-            // mast is its own light source and reads at night as well as at noon.
-            level.setBlockAndUpdate(at,
-                    OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
-                            .setValue(AndesiteFramePanelBlock.LIGHT, PanelLight.STYLED));
+        // The spawn chunk is not guaranteed resident the instant the level loads,
+        // and reading a heightmap out of an unloaded chunk answers with nonsense.
+        level.getChunk(spawn);
+
+        BlockPos base = groundAt(level, spawn);
+        build(level, base);
+        Octia.LOGGER.info("Octia: beacon raised at {} ({} panels tall, {}x{} plinth).",
+                base, HEIGHT, PAD * 2 + 1, PAD * 2 + 1);
+    }
+
+    /** The first solid block at this column, ignoring foliage and dropping through fluid. */
+    public static BlockPos groundAt(ServerLevel level, BlockPos column) {
+        BlockPos p = level.getHeightmapPos(
+                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
+        while (p.getY() > level.getMinBuildHeight() + 1
+                && (level.getBlockState(p.below()).isAir()
+                    || !level.getFluidState(p.below()).isEmpty())) {
+            p = p.below();
+        }
+        return p;
+    }
+
+    /**
+     * The beacon itself, as blocks. Public and level-agnostic so a GameTest can
+     * build one inside a test structure and assert on it without needing a
+     * world spawn — the placement rules and the thing being placed are separate
+     * problems and are tested separately.
+     */
+    public static void build(ServerLevel level, BlockPos base) {
+        // A plinth, so the beacon stands proud of whatever it landed on and is
+        // legible as a made thing from a distance.
+        for (int dx = -PAD; dx <= PAD; dx++) {
+            for (int dz = -PAD; dz <= PAD; dz++) {
+                level.setBlockAndUpdate(base.offset(dx, -1, dz), Blocks.POLISHED_ANDESITE.defaultBlockState());
+                // Clear whatever stood here, so grass and snow do not hide the edge.
+                level.setBlockAndUpdate(base.offset(dx, 0, dz), Blocks.AIR.defaultBlockState());
+            }
         }
 
-        BlockPos crown = base.above(HEIGHT);
-        level.setBlockAndUpdate(crown,
+        // The ring: eight frame panels around the core's footing. This is also the
+        // hull shape ShipCoreBlock recognises, so the beacon is a moored ship and
+        // not merely a decoration — a point of interest with a reason to exist.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                level.setBlockAndUpdate(base.offset(dx, 0, dz), panel());
+            }
+        }
+
+        // The mast.
+        for (int dy = 0; dy < HEIGHT; dy++) {
+            level.setBlockAndUpdate(base.above(dy), panel());
+        }
+
+        // The crown: a called core, light level 15, visible at night from far off.
+        level.setBlockAndUpdate(base.above(HEIGHT),
                 OctiaBlocks.SHIP_CORE.defaultBlockState().setValue(ShipCoreBlock.STATUS, ShipStatus.CALLED));
+    }
 
-        // Footing, so a mast raised over sand or water still stands on something.
-        level.setBlockAndUpdate(base.below(), Blocks.POLISHED_ANDESITE.defaultBlockState());
-
-        Octia.LOGGER.info("Octia: mast raised at {} ({} panels, core called).", crown, HEIGHT);
+    /** STYLED is the light-15 state, so the mast is its own lantern. */
+    private static net.minecraft.world.level.block.state.BlockState panel() {
+        return OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
+                .setValue(AndesiteFramePanelBlock.LIGHT, PanelLight.STYLED);
     }
 }
