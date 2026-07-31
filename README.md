@@ -1,4 +1,4 @@
-# Octioid
+# Octia
 
 A Serenity-class ship, called to the dig.
 
@@ -38,7 +38,7 @@ saves are never touched by development.
 ./gradlew build
 ```
 
-The jar lands in `build/libs/octioid-<version>.jar`.
+The jar lands in `build/libs/octia-<version>.jar`.
 
 This machine has JDK 24 and no 21, so `settings.gradle.kts` applies the foojay
 toolchain resolver and Gradle provisions the pinned JDK 21 itself. The first
@@ -69,12 +69,12 @@ Renaming is a scripted operation, not a find-and-replace:
 
 See [docs/NAMING.md](docs/NAMING.md) for the conventions and the one rule that
 makes the rename safe — never write a namespaced string literal; build every
-`ResourceLocation` with `Octioid.id(...)`.
+`ResourceLocation` with `Octia.id(...)`.
 
 ## Layout
 
 ```
-octioid/
+octia/
 ├─ gradle.properties                    identity + version control panel
 ├─ settings.gradle.kts                  rootProject.name, toolchain resolver
 ├─ build.gradle.kts                     loom, deps, fabric.mod.json templating
@@ -89,15 +89,15 @@ octioid/
 │  ├─ verify.ps1                        build + headless in-world tests
 │  └─ rename-mod.ps1                    the rename
 └─ src/main/
-   ├─ java/com/serenity/octioid/
-   │  ├─ Octioid.java                   entrypoint; MOD_ID and id() live here
-   │  ├─ OctioidBlocks.java             registration, one place
+   ├─ java/com/serenity/octia/
+   │  ├─ Octia.java                   entrypoint; MOD_ID and id() live here
+   │  ├─ OctiaBlocks.java             registration, one place
    │  ├─ block/                          the andesite frame panel
    │  └─ gametest/                       in-world tests (ship in the jar)
    └─ resources/
       ├─ fabric.mod.json                TEMPLATE — generated, do not hand-edit
-      ├─ assets/octioid/                textures, models, blockstates, lang
-      └─ data/octioid/                  recipes, loot tables, worldgen
+      ├─ assets/octia/                textures, models, blockstates, lang
+      └─ data/octia/                  recipes, loot tables, worldgen
 ```
 
 ## License

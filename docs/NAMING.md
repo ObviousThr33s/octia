@@ -10,15 +10,15 @@ a mod that builds and then silently fails to resolve anything.
 
 | Thing | Convention | Here |
 |---|---|---|
-| **mod id** | `^[a-z][a-z0-9_-]{1,63}$` — lowercase, starts with a letter, no spaces. It is the `ResourceLocation` namespace. | `octioid` |
-| **display name** | Human-readable, Title Case. Free-form. | `Octioid` |
-| **Java package** | Reverse domain, all lowercase, no `_` or `-`. Never under `net.minecraft` or `net.fabricmc`. | `com.serenity.octioid` |
+| **mod id** | `^[a-z][a-z0-9_-]{1,63}$` — lowercase, starts with a letter, no spaces. It is the `ResourceLocation` namespace. | `octia` |
+| **display name** | Human-readable, Title Case. Free-form. | `Octia` |
+| **Java package** | Reverse domain, all lowercase, no `_` or `-`. Never under `net.minecraft` or `net.fabricmc`. | `com.serenity.octia` |
 | **maven group** | The publishing coordinate. Kept separate from the package on purpose. | `com.serenity` |
-| **jar name** (`archivesName`) | The mod id. | `octioid` |
+| **jar name** (`archivesName`) | The mod id. | `octia` |
 | **registry paths** | `snake_case`. Never CamelCase, never a hyphen. | `andesite_frame_panel` |
-| **resource dirs** | `assets/<mod_id>/`, `data/<mod_id>/`. The directory name *is* the namespace — a mismatch here is the single most common "my textures are missing" bug. | `assets/octioid/` |
-| **translation keys** | `<registry>.<mod_id>.<path>` | `block.octioid.andesite_frame_panel` |
-| **repo directory** | No spaces, no parentheses. Gradle, Loom, and the JVM all handle those unevenly. | `D:\Serenity\octioid` |
+| **resource dirs** | `assets/<mod_id>/`, `data/<mod_id>/`. The directory name *is* the namespace — a mismatch here is the single most common "my textures are missing" bug. | `assets/octia/` |
+| **translation keys** | `<registry>.<mod_id>.<path>` | `block.octia.andesite_frame_panel` |
+| **repo directory** | No spaces, no parentheses. Gradle, Loom, and the JVM all handle those unevenly. | `D:\Serenity\octia` |
 
 ## Where the name is allowed to live
 
@@ -30,16 +30,16 @@ Exactly four places. Everything else derives from these.
 2. **`settings.gradle.kts`** — `rootProject.name`. Gradle resolves this before
    properties are applied on some IDE import paths, so it cannot read from
    `gradle.properties`.
-3. **`Octioid.MOD_ID`** — the one string constant in Java.
+3. **`Octia.MOD_ID`** — the one string constant in Java.
 4. **Directory names** — `assets/<id>/`, `data/<id>/`, and the Java package path.
 
 ## The rule that makes this work
 
 > Never write a namespaced string literal. Build every `ResourceLocation`
-> with `Octioid.id("some_path")`.
+> with `Octia.id("some_path")`.
 
 A rename can move directories and rewrite a constant. It cannot find
-`"octioid:andesite_frame_panel"` buried in the middle of a string, and a mod
+`"octia:andesite_frame_panel"` buried in the middle of a string, and a mod
 with one stale literal builds clean and then fails at runtime with a missing
 resource. `tools/rename-mod.ps1` greps for survivors afterwards precisely
 because this is the failure mode it cannot prevent on its own.

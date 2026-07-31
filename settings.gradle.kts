@@ -17,4 +17,4 @@ plugins {
 // IDE project name and the .gradle cache path, and Gradle resolves it before
 // the properties are applied in some import paths. tools/rename-mod.ps1
 // rewrites this line along with everything else.
-rootProject.name = "octioid"
+rootProject.name = "octia"

@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "octioid:block/andesite_frame_panel_styled"
-  }
-}

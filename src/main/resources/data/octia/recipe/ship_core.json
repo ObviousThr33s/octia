@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": {
+      "item": "octia:andesite_frame_panel"
+    },
+    "B": {
+      "item": "minecraft:brush"
+    },
+    "E": {
+      "item": "minecraft:ender_pearl"
+    }
+  },
+  "pattern": [
+    "PPP",
+    "PEP",
+    "PBP"
+  ],
+  "result": {
+    "count": 1,
+    "id": "octia:ship_core"
+  }
+}

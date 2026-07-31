@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "light=none": {
+      "model": "octia:block/andesite_frame_panel"
+    },
+    "light=generic": {
+      "model": "octia:block/andesite_frame_panel_generic"
+    },
+    "light=styled": {
+      "model": "octia:block/andesite_frame_panel_styled"
+    }
+  }
+}

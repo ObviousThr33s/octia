@@ -1,7 +1,7 @@
 {
   "replace": false,
   "values": [
-    "octioid:andesite_frame_panel",
-    "octioid:ship_core"
+    "octia:andesite_frame_panel",
+    "octia:ship_core"
   ]
 }

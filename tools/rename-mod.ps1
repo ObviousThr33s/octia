@@ -93,6 +93,19 @@ Write-Host "  mod_main_class  $oldMainClass  ->  $NewMainClass"
 Write-Host ""
 if ($DryRun) { Write-Host "-DryRun: nothing was changed."; return }
 
+# Write UTF-8 with NO byte order mark.
+#
+# Set-Content -Encoding utf8 on Windows PowerShell 5.1 writes a BOM, and this script
+# used to do exactly that — leaving EF BB BF on every .java file, gradle.properties and
+# settings.gradle.kts it touched. A BOM on a .properties file can swallow the first key;
+# on JSON it breaks strict parsers; and it is invisible in every editor that would show
+# you the problem. Caught on the octioid -> octia rename, 2026-07-30.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+function Write-Text([string]$path, [string]$text) {
+    if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) { $text = $text.Substring(1) }
+    [System.IO.File]::WriteAllText($path, $text, $Utf8NoBom)
+}
+
 # git mv when the file is tracked so history follows; plain move otherwise.
 function Move-Path([string]$from, [string]$to) {
     if (-not (Test-Path $from)) { Write-Host "  skip (absent): $from"; return }
@@ -119,32 +132,82 @@ if ($oldMainClass -cne $NewMainClass) {
 # Only three things change in Java: the package/import lines, the class
 # name, and the MOD_ID constant. Everything else already goes through
 # id(String) and needs no edit.
-Get-ChildItem -Recurse "src/main/java" -Filter *.java -ErrorAction SilentlyContinue | ForEach-Object {
-    $text = Get-Content $_.FullName -Raw
+# src/test/java is walked too. It was missed once: the test package kept the old name,
+# its directory was never moved, and the build broke on a package/path mismatch that the
+# survivor report showed but nothing acted on.
+$oldTestPkgPath = 'src/test/java/' + ($oldPackage -replace '\.', '/')
+$newTestPkgPath = 'src/test/java/' + ($NewPackage -replace '\.', '/')
+Move-Path $oldTestPkgPath $newTestPkgPath
+
+foreach ($tree in @('src/main/java', 'src/test/java')) {
+    Get-ChildItem -Recurse $tree -Filter *.java -ErrorAction SilentlyContinue | ForEach-Object {
+        $text = [System.IO.File]::ReadAllText($_.FullName)
+        $orig = $text
+        $text = $text -creplace [regex]::Escape($oldPackage), $NewPackage
+        $text = $text -creplace "\b$([regex]::Escape($oldMainClass))\b", $NewMainClass
+        $text = $text -creplace "(MOD_ID\s*=\s*"")$([regex]::Escape($oldModId))("")", "`${1}$NewModId`${2}"
+        if ($text -cne $orig) {
+            Write-Text $_.FullName $text
+            Write-Host "  rewrote: $($_.FullName.Substring($repo.Length + 1))"
+        }
+    }
+}
+
+# A class whose name changed must have its FILE renamed to match, or javac refuses it.
+# Only the entrypoint is handled above; any other type carrying the old name (OctioidBlocks
+# -> OctiaBlocks) has to move as well, and it will not be found by looking at ids alone.
+Get-ChildItem -Recurse 'src' -Filter *.java -ErrorAction SilentlyContinue | ForEach-Object {
+    $decl = Select-String -Path $_.FullName -Pattern '^\s*public\s+(?:final\s+)?(?:class|record|enum|interface)\s+(\w+)' |
+            Select-Object -First 1
+    if ($decl) {
+        $cls = [regex]::Match($decl.Line, '(?:class|record|enum|interface)\s+(\w+)').Groups[1].Value
+        $stem = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+        if ($cls -cne $stem) {
+            $rel = $_.FullName.Substring($repo.Length + 1) -replace '\\', '/'
+            Move-Path $rel (($rel -replace [regex]::Escape($stem + '.java'), ($cls + '.java')))
+        }
+    }
+}
+
+# ---- 4b. Hardcoded namespace literals ----------------------------------
+# The header says a rename cannot find these. It can — they are exactly `oldid:` in a
+# resource JSON and `<registry>.oldid.` in a lang file. Fixing them beats reporting them:
+# the octioid -> octia rename surfaced 30 of these across blockstates, models, loot
+# tables, recipes, the vanilla block tags, and en_us.json, every one of which would have
+# produced a mod that builds and resolves nothing.
+Get-ChildItem -Recurse 'src/main/resources' -Filter *.json -ErrorAction SilentlyContinue | ForEach-Object {
+    $text = [System.IO.File]::ReadAllText($_.FullName)
     $orig = $text
-    $text = $text -creplace [regex]::Escape($oldPackage), $NewPackage
-    $text = $text -creplace "\b$([regex]::Escape($oldMainClass))\b", $NewMainClass
-    $text = $text -creplace "(MOD_ID\s*=\s*"")$([regex]::Escape($oldModId))("")", "`${1}$NewModId`${2}"
+    $text = $text -creplace "$([regex]::Escape($oldModId)):", "${NewModId}:"
+    $text = $text -creplace "\.$([regex]::Escape($oldModId))\.", ".$NewModId."
     if ($text -cne $orig) {
-        Set-Content -Path $_.FullName -Value $text -Encoding utf8 -NoNewline
+        Write-Text $_.FullName $text
         Write-Host "  rewrote: $($_.FullName.Substring($repo.Length + 1))"
     }
 }
 
 # ---- 5. gradle.properties ----------------------------------------------
-$gp = Get-Content $propsPath -Raw
+$gp = [System.IO.File]::ReadAllText($propsPath)
 $gp = $gp -creplace '(?m)^mod_id=.*$',         "mod_id=$NewModId"
 $gp = $gp -creplace '(?m)^mod_name=.*$',       "mod_name=$NewModName"
 $gp = $gp -creplace '(?m)^mod_package=.*$',    "mod_package=$NewPackage"
 $gp = $gp -creplace '(?m)^mod_main_class=.*$', "mod_main_class=$NewMainClass"
-Set-Content -Path $propsPath -Value $gp -Encoding utf8 -NoNewline
+# The description is prose and carries the display name; mod_sources is a URL and is
+# deliberately NOT touched — renaming a repository on a forge is the owner's act, not a
+# side effect of renaming a mod locally.
+$oldNameRe = [regex]::Escape($props['mod_name'])
+$gp = $gp -creplace "(?m)^(mod_description=.*)$oldNameRe(.*)$", "`${1}$NewModName`${2}"
+Write-Text $propsPath $gp
 Write-Host "  rewrote: gradle.properties"
+if ($gp -cmatch '(?m)^mod_sources=.*' + [regex]::Escape($oldModId)) {
+    Write-Warning "mod_sources still points at '$oldModId'. If the remote is renamed, update it by hand."
+}
 
 # ---- 6. settings.gradle.kts --------------------------------------------
 $settingsPath = Join-Path $repo 'settings.gradle.kts'
-$sg = Get-Content $settingsPath -Raw
+$sg = [System.IO.File]::ReadAllText($settingsPath)
 $sg = $sg -creplace '(?m)^rootProject\.name\s*=.*$', "rootProject.name = `"$NewModId`""
-Set-Content -Path $settingsPath -Value $sg -Encoding utf8 -NoNewline
+Write-Text $settingsPath $sg
 Write-Host "  rewrote: settings.gradle.kts"
 
 # ---- 7. Report survivors ------------------------------------------------

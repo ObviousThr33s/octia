@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "status=adrift": {
+      "model": "octia:block/ship_core_adrift"
+    },
+    "status=moored": {
+      "model": "octia:block/ship_core_moored"
+    },
+    "status=called": {
+      "model": "octia:block/ship_core_called"
+    }
+  }
+}

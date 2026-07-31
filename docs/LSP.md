@@ -40,7 +40,7 @@ workspace, and sharing one directory across projects corrupts it.
 Speak LSP to it directly — this is what confirmed the wiring:
 
 ```powershell
-python -c "import subprocess,json; p=subprocess.Popen(['jdtls.cmd'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True,cwd=r'D:\Serenity\octioid'); m=json.dumps({'jsonrpc':'2.0','id':1,'method':'initialize','params':{'processId':None,'rootUri':'file:///D:/Serenity/octioid','capabilities':{}}}).encode(); p.stdin.write(b'Content-Length: '+str(len(m)).encode()+b'\r\n\r\n'+m); p.stdin.flush(); print(p.stdout.read(400))"
+python -c "import subprocess,json; p=subprocess.Popen(['jdtls.cmd'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True,cwd=r'D:\Serenity\octia'); m=json.dumps({'jsonrpc':'2.0','id':1,'method':'initialize','params':{'processId':None,'rootUri':'file:///D:/Serenity/octia','capabilities':{}}}).encode(); p.stdin.write(b'Content-Length: '+str(len(m)).encode()+b'\r\n\r\n'+m); p.stdin.flush(); print(p.stdout.read(400))"
 ```
 
 A healthy server answers with an `InitializeResult` naming
@@ -55,7 +55,7 @@ disagrees with JDT.LS about nothing that matters.
 
 ## The editor side
 
-`redhat.java` is already installed. Opening `D:\Serenity\octioid` in VS Code
+`redhat.java` is already installed. Opening `D:\Serenity\octia` in VS Code
 imports the Gradle project through Buildship and starts its own JDT.LS instance
 from the same binaries. Separate processes, identical server build and
 identical classpath — which is the part that matters.

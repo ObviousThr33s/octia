@@ -8,7 +8,7 @@ SEEK KEG |ALL|
 # The KEG notation
 
 Authored by KEG, in-world and in chat. This document codifies it. The JVM
-transposition lives in `com.serenity.octioid.codex` so future devs get the
+transposition lives in `com.serenity.octia.codex` so future devs get the
 rules as types rather than as prose they have to remember.
 
 Three forms, one system. Each does a different job; using one where another
