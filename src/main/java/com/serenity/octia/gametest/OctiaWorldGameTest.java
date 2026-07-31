@@ -111,9 +111,14 @@ public class OctiaWorldGameTest implements FabricGameTest {
             helper.assertBlockProperty(BASE.above(dy), AndesiteFramePanelBlock.LIGHT, PanelLight.STYLED);
         }
 
-        // The crown is a called core, which is the light-15 state.
+        // The crown must not be ADRIFT. A core derives its own status from its
+        // surroundings, so one placed bare at the mast top reads itself back as adrift -
+        // and adrift is light level 0, which would leave the top of a beacon dark. This
+        // assertion is the reason the crown is ringed.
         helper.assertBlockPresent(OctiaBlocks.SHIP_CORE, BASE.above(12));
-        helper.assertBlockProperty(BASE.above(12), ShipCoreBlock.STATUS, ShipStatus.CALLED);
+        if (helper.getBlockState(BASE.above(12)).getValue(ShipCoreBlock.STATUS) == ShipStatus.ADRIFT) {
+            throw new AssertionError("the crown core is adrift, so the top of the beacon is unlit");
+        }
 
         helper.succeed();
     }

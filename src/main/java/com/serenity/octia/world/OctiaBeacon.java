@@ -110,9 +110,23 @@ public final class OctiaBeacon {
             level.setBlockAndUpdate(base.above(dy), panel());
         }
 
-        // The crown: a called core, light level 15, visible at night from far off.
-        level.setBlockAndUpdate(base.above(HEIGHT),
-                OctiaBlocks.SHIP_CORE.defaultBlockState().setValue(ShipCoreBlock.STATUS, ShipStatus.CALLED));
+        // The crown: a core in a crow's nest.
+        //
+        // The ring is not decoration. ShipCoreBlock derives its own status from its
+        // surroundings, so a core set to CALLED and left bare immediately reads itself
+        // back as ADRIFT - and ADRIFT is light level 0, which would have made the top of
+        // a beacon the darkest part of it. The gametest caught exactly that. Ringing the
+        // crown moors the ship, and a moored core lights.
+        BlockPos crown = base.above(HEIGHT);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                level.setBlockAndUpdate(crown.offset(dx, 0, dz), panel());
+            }
+        }
+        level.setBlockAndUpdate(crown, OctiaBlocks.SHIP_CORE.defaultBlockState());
     }
 
     /** STYLED is the light-15 state, so the mast is its own lantern. */
