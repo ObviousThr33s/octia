@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Octia â€” a Serenity-class ship.
+ * Octia — a Serenity-class ship.
  *
  * <p>Nothing is registered yet. This is the bare Fabric entrypoint: it proves
  * the toolchain, the mappings, and the loader handshake all work before any
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * resource trees are moved by {@code tools/rename-mod.ps1}. {@link #MOD_ID}
  * below is the only place the name is written in Java, and {@link #id(String)}
  * is the only sanctioned way to build a {@link ResourceLocation} for this mod.
- * Keep it that way â€” a hardcoded {@code "octia:something"} string literal is
+ * Keep it that way — a hardcoded {@code "octia:something"} string literal is
  * the one thing a rename cannot find.
  */
 public final class Octia implements ModInitializer {

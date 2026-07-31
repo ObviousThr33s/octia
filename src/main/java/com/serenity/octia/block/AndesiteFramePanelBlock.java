@@ -24,7 +24,7 @@ import net.minecraft.world.phys.BlockHitResult;
  * block covers structural fill and both lighting tiers without three registry
  * entries or three items in the creative tab.
  *
- * <p>The light level is not read here â€” it is supplied at registration by
+ * <p>The light level is not read here — it is supplied at registration by
  * {@code Properties.lightLevel}, which is the only place the game will accept
  * it. See {@code OctiaBlocks}.
  */

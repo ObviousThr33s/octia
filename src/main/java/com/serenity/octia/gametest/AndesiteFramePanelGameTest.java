@@ -56,7 +56,7 @@ public class AndesiteFramePanelGameTest implements FabricGameTest {
      * The light level the game reads back matches what the enum declares.
      *
      * <p>The level is wired by a lambda at registration, not by the block class,
-     * so this asserts that the wiring exists at all â€” a missing
+     * so this asserts that the wiring exists at all — a missing
      * {@code lightLevel} in the Properties builder is invisible until something
      * looks for the light.
      */

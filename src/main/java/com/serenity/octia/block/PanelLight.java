@@ -6,7 +6,7 @@ import net.minecraft.util.StringRepresentable;
  * How a frame panel is lit: not at all, generically, or with styling.
  *
  * <p>Each constant answers its own light level rather than being looked up in a
- * switch somewhere else â€” the panel asks the value what it is worth and takes
+ * switch somewhere else — the panel asks the value what it is worth and takes
  * the answer. Adding a fourth light means adding a line here and a blockstate
  * variant, and nothing else.
  */

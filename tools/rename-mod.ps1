@@ -93,13 +93,23 @@ Write-Host "  mod_main_class  $oldMainClass  ->  $NewMainClass"
 Write-Host ""
 if ($DryRun) { Write-Host "-DryRun: nothing was changed."; return }
 
-# Write UTF-8 with NO byte order mark.
+# Read and write UTF-8 explicitly, both directions. Two separate bugs lived here.
 #
-# Set-Content -Encoding utf8 on Windows PowerShell 5.1 writes a BOM, and this script
-# used to do exactly that — leaving EF BB BF on every .java file, gradle.properties and
-# settings.gradle.kts it touched. A BOM on a .properties file can swallow the first key;
-# on JSON it breaks strict parsers; and it is invisible in every editor that would show
-# you the problem. Caught on the octioid -> octia rename, 2026-07-30.
+# WRITING: Set-Content -Encoding utf8 on Windows PowerShell 5.1 writes a BOM, so every
+# .java file, gradle.properties and settings.gradle.kts this script touched came back
+# with EF BB BF on the front. A BOM on a .properties file can swallow the first key, on
+# JSON it breaks strict parsers, and it is invisible in every editor that would show it.
+#
+# READING: worse. Get-Content -Raw on PS 5.1 decodes a UTF-8 file that has no BOM using
+# the ANSI codepage, so an em-dash (E2 80 94) came back as three CP1252 characters and
+# was then re-encoded as UTF-8 on write. Every non-ASCII character in the file was
+# silently corrupted — "Octioid — a Serenity-class ship" became "Octia â€”
+# a Serenity-class ship". The build still passes, which is what makes it dangerous.
+#
+# Both caught on the octioid -> octia rename, 2026-07-30. Read with
+# [System.IO.File]::ReadAllText (UTF-8 with BOM detection) and write with Write-Text.
+# Never Get-Content -Raw, never Set-Content, on any file that may hold a character
+# above U+007F.
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 function Write-Text([string]$path, [string]$text) {
     if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) { $text = $text.Substring(1) }

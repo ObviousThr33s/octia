@@ -28,7 +28,7 @@ public final class OctiaBlocks {
      * Andesite framing around a panel that cycles dark, generic, styled.
      *
      * <p>The light level is wired here rather than inside the block class
-     * because {@code Properties} is frozen once the block is constructed â€”
+     * because {@code Properties} is frozen once the block is constructed —
      * this lambda is the only hook the game offers for a state-dependent
      * light, and it is consulted every time the blockstate changes.
      */
