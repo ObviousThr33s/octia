@@ -32,6 +32,33 @@ why the tests are GameTests rather than unit tests.
 The dev client writes to `run/` inside this repo, so your real `.minecraft`
 saves are never touched by development.
 
+## The front door
+
+A desktop window that opens onto the repo — the design project's obelisk and
+Nocturne palette, drawn rather than themed, with the two scripts above behind
+buttons.
+
+```powershell
+.\tools\frontdoor.ps1
+```
+
+Put it on your desktop, with a real multi-size icon:
+
+```powershell
+.\tools\frontdoor.ps1 -Install
+```
+
+`-Install` is the only thing here that writes outside the repo, and it writes
+exactly two paths: `Octioid Front Door.lnk` on your desktop and `obelisk.ico`
+beside the jar.
+
+It is deliberately not part of the mod. It does not build against Loom, it has
+no Fabric on its classpath, and nothing in it can reach the game — it compiles
+with whatever JDK is on `PATH` and caches a jar under `tools/frontdoor/build`,
+so opening the door never wakes Gradle. See
+[docs/FRONT_DOOR.md](docs/FRONT_DOOR.md) for what the drawing is doing and why
+the passage is cut at 37 percent.
+
 ## Build directly
 
 ```bash
@@ -83,11 +110,14 @@ octioid/
 │  ├─ NAMING.md                         conventions + rename procedure
 │  ├─ DEVOPS.md                         why GameTest, and how it stays open
 │  ├─ LSP.md                            shared Java language server setup
+│  ├─ FRONT_DOOR.md                     the desktop window, and its geometry
 │  └─ NUMERIC_MODEL.md                  which design quantities are measurable
 ├─ tools/
 │  ├─ play.ps1                          build + launch the game
 │  ├─ verify.ps1                        build + headless in-world tests
-│  └─ rename-mod.ps1                    the rename
+│  ├─ rename-mod.ps1                    the rename
+│  ├─ frontdoor.ps1                     build + open the desktop window
+│  └─ frontdoor/com/serenity/frontdoor/ the window itself (no Fabric, no Loom)
 └─ src/main/
    ├─ java/com/serenity/octioid/
    │  ├─ Octioid.java                   entrypoint; MOD_ID and id() live here
