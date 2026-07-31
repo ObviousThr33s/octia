@@ -1,6 +1,7 @@
 package com.serenity.octioid.block;
 
 import com.mojang.serialization.MapCodec;
+import com.serenity.octioid.ship.ShipCoreBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
@@ -50,6 +51,28 @@ public class AndesiteFramePanelBlock extends Block {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LIGHT);
+    }
+
+    /**
+     * A panel is part of a ship's hull, and the core sits at the centre of the
+     * ring it forms. Vanilla neighbour updates never reach diagonals, so the
+     * panel tells the core rather than waiting to be asked - otherwise placing
+     * the final corner panel completes a hull that nothing notices.
+     */
+    @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, oldState, movedByPiston);
+        ShipCoreBlock.reconcileAdjacentCores(level, pos, null);
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        super.onRemove(state, level, pos, newState, movedByPiston);
+        if (!newState.is(this)) {
+            // This position is leaving the hull. Say so explicitly rather than
+            // relying on whether the chunk has been written yet.
+            ShipCoreBlock.reconcileAdjacentCores(level, pos, pos);
+        }
     }
 
     @Override

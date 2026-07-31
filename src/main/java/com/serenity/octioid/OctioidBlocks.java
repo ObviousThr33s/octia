@@ -1,6 +1,7 @@
 package com.serenity.octioid;
 
 import com.serenity.octioid.block.AndesiteFramePanelBlock;
+import com.serenity.octioid.ship.ShipCoreBlock;
 
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.Registry;
@@ -40,6 +41,22 @@ public final class OctioidBlocks {
                     .requiresCorrectToolForDrops()
                     .lightLevel(state -> state.getValue(AndesiteFramePanelBlock.LIGHT).lightLevel())));
 
+    /**
+     * The ship's anchor. Ring it with frame panels to moor it; leave a dig
+     * nearby and it is called.
+     *
+     * <p>Harder than the panel and blast-resistant on purpose - a core is
+     * infrastructure, and a creeper should not unmoor a ship.
+     */
+    public static final ShipCoreBlock SHIP_CORE = register(
+            "ship_core",
+            new ShipCoreBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.DEEPSLATE)
+                    .strength(3.0f, 1200.0f)
+                    .sound(SoundType.DEEPSLATE)
+                    .requiresCorrectToolForDrops()
+                    .lightLevel(state -> state.getValue(ShipCoreBlock.STATUS).lightLevel())));
+
     private OctioidBlocks() {
     }
 
@@ -50,9 +67,12 @@ public final class OctioidBlocks {
         return block;
     }
 
-    /** Forces class initialisation, then files the blocks into a creative tab. */
+    /** Forces class initialisation, then files the blocks into creative tabs. */
     static void bootstrap() {
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.BUILDING_BLOCKS)
                 .register(entries -> entries.accept(ANDESITE_FRAME_PANEL));
+        // The core is machinery, not masonry.
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS)
+                .register(entries -> entries.accept(SHIP_CORE));
     }
 }
