@@ -1,6 +1,10 @@
 package com.serenity.octia;
 
+import com.serenity.octia.world.OctiaBeacon;
+import com.serenity.octia.world.OctiaWorldOption;
+
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +56,25 @@ public final class Octia implements ModInitializer {
         // initialiser. Doing it here, rather than at class-load time from some
         // earlier hook, is what guarantees the registries are open.
         OctiaBlocks.bootstrap();
+
+        // The world-create switch, read at the one moment it can be read: the
+        // first time a save's Overworld loads. Asking earlier means asking
+        // before the save directory exists; asking later means the player is
+        // already standing in a world that should have looked different.
+        ServerWorldEvents.LOAD.register((server, level) -> {
+            if (level != server.overworld()) {
+                return;
+            }
+            OctiaWorldOption option = OctiaWorldOption.get(server);
+            if (!option.enabled()) {
+                LOGGER.info("Octia: disabled for this world. Spawn left as vanilla found it.");
+                return;
+            }
+            if (option.claimBeacon()) {
+                OctiaBeacon.raise(level);
+            }
+        });
+
         LOGGER.info("Octia: hull cold, registry open. Andesite aboard.");
     }
 }

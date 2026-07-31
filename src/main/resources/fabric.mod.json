@@ -13,6 +13,7 @@
   "environment": "*",
   "entrypoints": {
     "main": ["${mod_entrypoint}"],
+    "client": ["${mod_package}.client.OctiaClient"],
     "fabric-gametest": [
       "${mod_package}.gametest.AndesiteFramePanelGameTest",
       "${mod_package}.gametest.ShipGameTest"
