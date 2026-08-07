@@ -1,5 +1,6 @@
 package com.serenity.octia;
 
+import com.serenity.octia.crew.Crew;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
 
@@ -74,6 +75,11 @@ public final class Octia implements ModInitializer {
                 OctiaBeacon.raise(level);
             }
         });
+
+        // The crew. Registered here rather than lazily on first command because
+        // the muster hangs off server start and stop, and a hook installed after
+        // the server has already started has missed the only event it wanted.
+        Crew.bootstrap();
 
         LOGGER.info("Octia: hull cold, registry open. Andesite aboard.");
     }

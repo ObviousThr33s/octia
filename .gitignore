@@ -22,3 +22,7 @@ bin/
 
 # Personal Claude Code settings (the shared ones are tracked)
 .claude/settings.local.json
+
+# the safety net beside each file, never the record
+*.backup-*
+*.bak

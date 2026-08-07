@@ -3,5 +3,23 @@
   "block.octia.ship_core": "Ship Core",
   "octia.create_world.toggle.on": "Octia: On",
   "octia.create_world.toggle.off": "Octia: Off",
-  "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, a lit mast stands at spawn the moment the world opens."
+  "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, a lit mast stands at spawn the moment the world opens.",
+
+  "octia.crew.aboard": "Aboard: %s of %s",
+  "octia.crew.none": "Nobody is aboard. /octia crew muster seats the bench.",
+  "octia.crew.no_muster": "The crew is not up yet; the server has only just started.",
+  "octia.crew.bench.reached": "Bench: %s",
+  "octia.crew.bench.silent": "Bench silent: %s. The crew runs on the offline tender.",
+  "octia.crew.bench.asking": "Asking the bench: %s",
+  "octia.crew.seated.cleric": "%s takes a seat, tended by %s",
+  "octia.crew.seated.tender": "%s takes a seat on the offline tender",
+  "octia.crew.mustered": "%s seated.",
+  "octia.crew.nothing_to_muster": "Nothing to muster: no endpoint answered and the roster in config/octia-crew.json is empty. Seat one by hand with /octia crew summon <name>.",
+  "octia.crew.dismissed": "%s logs off.",
+  "octia.crew.dismissed_all": "%s logged off.",
+  "octia.crew.ordered": "%s is told: %s",
+  "octia.crew.unknown": "No crew member called %s.",
+  "octia.crew.taken": "%s is already aboard, or that name is in use.",
+  "octia.crew.full": "The crew is full at %s. Raise max_crew in config/octia-crew.json.",
+  "octia.crew.bad_name": "%s is not a name a player can have: at most %s characters, letters, digits, and underscore."
 }

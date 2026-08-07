@@ -49,11 +49,21 @@ build therefore downloads a JDK and is slow; later builds are not.
 `gradle.properties` is the single control panel. Two pins are load-bearing and
 should not be bumped casually:
 
-- **Loom is held at 1.11.x.** Loom 1.17+ assumes the new official-namespace
-  runtime and cannot process 1.21.1-era mods, whose access wideners are written
-  in intermediary names.
+- **Loom is held at 1.11.x by the Gradle wrapper**, not by Minecraft. Loom
+  declares a minimum Gradle in its module metadata — 1.13.4 asks for 8.14,
+  1.14.10 for 9.2.0, 1.17.17 for 9.5.0 — and Gradle refuses a plugin variant
+  above itself. The wrapper here is 8.14.2, so the 1.13 line is the ceiling.
+  Newer Loom still builds 1.21.1 perfectly well: what changed at Loom 1.14 was
+  the plugin *id* (`net.fabricmc.fabric-loom-remap` for obfuscated Minecraft,
+  1.21.11 and older), not the support. Reaching 1.17.x means bumping the
+  wrapper first; `1.11.8 -> 1.12.7` needs no wrapper change at all.
 - **Sources are written against Mojang official mappings (mojmap), not yarn.**
   Mixing the two produces compile errors that read like missing methods.
+
+What breaks if you move the Minecraft pin — a startup crash at 1.21.2, both
+saved-data classes at 1.21.5, and one silent data-loss hazard to check before
+opening an existing save — is written down in
+[docs/UPGRADING.md](docs/UPGRADING.md) with file and line.
 
 ## Naming
 

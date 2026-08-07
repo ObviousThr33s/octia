@@ -113,8 +113,16 @@ silently terminates it and the parser reports a missing brace fifty lines away.
 **Bash is broken on this machine** (Malwarebytes blocks the MSYS2 fork). Use
 PowerShell. Heredocs are not PowerShell — write the file, then `-F` it.
 
-**Loom is pinned at 1.11.x.** Loom 1.17+ assumes the new official-namespace
-runtime and cannot process 1.21.1-era mods. Sources are mojmap, not yarn.
+**Loom is pinned at 1.11.x by the Gradle wrapper**, not by Minecraft. Loom 1.14+
+requires Gradle 9.2+ and the wrapper here is 8.14.2, so 1.13 is the ceiling and
+`1.12.7` is the free upgrade. Newer Loom builds 1.21.1 fine — Loom 1.14 split the
+plugin *id* (`net.fabricmc.fabric-loom-remap` for obfuscated MC ≤ 1.21.11), it did
+not drop support. Sources are mojmap, not yarn.
+
+**Do not move `minecraft_version` without reading
+[docs/UPGRADING.md](docs/UPGRADING.md).** 1.21.2 is a startup crash in
+`OctiaBlocks`; 1.21.5 rewrites both `SavedData` classes; and a borrowed
+`DataFixTypes` constant can drop every moored ship with no crash and no log line.
 
 ---
 

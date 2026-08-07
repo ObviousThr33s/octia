@@ -19,10 +19,18 @@ import net.minecraft.gametest.framework.GameTestHelper;
  * survives the client/server split, and that the game recomputes the light.
  * Those are the things that break.
  *
- * <p>These ship in the release jar rather than a test-only source set. The cost
- * is about two kilobytes; the benefit is that anyone with the mod installed can
- * run {@code /test runall} and verify their own copy, which matters more for a
- * mod meant to stay open and inspectable.
+ * <p>These live in {@code src/main} rather than a test-only source set so the
+ * {@code gametest} run config sees them without a second source set to wire up.
+ * They do <b>not</b> reach end users, and it is worth knowing why before anyone
+ * writes that they do: {@code fabric-gametest-api-v1} is one of Fabric API's
+ * {@code devOnlyModules}, so it is absent from the published fat jar, and
+ * {@code FabricGameTestModInitializer} — the only thing that ever reads the
+ * {@code fabric-gametest} entrypoint — therefore never loads. Nothing crashes;
+ * the classes simply sit inert in a release jar, about two kilobytes of it.
+ * Shipping them live would mean {@code include()}-ing that module at the
+ * version fabric-api's own POM pins, and a dedicated server would additionally
+ * need {@code -Dfabric-api.gametest.command=true} before {@code /test runall}
+ * existed at all.
  */
 public class AndesiteFramePanelGameTest implements FabricGameTest {
 

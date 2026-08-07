@@ -47,10 +47,23 @@ mixins and one interface. Consequences worth having:
 - **Portable tests.** They target vanilla's `GameTestHelper`, so the same test
   bodies survive a loader change — which matters given the design brief's plan
   to ship NeoForge alongside Fabric via Architectury.
-- **Playable by the user, too.** The tests are in the shipped jar, so anyone
-  who installs the mod can run `/test runall` on their own copy. That is a
-  deliberate cost of about two kilobytes. A mod meant to stay open should be
-  verifiable by the person who downloaded it, not only by its author.
+- **Not playable by the user — a correction.** This list used to claim anyone
+  who installs the mod can run `/test runall` on their own copy. They cannot,
+  and the reason is worth keeping so nobody re-derives it wrong.
+  `fabric-gametest-api-v1` sits in Fabric API's `devOnlyModules`, so it is not
+  in the published fat jar; `FabricGameTestModInitializer` is the only thing
+  that reads the `fabric-gametest` entrypoint, and it never loads. Nothing
+  crashes — the test classes are just inert in a release jar, about two
+  kilobytes of it. In a **dev** client (`runClient`) the module is present and
+  `/test runall` works normally.
+
+  Making it true for end users means `include()`-ing
+  `net.fabricmc.fabric-api:fabric-gametest-api-v1` at the version fabric-api's
+  own POM pins for this line — `2.0.5+6fc22b9919`, confirmed in the `runGametest`
+  log — not the newest version that module's maven-metadata lists, which targets
+  a later Minecraft and would break the build. A dedicated server would also
+  need `-Dfabric-api.gametest.command=true`, since the command defaults off
+  there and on only for clients.
 
 ## Free, open, installable, playable
 
