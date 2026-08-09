@@ -173,9 +173,23 @@ half-buried, with the dig that called it still in the ground beside it. A real
 hull by `ShipCoreBlock`'s own rule, with brushable ground inside the call
 radius, so it surveys as `CALLED`.
 
-Rarity is `400` in `data/octia/worldgen/placed_feature/derelict.json` — roughly
-one per 400 chunks, about the density ocean ruins land at in these three saves.
-That is far too rare to go looking for on foot while testing. Place one instead:
+**One is guaranteed near spawn.** On a save's first load, `placeNearSpawn` seats
+a derelict 48–112 blocks out, ringing outward until ground takes it, seeded off
+the world seed so the same seed always answers the same. A rarity roll cannot
+promise a player will ever meet one; the first is placed rather than rolled, the
+way a ruined portal is reachable from where you wake up. It prints where it went:
+
+```
+Octia: derelict seated at BlockPos{...} (48 blocks from spawn).
+```
+
+Because that one is placed into a live level it moors on placement, so it is on
+the F6 map from the moment the world opens. The wild ones are not — see below.
+
+Rarity for the rest is `900` in
+`data/octia/worldgen/placed_feature/derelict.json` — roughly one per 900 chunks,
+between the density of ocean ruins and trial chambers in these three saves. Far
+too rare to go looking for on foot while testing. Place one instead:
 
 ```bash
 /place feature octia:derelict

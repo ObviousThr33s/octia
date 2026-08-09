@@ -117,7 +117,44 @@ should sit nearer those than to mineshafts at one per 185.
 
 ---
 
-## VI. Travelers
+## VI. Derelicts refuse water
+
+**Observed, from the other direction.** The beacon seats its column properly on
+the gravel of the seafloor, which is `OctiaBeacon.raise` doing exactly what its
+note promises - `MOTION_BLOCKING_NO_LEAVES` plus a walk-down through fluid.
+
+**The derelict does not do this.** `DerelictFeature.canBuildAt` rejects any
+position whose fluid state is not empty, and the placed feature drops it at
+`WORLD_SURFACE_WG`, which in an ocean is the top of the water. So every marine
+candidate is refused and no derelict has ever generated underwater. That is a
+safe default rather than a considered one - it was written to stop wrecks
+bobbing in open water, and it overshot into stopping them entirely.
+
+**Closing it.** Give the feature the beacon's walk-down: drop through fluid to
+the floor, then decide. A wreck on the seabed is arguably the *most* in-fiction
+place for one - a ship that was called and never arrived.
+
+---
+
+## VII. The near-spawn derelict has no gametest
+
+**What landed.** `OctiaWorldgen.placeNearSpawn` puts one derelict within 48-112
+blocks of spawn on a save's first load, rings outward until something takes it,
+and is seeded off the world seed so a given seed always answers the same.
+
+**Why there is no `@GameTest` for it**, against rule III. What it does is search
+real terrain out to a hundred blocks from a real spawn. The gametest world is a
+flat void and the plots sit thirteen blocks apart, so there is nothing out there
+to find and nowhere to put it without writing into the neighbouring test. The
+feature it calls is covered by six tests; the search around it is not.
+
+**Closing it.** Either parameterise the radii so a test can drive it at six
+blocks on a laid floor, or accept that this one is verified by opening a new
+world and reading the log line it prints. Do not leave it looking tested.
+
+---
+
+## VIII. Travelers
 
 **Observed.** There are a lot of travellers in this game mod.
 

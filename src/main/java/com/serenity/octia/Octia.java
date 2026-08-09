@@ -82,6 +82,12 @@ public final class Octia implements ModInitializer {
             }
             if (option.claimBeacon()) {
                 OctiaBeacon.raise(level);
+
+                // The same claim covers both: this is the one moment a save is
+                // new, and the guaranteed derelict is as much a first-load fact
+                // as the beacon is. A rarity filter cannot promise a player will
+                // ever meet one, so the first is placed rather than rolled.
+                OctiaWorldgen.placeNearSpawn(level);
             }
         });
 

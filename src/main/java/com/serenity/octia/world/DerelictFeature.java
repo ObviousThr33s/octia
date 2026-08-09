@@ -58,6 +58,11 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
     /** How far down the hull sits relative to the ground it was found on. */
     private static final int SINK = 2;
 
+    /** Exposed so a caller that placed one can work out where the core went. */
+    public static int sink() {
+        return SINK;
+    }
+
     /** Tallest the surviving mast stub can be. Short - it is a wreck. */
     private static final int MAST_MAX = 4;
 
