@@ -23,7 +23,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 /**
- * OCTIOID front door - the desktop entry to the repo.
+ * OCTIA front door - the desktop entry to the repo.
  *
  * <pre>
  * ACT TWO
@@ -141,7 +141,7 @@ public final class FrontDoor {
     }
 
     private static void open(Path repo) {
-        JFrame frame = new JFrame("Octioid - Front Door");
+        JFrame frame = new JFrame("Octia - Front Door");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setUndecorated(true);
         frame.setBackground(Nocturne.BG);
@@ -311,7 +311,7 @@ public final class FrontDoor {
             return;
         }
         try {
-            new ProcessBuilder("cmd.exe", "/c", "start", "OCTIOID " + relative,
+            new ProcessBuilder("cmd.exe", "/c", "start", "OCTIA " + relative,
                     "powershell.exe", "-NoExit", "-NoProfile",
                     "-ExecutionPolicy", "Bypass", "-File", script.toString())
                     .directory(repo.toFile())

@@ -32,6 +32,9 @@ public final class FrontDoorPanel extends JPanel {
     private static final int COLUMN = 384;
     private static final int BUTTON_H = 40;
 
+    /** Space between the name and FRONT DOOR in the header, in pixels. */
+    private static final int KICKER_GAP = 10;
+
     private static final String DECK =
             "The way in. Every side of the passage gives up 37 percent of its "
                     + "distance to the median, so both jambs stay in view and out is "
@@ -186,9 +189,14 @@ public final class FrontDoorPanel extends JPanel {
 
     private void header(Graphics2D g, int w) {
         Obelisk.star(g, GUTTER, HEADER / 2.0 - 9, 18, Nocturne.ACCENT);
-        Nocturne.text(g, "OCTIOID", GUTTER + 26, HEADER / 2.0 + 5,
+        // Chained on the advance Nocturne.text returns, not on a measured
+        // constant. The old code hardcoded 74 - the width of "OCTIOID" in this
+        // kicker at 12f - so the rename to the shorter "OCTIA" would have left
+        // a hole between the two words. A name is allowed to change length.
+        double x = GUTTER + 26;
+        x += Nocturne.text(g, "OCTIA", x, HEADER / 2.0 + 5,
                 Nocturne.kicker(12f), Nocturne.TEXT);
-        Nocturne.text(g, "FRONT DOOR", GUTTER + 26 + 74, HEADER / 2.0 + 5,
+        Nocturne.text(g, "FRONT DOOR", x + KICKER_GAP, HEADER / 2.0 + 5,
                 Nocturne.kicker(12f), Nocturne.alpha(Nocturne.TEXT, 0.38f));
     }
 
