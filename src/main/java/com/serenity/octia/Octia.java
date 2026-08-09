@@ -1,6 +1,7 @@
 package com.serenity.octia;
 
 import com.serenity.octia.crew.Crew;
+import com.serenity.octia.debug.OctiaDebug;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
 
@@ -80,6 +81,11 @@ public final class Octia implements ModInitializer {
         // the muster hangs off server start and stop, and a hook installed after
         // the server has already started has missed the only event it wanted.
         Crew.bootstrap();
+
+        // The debug view's payload types. Common, not client: a type known to
+        // one side only is a disconnect on the first packet, and a dedicated
+        // server has to know the C2S type to receive a request at all.
+        OctiaDebug.bootstrap();
 
         LOGGER.info("Octia: hull cold, registry open. Andesite aboard.");
     }

@@ -5,6 +5,10 @@
   "octia.create_world.toggle.off": "Octia: Off",
   "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, a lit mast stands at spawn the moment the world opens.",
 
+  "key.categories.octia": "Octia",
+  "key.octia.debug": "Debug map",
+  "key.octia.debug_range": "Debug map range",
+
   "octia.crew.aboard": "Aboard: %s of %s",
   "octia.crew.none": "Nobody is aboard. /octia crew muster seats the bench.",
   "octia.crew.no_muster": "The crew is not up yet; the server has only just started.",

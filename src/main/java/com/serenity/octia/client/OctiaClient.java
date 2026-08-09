@@ -78,6 +78,8 @@ public final class OctiaClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        OctiaDebugOverlay.bootstrap();
+
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof CreateWorldScreen)) {
                 return;

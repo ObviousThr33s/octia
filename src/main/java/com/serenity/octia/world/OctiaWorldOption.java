@@ -1,5 +1,6 @@
 package com.serenity.octia.world;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
@@ -34,6 +35,14 @@ public final class OctiaWorldOption extends SavedData {
     private static final String KEY_RAISED = "beacon_raised";
 
     /**
+     * Where the beacon was raised, packed. Absent on every save written before
+     * this key existed - including worlds whose beacon is standing right now -
+     * so absence means "not recorded", never "not raised". {@link #beaconRaised}
+     * remains the only authority on whether it went up.
+     */
+    private static final String KEY_BEACON_AT = "beacon_at";
+
+    /**
      * See the class note. Defaults to on: a player who installs a mod and never
      * touches the button expects the mod, not silence.
      *
@@ -48,6 +57,9 @@ public final class OctiaWorldOption extends SavedData {
 
     private boolean enabled;
     private boolean beaconRaised;
+
+    /** Packed position of the beacon, or null if this save never recorded one. */
+    private Long beaconAt;
 
     private OctiaWorldOption() {
         this.enabled = pending;
@@ -71,6 +83,9 @@ public final class OctiaWorldOption extends SavedData {
         OctiaWorldOption out = new OctiaWorldOption();
         out.enabled = tag.getBoolean(KEY_ENABLED);
         out.beaconRaised = tag.getBoolean(KEY_RAISED);
+        // contains() rather than getLong(): getLong answers 0 for an absent key,
+        // and 0 is a real position - the block at world origin, y=0.
+        out.beaconAt = tag.contains(KEY_BEACON_AT) ? tag.getLong(KEY_BEACON_AT) : null;
         return out;
     }
 
@@ -78,6 +93,9 @@ public final class OctiaWorldOption extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putBoolean(KEY_ENABLED, enabled);
         tag.putBoolean(KEY_RAISED, beaconRaised);
+        if (beaconAt != null) {
+            tag.putLong(KEY_BEACON_AT, beaconAt);
+        }
         return tag;
     }
 
@@ -87,6 +105,23 @@ public final class OctiaWorldOption extends SavedData {
 
     public boolean beaconRaised() {
         return beaconRaised;
+    }
+
+    /**
+     * Where the beacon stands, or null if this save has no record of it.
+     *
+     * <p>Null does not mean no beacon. Saves written before this was recorded
+     * have one standing and cannot say where; ask {@link #beaconRaised()} for
+     * that question and treat this purely as a map hint.
+     */
+    public BlockPos beaconAt() {
+        return beaconAt == null ? null : BlockPos.of(beaconAt);
+    }
+
+    /** Called once, by the raiser, as the beacon goes up. */
+    public void recordBeaconAt(BlockPos pos) {
+        beaconAt = pos.asLong();
+        setDirty();
     }
 
     /** @return true the first time only, so the beacon is raised once per save */

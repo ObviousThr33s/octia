@@ -60,6 +60,10 @@ public final class OctiaBeacon {
 
         BlockPos base = groundAt(level, spawn);
         build(level, base);
+        // Recorded, not merely logged. A log line is gone the next time the file
+        // rolls, and the debug map needs to know where this went for the life of
+        // the save.
+        OctiaWorldOption.get(level.getServer()).recordBeaconAt(base);
         Octia.LOGGER.info("Octia: beacon raised at {} ({} panels tall, {}x{} plinth).",
                 base, HEIGHT, PAD * 2 + 1, PAD * 2 + 1);
     }
