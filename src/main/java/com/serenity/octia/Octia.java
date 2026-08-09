@@ -4,8 +4,10 @@ import com.serenity.octia.crew.Crew;
 import com.serenity.octia.debug.OctiaDebug;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
+import com.serenity.octia.world.OctiaWorldgen;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -68,6 +70,12 @@ public final class Octia implements ModInitializer {
                 return;
             }
             OctiaWorldOption option = OctiaWorldOption.get(server);
+
+            // Published here, on the server thread, before a single chunk can
+            // generate - this is the only read of the save's flag that the
+            // worldgen workers are allowed to depend on. See OctiaWorldgen.
+            OctiaWorldgen.setActive(option.enabled());
+
             if (!option.enabled()) {
                 LOGGER.info("Octia: disabled for this world. Spawn left as vanilla found it.");
                 return;
@@ -76,6 +84,11 @@ public final class Octia implements ModInitializer {
                 OctiaBeacon.raise(level);
             }
         });
+
+        // Cleared on the way out so a second world opened in the same launch
+        // cannot inherit the first one's answer. Without this the switch leaks
+        // between saves, which is the exact failure the switch exists to prevent.
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> OctiaWorldgen.setActive(false));
 
         // The crew. Registered here rather than lazily on first command because
         // the muster hangs off server start and stop, and a hook installed after
@@ -86,6 +99,11 @@ public final class Octia implements ModInitializer {
         // one side only is a disconnect on the first packet, and a dedicated
         // server has to know the C2S type to receive a request at all.
         OctiaDebug.bootstrap();
+
+        // The terrain. Registered unconditionally because a biome modification
+        // has to be; whether it actually places anything is decided per save,
+        // inside the feature. See OctiaWorldgen for why it has to be that way.
+        OctiaWorldgen.bootstrap();
 
         LOGGER.info("Octia: hull cold, registry open. Andesite aboard.");
     }

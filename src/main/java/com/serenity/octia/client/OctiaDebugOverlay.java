@@ -207,7 +207,7 @@ public final class OctiaDebugOverlay {
         } else {
             BlockPos b = snapshot.beacon();
             lines.add("beacon: " + b.getX() + " " + b.getY() + " " + b.getZ()
-                    + "  (" + flat(client.player, b) + "b)");
+                    + "  (" + flat(client.player, b) + "b " + bearing(client.player, b) + ")");
         }
 
         lines.add("moorings: " + snapshot.moorings().size() + "  (whole save, all dimensions)");
@@ -215,12 +215,13 @@ public final class OctiaDebugOverlay {
         BlockPos nearest = nearest(client.player);
         if (nearest != null) {
             lines.add("nearest: " + nearest.getX() + " " + nearest.getY() + " " + nearest.getZ()
-                    + "  (" + flat(client.player, nearest) + "b)");
+                    + "  (" + flat(client.player, nearest) + "b " + bearing(client.player, nearest) + ")");
         }
 
         lines.add("here: " + client.player.blockPosition().getX()
                 + " " + client.player.blockPosition().getY()
-                + " " + client.player.blockPosition().getZ());
+                + " " + client.player.blockPosition().getZ()
+                + "  facing " + facing(client.player));
         lines.add("F6 close  -  F7 range");
 
         int y = top + SIZE + 3;
@@ -244,6 +245,58 @@ public final class OctiaDebugOverlay {
             }
         }
         return best;
+    }
+
+    /** The eight points, in the order {@link #point} indexes them. */
+    private static final String[] POINTS = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+
+    /**
+     * Compass bearing from the player to a position, eight points.
+     *
+     * <p><b>Absolute, not relative to where the player is looking.</b> The box
+     * above does not rotate, and neither does this. A mark that reads NW reads
+     * NW on everyone's screenshot and stays NW while you spin on the spot,
+     * whereas a facing-relative "ahead" or "to your left" would contradict the
+     * picture it is printed under every time you turned - the one thing a debug
+     * readout must never do. {@link #facing} is what closes the gap: bearing
+     * says where the thing is, facing says which way you are pointed, and the
+     * difference between them is the turn.
+     *
+     * <p>Eight points rather than sixteen because the box is the precise
+     * instrument and the text is the glance. NNE would buy eleven degrees of
+     * resolution that the pixel already shows better.
+     */
+    private static String bearing(Player player, BlockPos pos) {
+        double dx = pos.getX() + 0.5 - player.getX();
+        double dz = pos.getZ() + 0.5 - player.getZ();
+
+        // Standing on it. atan2(0, 0) answers zero, which would print a
+        // confident "N" for a direction that does not exist.
+        if (Math.abs(dx) < 0.5 && Math.abs(dz) < 0.5) {
+            return "here";
+        }
+
+        // atan2(dx, -dz), not the textbook atan2(dz, dx): Minecraft's north is
+        // negative Z, so this puts zero at north and grows clockwise through
+        // east - which is the order POINTS is written in.
+        return point(Math.toDegrees(Math.atan2(dx, -dz)));
+    }
+
+    /**
+     * Which way the player is pointed, same eight points.
+     *
+     * <p>Read off the yaw rather than {@code getDirection()}, which snaps to
+     * four. Yaw zero is south in Minecraft, so the half-turn puts it on the same
+     * north-zero scale everything else here uses.
+     */
+    private static String facing(Player player) {
+        return point(player.getYRot() + 180.0);
+    }
+
+    /** One of {@link #POINTS} for a bearing in degrees, north zero, clockwise. */
+    private static String point(double degrees) {
+        int index = (int) Math.round(degrees / 45.0);
+        return POINTS[((index % 8) + 8) % 8];
     }
 
     /**

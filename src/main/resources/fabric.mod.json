@@ -18,7 +18,8 @@
       "${mod_package}.gametest.AndesiteFramePanelGameTest",
       "${mod_package}.gametest.ShipGameTest",
       "${mod_package}.gametest.OctiaWorldGameTest",
-      "${mod_package}.gametest.CrewGameTest"
+      "${mod_package}.gametest.CrewGameTest",
+      "${mod_package}.gametest.DerelictGameTest"
     ]
   },
   "depends": {

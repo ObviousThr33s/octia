@@ -26,3 +26,6 @@ bin/
 # the safety net beside each file, never the record
 *.backup-*
 *.bak
+
+# Python leaves this beside tools/world-report.py the first time it runs
+__pycache__/
