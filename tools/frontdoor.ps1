@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Open the OCTIOID front door, and put it on your desktop.
+    Open the OCTIA front door, and put it on your desktop.
 
 .DESCRIPTION
     The front door is a standalone Swing window - the design project's obelisk
@@ -212,14 +212,19 @@ if ($Install) {
         if ($_ -match '[\\/ ]') { '"{0}"' -f $_ } else { $_ }
     }) -join ' '
 
-    $lnkPath = Join-Path $DesktopPath 'Octioid Front Door.lnk'
+    # Must match the name days.ps1's $SkipNames protects. The daily sweep moves
+    # anything at the desktop root it does not recognise into a dated folder, so
+    # a shortcut installed under a name that list does not carry gets carried
+    # off the first time the sweep runs. Renamed from 'Octioid Front Door.lnk'
+    # with the folder, 2026-08-09; the two names move together or not at all.
+    $lnkPath = Join-Path $DesktopPath 'Octia Front Door.lnk'
     $shell = New-Object -ComObject WScript.Shell
     $lnk = $shell.CreateShortcut($lnkPath)
     $lnk.TargetPath        = $javaw
     $lnk.Arguments         = ('{0} "{1}"' -f $quoted, $repo)
     $lnk.WorkingDirectory  = $repo
     $lnk.IconLocation      = ('{0},0' -f $ico)
-    $lnk.Description       = 'OCTIOID front door - SEEK KEG |ALL|'
+    $lnk.Description       = 'OCTIA front door - SEEK KEG |ALL|'
     $lnk.Save()
 
     Write-Host "  $lnkPath"
