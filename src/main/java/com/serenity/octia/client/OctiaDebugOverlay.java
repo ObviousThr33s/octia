@@ -159,21 +159,68 @@ public final class OctiaDebugOverlay {
             boolean isBeacon = beacon != null
                     && pos.getX() == beacon.getX() && pos.getZ() == beacon.getZ();
             plot(graphics, left, top, mid, scale, pos, centreX, centreZ,
-                    isBeacon ? COLOUR_BEACON : COLOUR_MOORING, isBeacon ? 3 : 2);
+                    isBeacon ? COLOUR_BEACON : COLOUR_MOORING, isBeacon ? Mark.BEACON : Mark.MOORING);
         }
 
         // The beacon is drawn even when it is not among the moorings - an
         // unmoored beacon is exactly the broken state worth seeing.
         if (beacon != null) {
-            plot(graphics, left, top, mid, scale, beacon, centreX, centreZ, COLOUR_BEACON, 3);
+            plot(graphics, left, top, mid, scale, beacon, centreX, centreZ, COLOUR_BEACON, Mark.BEACON);
         }
 
-        graphics.fill(left + mid - 1, top + mid - 1, left + mid + 2, top + mid + 2, COLOUR_PLAYER);
+        Mark.PLAYER.draw(graphics, left + mid, top + mid, COLOUR_PLAYER);
+    }
+
+    /**
+     * How a mark is drawn. Shape, not size.
+     *
+     * <p>Scale alone does not separate marks at these dimensions - the previous
+     * attempt asked for 2px and 3px squares and got two identical 3px squares,
+     * because {@code 3 / 2} is 1 and nobody looked. Colour does not save it
+     * either: three saturated dots on a dark panel at three pixels across are
+     * three dots. Silhouette is the only channel with room left, so each mark is
+     * a different shape and the player is deliberately the only open one - the
+     * reticle reads straight through it, which is what makes "you" legible while
+     * sitting on the crosshair intersection.
+     */
+    private enum Mark {
+
+        /** A filled 3x3 block. The common case, and the quietest. */
+        MOORING {
+            @Override
+            void draw(GuiGraphics graphics, int x, int y, int colour) {
+                graphics.fill(x - 1, y - 1, x + 2, y + 2, colour);
+            }
+        },
+
+        /** A hollow 5x5 ring. Bigger and outlined, so it wins at a glance. */
+        BEACON {
+            @Override
+            void draw(GuiGraphics graphics, int x, int y, int colour) {
+                graphics.fill(x - 2, y - 2, x + 3, y - 1, colour);
+                graphics.fill(x - 2, y + 2, x + 3, y + 3, colour);
+                graphics.fill(x - 2, y - 1, x - 1, y + 2, colour);
+                graphics.fill(x + 2, y - 1, x + 3, y + 2, colour);
+            }
+        },
+
+        /** An open cross, 5px across, with nothing in the middle. */
+        PLAYER {
+            @Override
+            void draw(GuiGraphics graphics, int x, int y, int colour) {
+                graphics.fill(x - 2, y, x - 1, y + 1, colour);
+                graphics.fill(x + 2, y, x + 3, y + 1, colour);
+                graphics.fill(x, y - 2, x + 1, y - 1, colour);
+                graphics.fill(x, y + 2, x + 1, y + 3, colour);
+            }
+        };
+
+        abstract void draw(GuiGraphics graphics, int x, int y, int colour);
     }
 
     /** One mark, clamped to the edge and dimmed if it falls outside the box. */
     private static void plot(GuiGraphics graphics, int left, int top, int mid, double scale,
-                             BlockPos pos, double centreX, double centreZ, int colour, int size) {
+                             BlockPos pos, double centreX, double centreZ, int colour, Mark mark) {
         double dx = (pos.getX() + 0.5 - centreX) * scale;
         double dz = (pos.getZ() + 0.5 - centreZ) * scale;
 
@@ -186,10 +233,7 @@ public final class OctiaDebugOverlay {
             colour = colour == COLOUR_BEACON ? COLOUR_OFF : COLOUR_FAR;
         }
 
-        int x = left + mid + (int) Math.round(dx);
-        int y = top + mid + (int) Math.round(dz);
-        int half = Math.max(1, size / 2);
-        graphics.fill(x - half, y - half, x + half + 1, y + half + 1, colour);
+        mark.draw(graphics, left + mid + (int) Math.round(dx), top + mid + (int) Math.round(dz), colour);
     }
 
     /** The indicators, under the box. Facts, not reassurance. */

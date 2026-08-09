@@ -65,6 +65,9 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
     private static final int DIG_MIN = 2;
     private static final int DIG_MAX = 4;
 
+    /** Debris hugs the hull rather than reaching out to the dig ring. */
+    private static final int DEBRIS_MAX = 3;
+
     /** How far up and down {@link #scatter} looks for the local surface. */
     private static final int SURFACE_UP = 4;
     private static final int SURFACE_DOWN = 3;
@@ -166,19 +169,20 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
     }
 
     /**
-     * What is left standing of the mast, thinning as it rises.
+     * What is left standing of the mast: unbroken from the base to the snap.
      *
-     * <p>The odds of a panel surviving fall with height, so the break is ragged
-     * instead of a clean cut at a fixed number - a flat top reads as a wall.
-     * One lit panel is allowed near the base, which is the only light a derelict
-     * gets and the thing that makes it visible at night from a distance.
+     * <p>This used to roll per course, skipping individual blocks anywhere up
+     * the column. That is not what a broken mast looks like - it produced holes
+     * mid-column with panels floating above them, which reads as a glitch rather
+     * than as damage. A mast breaks in one place. The randomness belongs in
+     * <em>where</em> it breaks, not in which blocks survive below the break.
+     *
+     * <p>One lit panel is allowed at the base. It is the only light a derelict
+     * carries and the thing that makes one visible at night from a distance.
      */
     private static void mast(WorldGenLevel level, RandomSource random, BlockPos core) {
         int height = 2 + random.nextInt(MAST_MAX - 1);
         for (int y = 1; y <= height; y++) {
-            if (random.nextInt(height + 1) < y) {
-                continue;
-            }
             PanelLight light = y == 1 && random.nextBoolean() ? PanelLight.GENERIC : PanelLight.NONE;
             setBlockAt(level, core.above(y),
                     OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
@@ -193,9 +197,12 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
      * floats and never replaces the terrain it fell onto.
      */
     private static void debris(WorldGenLevel level, RandomSource random, BlockPos core) {
-        int count = 2 + random.nextInt(4);
+        int count = 2 + random.nextInt(3);
         for (int i = 0; i < count; i++) {
-            BlockPos spot = scatter(level, random, core, DIG_MIN, DIG_MAX);
+            // Tighter than the digs. Debris that lands as far out as the dig
+            // ring stops reading as thrown clear of this wreck and starts
+            // reading as unrelated blocks that happen to be nearby.
+            BlockPos spot = scatter(level, random, core, DIG_MIN, DEBRIS_MAX);
             if (spot != null) {
                 setBlockAt(level, spot, OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState());
             }
