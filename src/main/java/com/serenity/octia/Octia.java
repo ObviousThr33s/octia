@@ -2,6 +2,7 @@ package com.serenity.octia;
 
 import com.serenity.octia.crew.Crew;
 import com.serenity.octia.debug.OctiaDebug;
+import com.serenity.octia.world.HeadlessRun;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
 import com.serenity.octia.world.OctiaWorldgen;
@@ -142,6 +143,10 @@ public final class Octia implements ModInitializer {
         // has to be; whether it actually places anything is decided per save,
         // inside the feature. See OctiaWorldgen for why it has to be that way.
         OctiaWorldgen.bootstrap();
+
+        // Dev tooling, inert unless -Doctia.worldgen.exit=true is on the command
+        // line. tools/new-world.ps1 is the only thing that sets it.
+        HeadlessRun.bootstrap();
 
         LOGGER.info("Octia: hull cold, registry open. Andesite aboard.");
     }

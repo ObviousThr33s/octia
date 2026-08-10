@@ -4,8 +4,8 @@
 
 .DESCRIPTION
     Boots the dedicated server against its own run directory, lets it write the
-    spawn region, tells it to stop, moves the finished save into run/saves so the
-    client can open it, and appends a register entry in house notation.
+    world, moves the finished save into run/saves so the client can open it, and
+    appends a register entry in house notation.
 
     Why this exists: every question worth asking about worldgen - does the near
     spawn derelict land, is the density right, does a ruin read as a ruin - is a
@@ -16,11 +16,14 @@
     run/worldgen/eula.txt with eula=false and stops; setting it to true is yours
     to do, and it is asked for exactly once.
 
-    The server is asked to stop rather than killed. Killing a Minecraft server
-    races its final chunk save, which is the one thing a world generator must
-    never do. That is also why the gradle invocation passes --no-daemon: with the
-    daemon in the way, the run task's stdin is the daemon's, not this script's,
-    and the stop would go nowhere.
+    The server stops itself once the work is done - see HeadlessRun - rather than
+    being killed. Killing a Minecraft server races its final chunk save, which is
+    the one thing a world generator must never do.
+
+    It is also shut to the outside world: bound to loopback, no player slots, no
+    status ping, no query, no rcon, and Mojang authentication left on. It draws
+    terrain for a minute with nobody connected and has no business being
+    reachable from anywhere.
 
 .PARAMETER Seed
     World seed. Defaults to a fresh one from the clock.
@@ -34,8 +37,9 @@
     docs/WORLDS.md - and a placement rule that behaves in all of them is a rule.
 
 .PARAMETER Chunks
-    Extra radius in chunks to force-load past the spawn region, for measuring
-    ruin density over a real area. 0 (the default) generates spawn only.
+    Radius in chunks to generate around spawn, for measuring ruin density over a
+    real area. 0 (the default) generates the spawn region only. Cost is
+    quadratic: 32 is 4225 chunks and takes minutes.
 
 .EXAMPLE
     .\tools\new-world.ps1
@@ -132,17 +136,43 @@ Write-Host "  into    : $destination"
 
 # ---- server.properties -----------------------------------------------------
 
+# Shut to the outside world, on purpose and by several independent means.
+#
+# A default dedicated server binds 0.0.0.0:25565 and answers anyone who can
+# reach the machine - the log says "Starting Minecraft server on *:25565". This
+# one exists to draw terrain for about a minute with nobody connected, so it has
+# no business being reachable at all:
+#
+#   server-ip=127.0.0.1   binds loopback only. Nothing off this machine can open
+#                         a socket to it, which is the setting that actually
+#                         matters; everything below is belt and braces.
+#   max-players=0         no slots to take even from loopback.
+#   enable-status=false   does not answer server-list pings, so it does not
+#                         announce itself to a LAN scan.
+#   query / rcon          both off. Neither is wanted and both are extra ports.
+#   online-mode=true      Mojang authentication left ON. Turning it off is what
+#                         printed the SERVER IS RUNNING IN OFFLINE/INSECURE MODE
+#                         warning, and an unauthenticated server is exactly the
+#                         thing not to leave listening. No login happens here.
+#   white-list            on and enforced, with an empty whitelist.
 $levelType = "minecraft\:$Type"
 @(
     "level-name=$Name",
     "level-seed=$Seed",
     "level-type=$levelType",
-    'online-mode=false',
+    'server-ip=127.0.0.1',
+    'max-players=0',
+    'online-mode=true',
+    'enable-status=false',
+    'enable-query=false',
+    'enable-rcon=false',
+    'white-list=true',
+    'enforce-whitelist=true',
     'spawn-protection=0',
     'view-distance=10',
     'sync-chunk-writes=true',
     'max-tick-time=-1',
-    'motd=Octia worldgen'
+    'motd=Octia worldgen (local only)'
 ) | Set-Content -LiteralPath (Join-Path $runDir 'server.properties') -Encoding ascii
 
 $log = Join-Path $runDir 'logs\latest.log'
@@ -152,66 +182,40 @@ if (Test-Path -LiteralPath $log) { Remove-Item -LiteralPath $log -Force }
 
 Step 'generating  (dedicated server, headless)'
 
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = $gradlew
-# -PoctiaStdin is what connects the server's stdin so `stop` can be sent; see
-# build.gradle.kts for why it is a flag and not the default. --no-daemon because
-# with the daemon in the way the run task's stdin is the daemon's, not ours.
-$psi.Arguments = "-p `"$repo`" runWorldgen -PoctiaStdin --console=plain --no-daemon"
-$psi.WorkingDirectory = $repo
-$psi.UseShellExecute = $false
-$psi.RedirectStandardInput = $true
+# The server generates and then halts itself; see HeadlessRun. Nothing is
+# written to its console, because that path put a byte-order mark in front of
+# the word `stop` twice and left a finished world locked behind a server that
+# had ignored it. A JVM property crosses PowerShell, Gradle and the forked JVM
+# with nothing in the middle to encode it.
+$radiusArg = if ($Chunks -gt 0) { " -PoctiaRadius=$Chunks" } else { '' }
 
-$proc = [System.Diagnostics.Process]::Start($psi)
-
-function Wait-ForLog([string]$pattern, [int]$seconds) {
-    $deadline = (Get-Date).AddSeconds($seconds)
-    while ((Get-Date) -lt $deadline) {
-        if ($proc.HasExited) { return $false }
-        if ((Test-Path -LiteralPath $log) -and
-            (Select-String -LiteralPath $log -Pattern $pattern -Quiet -ErrorAction SilentlyContinue)) {
-            return $true
-        }
-        Start-Sleep -Seconds 2
-    }
-    return $false
+# Killing gradle leaves the server it forked running: with --no-daemon gradle is
+# the parent and the JVM is a child that does not die with it. Every failure
+# path has to sweep, or the next run meets a world directory still held open.
+function Stop-Orphans {
+    Get-CimInstance Win32_Process -Filter "Name='java.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*runWorldgen*' } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
-if (-not (Wait-ForLog 'Done \(' 420)) {
-    if (-not $proc.HasExited) { $proc.Kill() }
-    throw "the server never finished starting; see $log"
-}
-Write-Host "  spawn region written"
+$proc = Start-Process -FilePath $gradlew -PassThru -NoNewWindow -WorkingDirectory $repo `
+    -ArgumentList "-p `"$repo`" runWorldgen -PoctiaExit$radiusArg --console=plain --no-daemon"
 
-# Force-load past the spawn region when a density sample was asked for. Done in
-# 16x16 chunk tiles because forceload refuses more than 256 chunks at a time.
-if ($Chunks -gt 0) {
-    Step "force-loading  ${Chunks}-chunk radius"
-    for ($cx = -$Chunks; $cx -lt $Chunks; $cx += 16) {
-        for ($cz = -$Chunks; $cz -lt $Chunks; $cz += 16) {
-            $x1 = $cx * 16
-            $z1 = $cz * 16
-            $x2 = ([Math]::Min($cx + 15, $Chunks - 1)) * 16
-            $z2 = ([Math]::Min($cz + 15, $Chunks - 1)) * 16
-            $proc.StandardInput.WriteLine("forceload add $x1 $z1 $x2 $z2")
-            $proc.StandardInput.Flush()
-            Start-Sleep -Seconds 3
-        }
-    }
-    $proc.StandardInput.WriteLine('forceload remove all')
-    $proc.StandardInput.Flush()
-    Start-Sleep -Seconds 5
-}
-
-Step 'stopping'
-$proc.StandardInput.WriteLine('stop')
-$proc.StandardInput.Flush()
-
-if (-not $proc.WaitForExit(180000)) {
+# Generous: a large radius is genuinely slow, and the server says so as it goes.
+$budget = 600 + ($Chunks * $Chunks * 2)
+if (-not $proc.WaitForExit($budget * 1000)) {
     $proc.Kill()
-    throw "the server did not stop when asked; the save at $folderDotted may be short of its last chunks"
+    Stop-Orphans
+    throw "the server did not finish within $budget seconds; see $log"
 }
-Write-Host "  stopped cleanly (exit $($proc.ExitCode))"
+Stop-Orphans
+
+if (-not (Select-String -LiteralPath $log -Pattern 'Octia worldgen: done, stopping' -Quiet)) {
+    throw "the server exited without reporting a finished run; see $log"
+}
+foreach ($line in (Select-String -LiteralPath $log -Pattern 'Octia (worldgen|: beacon|: derelict)')) {
+    Write-Host "  $($line.Line -replace '^\[[^]]*\] \[[^]]*\] \(octia\) ', '')"
+}
 
 # ---- Move it where the client can open it ----------------------------------
 

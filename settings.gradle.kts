@@ -4,6 +4,17 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+
+    // The Loom pin, resolved rather than repeated. gradle.properties calls
+    // itself the single control panel and docs/UPGRADING.md offers
+    // `1.11.8 -> 1.12.7` as a free move - but build.gradle.kts used to carry
+    // the same number as a literal, so editing the property alone changed
+    // nothing and said so silently. A plugins {} block in a BUILD script needs
+    // a literal; this one, in settings, can read a property, so the version
+    // lives in exactly one place and the free move is one line after all.
+    plugins {
+        id("fabric-loom") version providers.gradleProperty("loom_version").get()
+    }
 }
 
 plugins {

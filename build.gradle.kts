@@ -1,7 +1,9 @@
 plugins {
-    // Must match loom_version in gradle.properties, which carries the pin and
-    // the reasoning. It cannot supply it: a plugins {} block takes a literal.
-    id("fabric-loom") version "1.11.8"
+    // No version here on purpose. A plugins {} block in a build script takes a
+    // literal, which is how the Loom pin came to be written twice; the one in
+    // settings.gradle.kts resolves loom_version from gradle.properties instead,
+    // so the pin and its reasoning stay in the one file that claims to own them.
+    id("fabric-loom")
 }
 
 // ---- Identity, read from gradle.properties -------------------------------
@@ -102,18 +104,21 @@ loom {
     }
 }
 
-// The generator script tells the server to `stop` once spawn has been written.
-// Without a connected stdin the only way to end the run is to kill the JVM,
-// which races the final chunk save - the one thing a world generator must not do.
+// How tools/new-world.ps1 tells the server to generate and then stop.
 //
-// Gated behind -PoctiaStdin, and the gate is not optional. Declaring
-// standardInput = System.`in` unconditionally makes the Gradle client forward
-// stdin for the WHOLE build and then wait for an EOF that a scripted caller
-// never sends, so every other task hangs after finishing. That cost a ten
-// minute verify run that had already printed "All 29 required tests passed".
-if (project.hasProperty("octiaStdin")) {
-    tasks.withType<JavaExec>().matching { it.name == "runWorldgen" }.configureEach {
-        standardInput = System.`in`
+// This was once done by writing `stop` to the server console over a connected
+// stdin, and it was a mistake twice over. Declaring standardInput made the
+// Gradle client forward stdin for the entire build and hang waiting for an EOF
+// no script sends - a ten minute verify that had already passed all 29 tests.
+// And the line itself arrived with a byte-order mark on the front, so the
+// server read "<BOM>stop" and kept running. Properties cross the same three
+// process boundaries with nothing to encode. See HeadlessRun.
+tasks.withType<JavaExec>().matching { it.name == "runWorldgen" }.configureEach {
+    if (project.hasProperty("octiaExit")) {
+        jvmArgs("-Doctia.worldgen.exit=true")
+    }
+    if (project.hasProperty("octiaRadius")) {
+        jvmArgs("-Doctia.worldgen.radius=${project.property("octiaRadius")}")
     }
 }
 
