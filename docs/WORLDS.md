@@ -214,7 +214,39 @@ and than ocean ruins (about one per 700), which is deliberate while the shapes
 are still being judged: you cannot tune what you never meet. Pull both numbers
 up once the silhouettes are settled.
 
-Either can be placed on demand rather than walked to:
+**The waystation** — the first ruin that is not written in Java. It is an
+`.nbt` under `data/octia/structure/`, placed by `TemplateRuinFeature` with a
+random rotation and mirror, and eroded by a `BlockRotProcessor` at the integrity
+its configured feature names.
+
+### Authoring a ruin in the world
+
+This is the point of the pipeline: build ruins with blocks, not with code.
+
+1. Build it in world 0, or anywhere.
+2. Place a **Structure Block**, set it to SAVE, name it `octia:waystation`, and
+   size the box around your build.
+3. Add one **Structure Block in DATA mode** with metadata `core` wherever a ship
+   core belongs. Leave it out entirely if the ruin is masonry rather than a ship.
+4. Save. The file lands in
+   `run/saves/<world>/generated/octia/structures/waystation.nbt`.
+5. Copy it to `src/main/resources/data/octia/structure/waystation.nbt`.
+
+A new ruin type needs its two JSONs (`worldgen/configured_feature/` and
+`worldgen/placed_feature/`) and its name added to `TEMPLATE_RUINS` in
+`OctiaWorldgen`. That one string is the only Java involved.
+
+**Never put a ship core in a template.** Erosion deletes blocks at random, and
+`hullIntact` needs all eight of the core's neighbours — one unlucky roll and the
+ruin stops being a ship with nothing to show for it. The DATA marker exists so
+the hexahedron can be stamped in code afterwards, out of the processor's reach.
+`TemplateRuinGameTest.erosionCannotEatTheMarker` places one at integrity 0.05 and
+still demands an intact hull.
+
+The `waystation.nbt` in the repo today was emitted by `tools/make-template.py`
+as scaffolding. It is meant to be replaced by something built by hand.
+
+Either coded ruin can be placed on demand rather than walked to:
 
 ```bash
 /place feature octia:derelict

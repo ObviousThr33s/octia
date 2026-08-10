@@ -297,6 +297,28 @@ reflects.
 
 ## Kept for whoever hits it next
 
+**`verify.ps1` sometimes hangs after the tests pass, and it is not our code.**
+The symptom is a run that prints "All N required tests passed" and then never
+returns. A thread dump of the stuck JVM puts the server thread here:
+
+```
+MinecraftServer.stopServer -> ServerChunkCache.tick
+  -> ChunkMap.tick -> ChunkMap.processUnloads
+```
+
+That is vanilla's shutdown drain, which ticks the chunk cache until every chunk
+has unloaded, spinning at full CPU while it does. It is intermittent - the same
+suite hung once and completed the next run - and it got easier to hit as the
+suite grew past thirty tests, because gametests are laid out across enormous
+coordinates and each one leaves chunks behind.
+
+The report is written *before* shutdown, so a hung run's results are complete and
+trustworthy. If it bites often enough to matter, the fix is a watchdog in
+`verify.ps1`: wait for the report, allow a grace period, then kill. That has not
+been done, because a watchdog would also hide a hang in our own code, and that
+trade wants deciding on purpose.
+
+
 **Worlds made before 2026-08-10 have their beacon in the wrong place, forever.**
 The beacon and the spawn derelict were placed on `ServerWorldEvents.LOAD`, which
 fires before Minecraft chooses the world spawn, so `getSharedSpawnPos()` answered

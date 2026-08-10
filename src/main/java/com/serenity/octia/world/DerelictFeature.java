@@ -123,6 +123,24 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
     }
 
     /**
+     * The hexahedron and its core, written at a position someone else chose.
+     *
+     * <p>Exists for {@link TemplateRuinFeature}. A template cannot contain a
+     * core, because erosion would eventually take a panel out of the ring and
+     * the ruin would stop being a ship without anybody noticing; it carries a
+     * marker instead and the hull is stamped here, afterwards, out of reach of
+     * the rot processor.
+     *
+     * @param called whether a dig is already in the ground nearby, which is the
+     *               difference between a wreck that was summoned and one that
+     *               merely floated
+     */
+    public static void stamp(WorldGenLevel level, RandomSource random, BlockPos core, boolean called) {
+        cube(level, random, core);
+        RuinGround.put(level, core, coreState(called ? ShipStatus.CALLED : ShipStatus.MOORED));
+    }
+
+    /**
      * Twenty-six panels around where the core will go, top course weathered.
      *
      * <p>The exemption is the whole design: {@code dy == 0} is the slice

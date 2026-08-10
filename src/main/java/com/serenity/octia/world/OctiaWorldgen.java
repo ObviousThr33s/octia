@@ -55,6 +55,16 @@ public final class OctiaWorldgen {
     private static final String OBELISK = "obelisk";
 
     /**
+     * The feature type that places authored .nbt ruins. Its registry path is
+     * the TYPE, not a ruin - many placed features share it, one per template,
+     * each naming its own file in the configured feature JSON.
+     */
+    private static final String TEMPLATE_RUIN = "template_ruin";
+
+    /** Placed features backed by a template. One entry per authored ruin. */
+    private static final String[] TEMPLATE_RUINS = {"waystation"};
+
+    /**
      * How far out to look for somewhere to seat the spawn derelict, nearest
      * first. The near end is a short walk rather than a stroll - close enough to
      * find without looking for it, far enough that it is not sharing the
@@ -85,6 +95,7 @@ public final class OctiaWorldgen {
     /** Held from registration so nothing has to cast them back out of the registry. */
     private static DerelictFeature derelict;
     private static ObeliskFeature obelisk;
+    private static TemplateRuinFeature templateRuin;
 
     private OctiaWorldgen() {
     }
@@ -95,17 +106,33 @@ public final class OctiaWorldgen {
                 new DerelictFeature(NoneFeatureConfiguration.CODEC));
         obelisk = Registry.register(BuiltInRegistries.FEATURE, Octia.id(OBELISK),
                 new ObeliskFeature(NoneFeatureConfiguration.CODEC));
+        templateRuin = Registry.register(BuiltInRegistries.FEATURE, Octia.id(TEMPLATE_RUIN),
+                new TemplateRuinFeature(TemplateRuinFeature.Config.CODEC));
 
         // SURFACE_STRUCTURES rather than a later step: these sit on the ground
         // and want to be there before grass, flowers and trees decorate over
         // them, so a ruin looks weathered into the landscape rather than
         // dropped on top of it.
         for (String path : new String[] {DERELICT, OBELISK}) {
-            BiomeModifications.addFeature(
-                    BiomeSelectors.foundInOverworld(),
-                    GenerationStep.Decoration.SURFACE_STRUCTURES,
-                    ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(path)));
+            scheduleInOverworld(path);
         }
+        for (String path : TEMPLATE_RUINS) {
+            scheduleInOverworld(path);
+        }
+    }
+
+    /**
+     * Schedules one placed feature into every Overworld biome.
+     *
+     * <p>Adding a template ruin is meant to be this small: author the .nbt,
+     * write its configured and placed feature JSON, and add its name to
+     * {@link #TEMPLATE_RUINS}. No Java beyond the one string.
+     */
+    private static void scheduleInOverworld(String path) {
+        BiomeModifications.addFeature(
+                BiomeSelectors.foundInOverworld(),
+                GenerationStep.Decoration.SURFACE_STRUCTURES,
+                ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(path)));
     }
 
     /**
@@ -128,6 +155,10 @@ public final class OctiaWorldgen {
 
     public static ObeliskFeature obelisk() {
         return obelisk;
+    }
+
+    public static TemplateRuinFeature templateRuin() {
+        return templateRuin;
     }
 
     /**

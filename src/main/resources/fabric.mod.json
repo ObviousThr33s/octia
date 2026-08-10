@@ -20,7 +20,8 @@
       "${mod_package}.gametest.OctiaWorldGameTest",
       "${mod_package}.gametest.CrewGameTest",
       "${mod_package}.gametest.DerelictGameTest",
-      "${mod_package}.gametest.ObeliskGameTest"
+      "${mod_package}.gametest.ObeliskGameTest",
+      "${mod_package}.gametest.TemplateRuinGameTest"
     ]
   },
   "depends": {
