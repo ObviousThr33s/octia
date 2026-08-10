@@ -275,6 +275,23 @@ bleeding through from a world away. No new state, no new store, no new packet -
 the answer is already in the save. It is the cheapest wonderment in the codebase
 and the closest thing the mod has to a thesis statement.
 
+**Landed.** `EraEcho` wakes every forty ticks, checks each player against the
+moorings store, and draws a shaft of end-rod motes with an occasional low tone
+where the store says a ship is and this level has no core. Standing beside your
+own ship is a ship, not an echo of one.
+
+**The thing it taught.** The era stack does not share a vertical range - the
+Overworld begins at -64, the Nether at 0 - so a ship moored at y=-58 has a Y
+that does not exist one layer over. The first version gated on whether the
+mooring's exact position was loaded, which switched the whole feature off across
+the Overworld-to-Nether boundary: the one crossing it was written for, failing
+silently. What travels between eras is the **column**, never the point.
+
+**Still open.** Nothing carries the echo the other way - a player in the
+Overworld gets no hint that something is moored beneath them in an era below,
+because there is only one era stack layer implemented. When there are more, the
+question of whether an echo should be directional is a real one.
+
 ---
 
 ## XI. Mod integrations

@@ -2,6 +2,7 @@ package com.serenity.octia;
 
 import com.serenity.octia.crew.Crew;
 import com.serenity.octia.debug.OctiaDebug;
+import com.serenity.octia.world.EraEcho;
 import com.serenity.octia.world.HeadlessRun;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
@@ -160,6 +161,11 @@ public final class Octia implements ModInitializer {
         // has to be; whether it actually places anything is decided per save,
         // inside the feature. See OctiaWorldgen for why it has to be that way.
         OctiaWorldgen.bootstrap();
+
+        // The one thing that makes the dimension-agnostic moorings store
+        // perceptible. Registered here rather than with the worldgen because it
+        // is not terrain - it reads the store the ships already write.
+        EraEcho.bootstrap();
 
         // Dev tooling, inert unless -Doctia.worldgen.exit=true is on the command
         // line. tools/new-world.ps1 is the only thing that sets it.
