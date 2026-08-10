@@ -7,8 +7,15 @@ import net.minecraft.util.StringRepresentable;
  *
  * <p>Each constant answers its own light level rather than being looked up in a
  * switch somewhere else — the panel asks the value what it is worth and takes
- * the answer. Adding a fourth light means adding a line here and a blockstate
- * variant, and nothing else.
+ * the answer. Adding a fourth light costs one constant here, one variant in
+ * {@code blockstates/andesite_frame_panel.json}, the block model that variant
+ * names, that model's texture, one edit to
+ * {@code AndesiteFramePanelGameTest.cyclesThroughEveryLightAndWraps}, which
+ * clicks exactly three times and asserts the wrap, and the sentence in
+ * {@code AndesiteFramePanelBlock}'s class javadoc that spells the cycle out.
+ * The {@code lightLevel} lambda in {@code OctiaBlocks} and the gametest
+ * {@code emitsTheLightItDeclares} need no edit: both read the enum rather than
+ * naming its members.
  */
 public enum PanelLight implements StringRepresentable {
 

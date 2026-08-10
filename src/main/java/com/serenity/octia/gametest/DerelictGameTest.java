@@ -188,11 +188,9 @@ public class DerelictGameTest implements FabricGameTest {
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void aDisabledWorldGeneratesNoDerelict(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        for (int dx = -7; dx <= 7; dx++) {
-            for (int dz = -7; dz <= 7; dz++) {
-                helper.setBlock(GROUND.offset(dx, -1, dz), Blocks.GRAVEL);
-            }
-        }
+        // The shared floor, not a wider hand-rolled one: its note explains why
+        // the reach is capped at five, and this test used seven.
+        floor(helper, GROUND);
 
         OctiaWorldgen.setActive(false);
         boolean built = OctiaWorldgen.derelict().place(new FeaturePlaceContext<>(
@@ -256,7 +254,18 @@ public class DerelictGameTest implements FabricGameTest {
         helper.succeed();
     }
 
-    /** The dig is brushable and loaded, so finding one is worth the walk. */
+    /**
+     * A dig is in the ground within the call radius. Not that it carries loot,
+     * which is the half of the name this cannot reach.
+     *
+     * <p>Every suspicious gravel or sand block is an {@code EntityBlock}, so its
+     * {@code BrushableBlockEntity} exists the instant the block is written -
+     * {@code RuinGround.dig} depends on exactly that to set the loot table at
+     * all. The {@code instanceof} below therefore follows from the block check
+     * above it and can never be the thing that fails, which leaves this test
+     * asserting what {@code derelictGeneratesItsOwnDig} already asserts through
+     * {@code digSiteInRange}. The loot table itself is never read back.
+     */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void theDigCarriesLoot(GameTestHelper helper) {
         BlockPos core = place(helper, GROUND);

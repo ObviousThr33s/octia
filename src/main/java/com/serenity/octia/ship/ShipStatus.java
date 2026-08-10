@@ -32,7 +32,15 @@ public enum ShipStatus implements StringRepresentable {
         return lightLevel;
     }
 
-    /** True once the hull validates - both MOORED and CALLED are moored. */
+    /**
+     * True once the hull validates - both MOORED and CALLED are moored.
+     *
+     * <p>Defined by exclusion deliberately: the store cares whether there is a
+     * hull, not which lit state it is in. It is also the line a fourth status
+     * inherits silently - any status other than ADRIFT reads as moored unless
+     * this says otherwise, and it is the moorings file, the spine of the whole
+     * design, that pays for a wrong answer.
+     */
     public boolean isMoored() {
         return this != ADRIFT;
     }

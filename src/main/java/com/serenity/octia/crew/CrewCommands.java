@@ -48,6 +48,11 @@ final class CrewCommands {
                                                 .then(Commands.argument("model", StringArgumentType.greedyString())
                                                         .executes(context -> summon(context,
                                                                 StringArgumentType.getString(context, "model"))))))
+                                // Brigadier matches the literal before the
+                                // argument, so "all" is always the sweep. "all"
+                                // is also a legal seat name (/octia crew summon
+                                // all) and a crew member wearing it can never be
+                                // reached by the branch below.
                                 .then(Commands.literal("dismiss")
                                         .then(Commands.literal("all")
                                                 .executes(CrewCommands::dismissAll))
@@ -264,9 +269,9 @@ final class CrewCommands {
         return crew;
     }
 
-    /** Left-aligned column padding for the status table. */
+    /** Left-aligned column padding for the status table. The clip leaves at least one space. */
     private static String pad(String text, int width) {
         String clipped = text.length() > width - 1 ? text.substring(0, width - 1) : text;
-        return clipped + " ".repeat(Math.max(1, width - clipped.length()));
+        return clipped + " ".repeat(width - clipped.length());
     }
 }

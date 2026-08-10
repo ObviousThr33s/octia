@@ -33,6 +33,21 @@ Exactly four places. Everything else derives from these.
 3. **`Octia.MOD_ID`** — the one string constant in Java.
 4. **Directory names** — `assets/<id>/`, `data/<id>/`, and the Java package path.
 
+**One exception, and a rename will break it.** Translation keys carry the id on
+both sides: `en_us.json` writes it, and Java writes it back as a literal.
+`rename-mod.ps1` rewrites `.<oldid>.` inside `src/main/resources/*.json`, but in
+Java it rewrites only the package, the class name, and the `MOD_ID` literal — so
+any other id written into a Java string survives untouched. Today that is exactly
+`key.octia.debug` and `key.octia.debug_range`, hardcoded at
+`client/OctiaDebugOverlay.java:81,83`: after a rename the lang file says
+`key.<newid>.debug` while Java still asks for `key.octia.debug`, and the keybind
+screen shows the raw key string. The block keys are safe because Minecraft
+derives those from the `ResourceLocation`. `octia.crew.*`,
+`octia.create_world.*` and `key.categories.octia` are safe only by luck — the
+script's pattern needs a dot on both sides, so it misses them in the JSON exactly
+as it misses them in Java. Fix the two, or route them through a constant, before
+the next rename.
+
 ## The rule that makes this work
 
 > Never write a namespaced string literal. Build every `ResourceLocation`

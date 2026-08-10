@@ -130,12 +130,20 @@ judge the result from a walked world rather than a flown one.
 the gravel of the seafloor, which is `OctiaBeacon.raise` doing exactly what its
 note promises - `MOTION_BLOCKING_NO_LEAVES` plus a walk-down through fluid.
 
-**The derelict does not do this.** `DerelictFeature.canBuildAt` rejects any
-position whose fluid state is not empty, and the placed feature drops it at
+**The wild ones do not do this.** `RuinGround.hasFooting` rejects any position
+whose fluid state is not empty, and the placed feature drops it at
 `WORLD_SURFACE_WG`, which in an ocean is the top of the water. So every marine
-candidate is refused and no derelict has ever generated underwater. That is a
-safe default rather than a considered one - it was written to stop wrecks
-bobbing in open water, and it overshot into stopping them entirely.
+candidate from natural generation is refused and no wild derelict has ever
+generated underwater. That is a safe default rather than a considered one - it
+was written to stop wrecks bobbing in open water, and it overshot into stopping
+them entirely.
+
+**The near-spawn one already does.** `OctiaWorldgen.tryAt` reads
+`Heightmap.Types.OCEAN_FLOOR`, the seabed rather than the water surface, so the
+footing check lands on solid ground two below it and passes. A save that spawns
+over water gets its guaranteed derelict on the floor of it - bare, because
+`RuinGround.surfaceNear` needs an air block and neither digs nor debris can find
+one. The walk-down this entry asks for is owed to the placed-feature path only.
 
 **Closing it.** Give the feature the beacon's walk-down: drop through fluid to
 the floor, then decide. A wreck on the seabed is arguably the *most* in-fiction
@@ -215,9 +223,12 @@ encounter land.
 ## X. The echo across eras
 
 **The best-value idea available, because it is already paid for.**
-`ShipMoorings` is keyed by `BlockPos` with no dimension, deliberately, and
-`ShipGameTest.mooringsAreDimensionAgnostic` pins it. That property is the spine
-of the whole design and **nothing currently uses it.**
+`ShipMoorings` is keyed by `BlockPos` with no dimension, deliberately - held
+there by the signature of `get`, which takes a server rather than a level.
+(`ShipGameTest.mooringsAreDimensionAgnostic` is named for the property but does
+not pin it: every `ServerLevel` hands back the same `MinecraftServer`, so both
+of its lookups pass the identical argument. See the note on the test.) That
+property is the spine of the whole design and **nothing currently uses it.**
 
 Stand in the Nether at the same X/Z as a ship moored in the Overworld and there
 should be something: a low hum, a faint particle column, the core's light

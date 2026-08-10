@@ -1,7 +1,7 @@
 ```
 ACT TWO
 MILESTONE 1
-OCITIA_[0.1.0.A.C.T.2]_spec
+OCTIA_[0.1.0.A.C.T.2]_spec
 SEEK KEG |ALL|
 ```
 
@@ -10,8 +10,10 @@ SEEK KEG |ALL|
 What breaks, and exactly where. Established 2026-07-31 against live Fabric
 sources and the pinned `minecraft-merged-1.21.1` jar, not from memory.
 
-The mod's name is **OCITIA** from 2026-07-31 onward. The code has not caught up:
-`mod_id` is still `octia` and the package is still `com.serenity.octia`. Read
+The mod's name is **OCTIA**, and the code agrees: `mod_id=octia`, the package is
+`com.serenity.octia`, and `Octia.MOD_ID` is the one constant. This paragraph used
+to announce a rename to "OCITIA"; no such rename was made, and `OCTIA.md` is the
+record of which spellings are this repo and which belong to another project. Read
 `gradle.properties` before writing any identifier — see `NAMING.md`.
 
 ---
@@ -58,20 +60,20 @@ Verified at every release in between: 1.21.2, 1.21.3 and 1.21.4 all still have
 `SavedData.Factory` and the abstract `save`. 1.21.5 replaces the whole surface.
 
 Affected: `ship/ShipMoorings.java:30, 46, 59, 68` and
-`world/OctiaWorldOption.java:28, 46, 70, 78`.
+`world/OctiaWorldOption.java:29, 55, 82, 93`.
 
 `SavedDataType<T>` is a record `(String id, Function<Context,T> constructor,
 Function<Context,Codec<T>> codec, DataFixTypes dataFixType)`. The migration:
 
 - the **filename moves into the type**, so `computeIfAbsent` takes one argument;
   fold `FILE` (`"octia_moorings"`, `"octia_world"`) into the type's `id` and drop
-  it from the call sites at `ShipMoorings.java:56` and `OctiaWorldOption.java:67`;
+  it from the call sites at `ShipMoorings.java:56` and `OctiaWorldOption.java:79`;
 - delete both `save(CompoundTag, HolderLookup.Provider)` overrides and write a
   `Codec<T>` for each store;
 - the private no-arg constructors must take a `SavedData.Context`;
 - 1.21.5 also reworked `CompoundTag` getters to return `Optional`, so
   `tag.getLongArray(...)` (`ShipMoorings.java:61`) and `tag.getBoolean(...)`
-  (`OctiaWorldOption.java:72-73`) break too. Moving to a `Codec` dissolves most
+  (`OctiaWorldOption.java:84-85`) break too. Moving to a `Codec` dissolves most
   of that.
 
 Note the pre-1.21.5 argument order is **factory first** — `computeIfAbsent(FACTORY, FILE)`,
@@ -82,7 +84,7 @@ as the code has it today. Do not "correct" it while still on 1.21.x < 5.
 ## The borrowed `DataFixTypes` constant — check this before opening a save
 
 Both stores pass `DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES`
-(`ShipMoorings.java:46-47`, `OctiaWorldOption.java:46-47`). That is the correct
+(`ShipMoorings.java:46-47`, `OctiaWorldOption.java:55-56`). That is the correct
 choice on 1.21.1 — see the comment at `ShipMoorings.java:37-45`, which is
 accurate — but it is not free.
 

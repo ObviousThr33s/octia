@@ -20,7 +20,9 @@ import java.util.Locale;
  * <p>No Minecraft classes are imported here on purpose. Parsing is the part of
  * the crew that can be wrong in a way a unit test can catch, so it is kept
  * where a unit test can reach it — see {@code OrderTest} and the split
- * described in docs/DEVOPS.md.
+ * described in AGENTS.md III - pure logic gets a JUnit test, in-world behaviour
+ * gets a {@code @GameTest}, and both run under verify.ps1. docs/DEVOPS.md
+ * argues the GameTest half of that.
  */
 public record Order(Verb verb, String arg) {
 
@@ -47,6 +49,15 @@ public record Order(Verb verb, String arg) {
      * <em>south</em> (+Z) and the angle grows clockwise, so west is +90 and east
      * is -90. Writing that down once here is cheaper than getting it wrong in
      * three places, and it is the kind of constant that a unit test can pin.
+     *
+     * <p>The other load-bearing fact about this enum is its <em>spelling</em>.
+     * {@code name().toLowerCase(Locale.ROOT)} is the canonical {@code arg} of a
+     * GO order: {@code parse} writes it, {@code Tender.next} writes it, and
+     * {@code CrewPlayer.steer} reads it back through {@link #of(String)}. The
+     * round trip closes only because the case labels in {@code of} below are
+     * those same four words, written out by hand. Rename a constant and the two
+     * writers follow it silently while {@code of} does not - the arg stops
+     * matching, every GO becomes a HOLD, and a crew member just stops walking.
      */
     public enum Heading {
         NORTH(180.0F),
@@ -170,7 +181,11 @@ public record Order(Verb verb, String arg) {
             if (line.isEmpty()) {
                 continue;
             }
-            // "Order: go north" and "action = jump" both survive to here.
+            // Only the colon form is unwrapped, and only for four labels:
+            // "Order: go north" becomes "go north". "action = jump" is NOT
+            // rewritten - it reaches the switch as the head "action", matches
+            // nothing, and holds. That is the intended answer rather than a
+            // gap: a model that invented its own syntax did not give an order.
             int colon = line.indexOf(':');
             if (colon >= 0 && colon <= 12 && line.substring(0, colon).matches("(?i)\\s*(order|action|command|reply)")) {
                 line = line.substring(colon + 1).trim();
@@ -205,14 +220,15 @@ public record Order(Verb verb, String arg) {
         return flat.length() <= MAX_SAY ? flat : flat.substring(0, MAX_SAY);
     }
 
-    /** True if this order finishes the moment it is carried out. */
-    public boolean isOneShot() {
-        return verb == Verb.SAY || verb == Verb.JUMP;
-    }
-
     @Override
     public String toString() {
-        return arg.isEmpty() ? verb.name().toLowerCase(Locale.ROOT)
-                : verb.name().toLowerCase(Locale.ROOT) + " " + arg;
+        // The parser's own grammar, which is not cosmetic. Situation.of ends
+        // every report with "your last order: " and this string, so a cleric is
+        // shown its previous order in exactly the form it is allowed to answer
+        // with, and /octia crew prints the same text in its status column. A
+        // prettier toString would quietly teach models a vocabulary that parse
+        // rejects.
+        String spoken = verb.name().toLowerCase(Locale.ROOT);
+        return arg.isEmpty() ? spoken : spoken + " " + arg;
     }
 }

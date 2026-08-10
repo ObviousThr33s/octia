@@ -91,6 +91,10 @@ final class CrewConfig {
         endpoints.forEach(ends::add);
         json.add("endpoints", ends);
 
+        // A literal empty array, not the field - and that is only correct
+        // because write() is reached from exactly one place: load(), on the
+        // object defaults() just built, whose roster is always empty. A second
+        // caller would silently drop a configured roster.
         json.add("roster", new JsonArray());
         json.addProperty("poll_seconds", pollSeconds);
         json.addProperty("max_crew", maxCrew);
@@ -107,6 +111,20 @@ final class CrewConfig {
         }
     }
 
+    /**
+     * The non-empty strings under {@code key}, or {@code fallback}.
+     *
+     * <p><b>An empty list is not a way of saying "none".</b> {@code []}, and a
+     * list of nothing but blanks, both fall back - so {@code "endpoints": []}
+     * cannot be used to switch the bench off; it restores the three defaults.
+     * Running deliberately without a bench means pointing endpoints at
+     * something that does not answer. The {@code _note} written into the file
+     * does not say this, and nothing else does either.
+     *
+     * <p>{@code getAsString} throws on a nested object or array, and that throw
+     * is caught by {@link #load()} - which discards the WHOLE config. One
+     * malformed endpoint entry also loses roster, poll_seconds and max_crew.
+     */
     private static List<String> strings(JsonObject json, String key, List<String> fallback) {
         if (!json.has(key) || !json.get(key).isJsonArray()) {
             return fallback;
@@ -121,6 +139,11 @@ final class CrewConfig {
         return out.isEmpty() ? fallback : List.copyOf(out);
     }
 
+    /**
+     * Clamped rather than rejected: 0 or negative would mean "no crew" and "ask
+     * every tick", and the nearest legal value beats refusing to start. Crew
+     * clamps poll_seconds a second time, to a floor of 20 ticks.
+     */
     private static int integer(JsonObject json, String key, int fallback) {
         try {
             return json.has(key) ? Math.max(1, json.get(key).getAsInt()) : fallback;

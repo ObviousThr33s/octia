@@ -45,7 +45,6 @@ public final class Cleric {
 
     private int answered;
     private int unanswered;
-    private volatile String lastSaid = "";
 
     Cleric(ClericBench bench, String model) {
         this.bench = bench;
@@ -77,11 +76,6 @@ public final class Cleric {
 
     public int unanswered() {
         return unanswered;
-    }
-
-    /** The last thing this cleric actually said, for {@code /octia crew}. */
-    public String lastSaid() {
-        return lastSaid;
     }
 
     /** True when this cleric is idle, served, and due another question. */
@@ -122,11 +116,20 @@ public final class Cleric {
             return null;
         }
         answered++;
-        lastSaid = said.length() > 60 ? said.substring(0, 60) + "..." : said;
         return said;
     }
 
-    /** Noted when an answer arrived but said nothing the vocabulary recognised. */
+    /**
+     * Noted when an answer arrived and parsed to a hold.
+     *
+     * <p>Not the same as "unrecognised", and the difference is not currently
+     * recoverable: {@code Order.parse} returns the single {@code Order.HOLD}
+     * instance both for gibberish and for a cleric that correctly said
+     * {@code hold} - a word the briefing lists in the vocabulary and offers as
+     * an example reply. So a perfectly obedient cleric that holds is tallied
+     * here, and {@code /octia crew} prints it under "ignored". Treat this as a
+     * rough health signal, not as evidence about a particular model.
+     */
     void countUnanswered() {
         unanswered++;
     }

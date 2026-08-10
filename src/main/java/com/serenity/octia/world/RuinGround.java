@@ -47,6 +47,14 @@ final class RuinGround {
      * away, and a ruin is supposed to look found, not installed.
      */
     static boolean hasFooting(WorldGenLevel level, BlockPos floor, int radius) {
+        // Eight is the headroom a ruin is assumed to want above its floor. It
+        // clears the derelict's cube - floor+3 at its top - with room to spare,
+        // and it is two short of the obelisk, whose column can reach floor+10.
+        // An obelisk seated that near the build ceiling passes here and then
+        // loses its crown to it, because setBlock above build height is a silent
+        // no-op: a spire left standing without the one block that says so, which
+        // is the state ObeliskFeature reserves for a broken one. Amplified
+        // peaks only.
         if (level.isOutsideBuildHeight(floor) || level.isOutsideBuildHeight(floor.above(8))) {
             return false;
         }

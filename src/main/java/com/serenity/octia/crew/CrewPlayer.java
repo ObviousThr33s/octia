@@ -56,7 +56,13 @@ public final class CrewPlayer extends ServerPlayer {
     private final Cleric cleric;
     private Order order = Order.HOLD;
 
-    /** Set once when leaving, so a second death or dismissal is a no-op. */
+    /**
+     * Set once when leaving. Read in exactly one place, {@link #die}, so that a
+     * body that dies twice — or dies after being dismissed — queues one log-off
+     * and not two. It does not guard dismissal: a second {@code Crew.logOff}
+     * refuses on its own, because by then the seat is out of the muster map and
+     * the body is already removed from the world.
+     */
     private boolean loggingOff;
 
     private CrewPlayer(MinecraftServer server, ServerLevel level, GameProfile profile, Cleric cleric) {
@@ -159,6 +165,18 @@ public final class CrewPlayer extends ServerPlayer {
                     }
                 }
             }
+            // LOOK finishes the moment it is carried out, exactly like SAY and
+            // JUMP below, and the clear to HOLD at the end of this branch is
+            // what makes that true. Order used to carry an isOneShot() saying
+            // otherwise - it counted SAY and JUMP only, so it had contradicted
+            // this branch since the crew landed. Nothing but its own test ever
+            // called it, so it was removed rather than corrected. The three
+            // branches below that clear HOLD unconditionally - LOOK, JUMP, SAY -
+            // are now the only statement of which orders are one-shot. GO and
+            // FOLLOW clear it too, but only on a heading that will not parse or
+            // a target that is gone, which is a failure and not a completion. A
+            // caller that needs to ask before acting is what would justify
+            // bringing the predicate back.
             case LOOK -> {
                 ServerPlayer target = target(order.arg());
                 if (target != null) {
@@ -223,6 +241,15 @@ public final class CrewPlayer extends ServerPlayer {
      * answers to falls back the same way rather than cancelling the order —
      * small models misspell, and a crew member that follows the only person in
      * the room is right more often than one that stops.
+     *
+     * <p><b>A crewmate can be named, but is never the fallback.</b>
+     * {@code getPlayerByName} does not filter crew — they are ordinary entries
+     * in the player list — so {@code follow phi_4} resolves to another crew
+     * member, and {@link Situation} lists crewmates by name in the report, so a
+     * cleric is handed exactly what it needs to do it. {@link #nearest()}
+     * deliberately skips crew, so the no-name path never does. Whether crew
+     * following crew is wanted is a design question, and this is where it would
+     * be decided.
      */
     private ServerPlayer target(String name) {
         if (!name.isEmpty()) {
@@ -293,11 +320,14 @@ public final class CrewPlayer extends ServerPlayer {
         }
         loggingOff = true;
         MinecraftServer server = this.server;
+        // Crew.of is not null-checked, and that is an assumption rather than a
+        // fact of the type: it answers null for any server not between
+        // SERVER_STARTED and SERVER_STOPPING. It holds because die() runs
+        // inside a server tick and the task queued here is drained in the same
+        // server loop, long before stopServer fires SERVER_STOPPING and clears
+        // the muster. A death queued from off-tick would make this an NPE on
+        // the way down.
         server.execute(() -> Crew.of(server).logOff(this, "died"));
-    }
-
-    boolean isLoggingOff() {
-        return loggingOff;
     }
 
     void markLoggingOff() {

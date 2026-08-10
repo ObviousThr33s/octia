@@ -57,6 +57,9 @@ class SeatNameTest {
         assertEquals("gemma_3_12b", SeatName.coin("gemma-3-12b-it-Q4_K_M.gguf"));
         assertEquals("Qwen3_14B", SeatName.coin("Qwen3-14B-Q4_K_M.gguf"));
         assertEquals("phi_4", SeatName.coin("phi-4-Q4_K_M.gguf"));
+        // The only one here that is also truncated, which is easy to misread as
+        // a rule: "nomic_embed_text_v1_5" is twenty-one characters, and what the
+        // sixteen happen to keep is the whole readable name. No rule strips v1.5.
         assertEquals("nomic_embed_text", SeatName.coin("nomic-embed-text-v1.5.Q8_0.gguf"));
     }
 

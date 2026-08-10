@@ -216,11 +216,23 @@ public final class ClericBench {
         return http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .handle((response, error) -> {
                     if (error != null) {
+                        // A transport failure retires the endpoint outright:
+                        // nothing answered, so the bench is presumed gone,
+                        // isServed() goes false for every cleric, and the whole
+                        // crew falls through to the Tender until Crew's reprobe
+                        // finds it again - up to thirty seconds later. One
+                        // timeout is enough. That is the deliberate trade: a
+                        // crew that keeps walking beats a crew that keeps
+                        // waiting.
                         lastError = error.getClass().getSimpleName() + ": " + error.getMessage();
                         reach = null;
                         return null;
                     }
                     if (response.statusCode() != 200) {
+                        // Deliberately not symmetrical. An HTTP error means
+                        // something IS there and is unhappy - a model id it does
+                        // not have, a context overflow - so the endpoint is kept
+                        // and only this one question is lost.
                         lastError = "HTTP " + response.statusCode() + " from " + current.base();
                         return null;
                     }

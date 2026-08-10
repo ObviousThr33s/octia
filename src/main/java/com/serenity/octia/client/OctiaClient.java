@@ -56,6 +56,14 @@ public final class OctiaClient implements ClientModInitializer {
      * Narrowest still worth drawing. Vanilla {@code Button} renders its label
      * with a scrolling, scissored string, so a short button truncates rather
      * than spilling over its neighbour.
+     *
+     * <p><b>A floor, so it can beat {@link #widthFor}'s own rule.</b> The GUI
+     * scale is chosen to keep the scaled width at 320 or more, so 320 is the
+     * case to check: the gutter is (320 - 210) / 2 = 55 and only 55 - 4 - 4 =
+     * 47 is free, but this floor draws 54 from x = 4 anyway. The button then
+     * ends at 58 and its last three pixels sit under the tab column, where -
+     * exactly as {@link #widthFor} sets out - the vanilla widget beneath takes
+     * the click. It overlaps at all for scaled widths 320 to 325.
      */
     private static final int MIN_W = 54;
 

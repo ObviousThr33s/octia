@@ -83,7 +83,7 @@ machine" stop being a sentence anyone says.
 
 ## What is deliberately not here
 
-- **No datagen yet.** With one block, hand-written JSON is shorter than the
+- **No datagen yet.** With two blocks, hand-written JSON is shorter than the
   generator and easier to read. That flips around ten blocks; revisit then.
 - **No screenshot or pixel tests.** They are slow, flaky, and would need a
   display, which forfeits the headless property that makes the rest work.

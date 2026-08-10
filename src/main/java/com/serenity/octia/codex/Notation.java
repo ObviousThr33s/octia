@@ -22,6 +22,14 @@ import java.util.Optional;
  * {@link ArtifactId} ({@code OCTIOID_[0.1.0.A.C.T.1]_build}) as in the
  * composite. {@link #artifact()} tells you which you got rather than making
  * callers re-parse it.
+ *
+ * <p><b>Nothing under {@code src/main} calls this package.</b> Its only caller
+ * today is {@code NotationTest}, and that is on purpose rather than neglect:
+ * AGENTS.md I asks for the notation as types instead of re-parsed strings, so
+ * the codex exists ahead of its callers and must not be pruned as dead code.
+ * <b>Seam:</b> {@link #parse(String)} is where a KEG sign read out of the world
+ * enters the JVM - whatever reads sign text first should land here, not on a
+ * second string parser written beside it.
  */
 public record Notation(Act act, int milestone, String subject, Seek seek) {
 

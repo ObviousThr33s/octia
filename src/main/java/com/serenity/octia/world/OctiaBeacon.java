@@ -20,12 +20,14 @@ import net.minecraft.world.level.block.Blocks;
  * The difference is visible from the moment the world opens, without a command,
  * an inventory check, or a log line.
  *
- * <p>This is placement at first load, not chunk generation. That is deliberate
- * for now: real worldgen means a configured feature, a placed feature, and a
- * biome modification, and Fabric's biome modifications are global rather than
- * per-save, so gating them on a per-world flag is a larger job than the switch
- * itself. Raising the mast proves the flag end to end and is honest about what
- * it is. See NEXT.md.
+ * <p>This is placement at first load, not chunk generation, and it stays that
+ * way: the beacon is one mast at one place per save, which is a first-load fact
+ * rather than a terrain fact. The chunk-generation half has since landed
+ * separately - {@link OctiaWorldgen} registers the feature type and the biome
+ * modification, the configured and placed features are datapack JSON, and the
+ * per-save switch is applied inside the feature because Fabric's biome
+ * modifications are per-launch. Read that class before repeating this note's
+ * old claim that nothing generates. See docs/ROADMAP.md.
  */
 public final class OctiaBeacon {
 
@@ -39,7 +41,8 @@ public final class OctiaBeacon {
     private static final int PAD = 2;
 
     /**
-     * Finds honest ground at the given column and raises the beacon there.
+     * Finds honest ground at the save's spawn column and raises the beacon
+     * there.
      *
      * <p>Seed-independence lives in this method. WORLD_SURFACE alone is not
      * enough: it stops on the first non-air block, which over an ocean is the
@@ -50,6 +53,15 @@ public final class OctiaBeacon {
      * column of panels bobbing in open water.
      */
     public static void raise(ServerLevel level) {
+        // What "spawn" is at this moment, and it is not what it looks like.
+        // ServerWorldEvents.LOAD fires while the level is still being built, so
+        // on a brand-new save the level data's spawn has not been chosen yet and
+        // this answers the default column at the world origin. docs/WORLDS.md is
+        // the receipt: all three saves carry their mast at x=0 z=0, and [0.2.1]
+        // records a player spawn of 112 67 176 - the mast is 200-odd blocks from
+        // where that world actually starts you. Verify against
+        // MinecraftServer.createLevels before treating it as intended: the same
+        // call decides where placeNearSpawn measures its rings from.
         BlockPos spawn = level.getSharedSpawnPos();
 
         // The spawn chunk is not guaranteed resident the instant the level loads,

@@ -21,6 +21,15 @@ import net.minecraft.world.level.material.MapColor;
  * {@link #bootstrap()} is first called from the mod entrypoint. That ordering
  * matters: touching this class before Minecraft's registries are open throws,
  * and calling it from {@code onInitialize} is the guaranteed-safe moment.
+ *
+ * <p><b>The invariant, written down because the JVM will not enforce it.</b>
+ * Class initialisation fires on the first <i>active use</i> by anyone, and
+ * reading {@link #ANDESITE_FRAME_PANEL} counts exactly as much as calling
+ * {@link #bootstrap()}. The safety above therefore rests on nothing touching
+ * this class before {@code Octia.onInitialize} does. Any later hook that reads
+ * a field here from an earlier phase - a mixin, a client-only initialiser, a
+ * static field in some other class - moves registration to that phase without
+ * a word of warning.
  */
 public final class OctiaBlocks {
 
@@ -60,7 +69,19 @@ public final class OctiaBlocks {
     private OctiaBlocks() {
     }
 
-    /** Registers a block and its matching item under the same path. */
+    /**
+     * Registers a block and its matching item under the same path.
+     *
+     * <p>One funnel, one {@link Octia#id(String)} call per registry: that is
+     * what keeps the block and item registries from ever disagreeing about a
+     * path, and what keeps a namespaced string literal out of this file.
+     *
+     * <p><b>Seam.</b> This assumes every block wants exactly one plain
+     * {@code BlockItem} with default {@code Item.Properties}. The first block
+     * that wants none (a purely technical block), or a stack limit, or a
+     * {@code BlockItem} subclass, is the one that needs a second path through
+     * here. Add it then; adding it now would be an abstraction with no caller.
+     */
     private static <T extends Block> T register(String path, T block) {
         Registry.register(BuiltInRegistries.BLOCK, Octia.id(path), block);
         Registry.register(BuiltInRegistries.ITEM, Octia.id(path), new BlockItem(block, new Item.Properties()));

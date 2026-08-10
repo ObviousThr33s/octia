@@ -121,9 +121,12 @@ public class ShipGameTest implements FabricGameTest {
     }
 
     /**
-     * A dig placed inside the hull ring calls the ship with no prompting,
-     * because that position IS a neighbour. Pins the boundary between what
-     * notifies itself and what has to be asked.
+     * A dig placed directly on top of the core calls the ship with no
+     * prompting, because that position is one of the six faces a vanilla
+     * neighbour update actually reaches. Pins the boundary between what
+     * notifies itself and what has to be asked. Not the ring itself,
+     * despite the name: after {@code buildHull} every ring position is
+     * already a panel, so there is nowhere in the ring to put a dig.
      */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void aDigOnTheRingCallsImmediately(GameTestHelper helper) {
@@ -136,16 +139,24 @@ public class ShipGameTest implements FabricGameTest {
     }
 
     /**
-     * <b>The load-bearing test.</b>
+     * <b>Read this before trusting it.</b> The dimension-agnostic claim is
+     * asserted here but not pinned here.
      *
      * <p>The whole design rests on a ship existing at the same coordinates
      * across the era stack, which is only true because the dimension is not
-     * part of the moorings key. Here a position is moored from the Overworld
-     * and then read back through the <em>Nether's</em> server handle.
+     * part of the moorings key. This test moors from the Overworld and then
+     * looks the position up again through {@code nether.getServer()} - but
+     * every {@code ServerLevel} on a server hands back the <em>same</em>
+     * {@code MinecraftServer}, so both lookups pass the identical argument
+     * to {@code ShipMoorings.get}. The store cannot come back different,
+     * and the instance comparison below cannot fail.
      *
-     * <p>If anyone ever fetches the store from the current level instead of
-     * {@code server.overworld()}, or folds a dimension id into the key, this
-     * fails - and nothing else would notice.
+     * <p>What holds the property is the signature: {@code get} takes a
+     * server, not a level, and goes through {@code server.overworld()}.
+     * Folding a dimension into the key would mean changing that signature,
+     * which is a compile error in this file rather than a red test. What
+     * this does still prove is that the Nether exists on the gametest
+     * server and that a hull completed in the Overworld reached the store.
      */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void mooringsAreDimensionAgnostic(GameTestHelper helper) {

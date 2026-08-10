@@ -20,7 +20,6 @@ import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -199,8 +198,16 @@ public final class Crew {
     /**
      * Seats one crew member.
      *
+     * <p><b>This does not enforce {@code max_crew}.</b> Both callers check it
+     * instead - CrewCommands.summon so it can say why it refused, and
+     * {@link #muster} so it can stop seating rather than fail - which means a
+     * third caller could seat a ninth crew member and nothing here would stop
+     * it. That is the seam to close if the cap ever has to be a guarantee
+     * rather than a convention.
+     *
      * @param model the model id the bench knows, or empty for the offline tender
-     * @return the body, or null if the name was illegal or already aboard
+     * @return the body, or null if the name is illegal, is already aboard, or
+     *         belongs to a real player currently logged in
      */
     public CrewPlayer summon(String seatName, String model, ServerLevel level, Vec3 where, float yaw) {
         if (!SeatName.isLegal(seatName) || aboard.containsKey(seatName.toLowerCase(Locale.ROOT))) {
@@ -236,20 +243,30 @@ public final class Crew {
         }
 
         List<String> seated = new ArrayList<>();
-        Set<String> taken = new LinkedHashSet<>(aboard.keySet());
         for (String model : models) {
             if (aboard.size() >= config.maxCrew) {
                 break;
             }
-            String name = SeatName.coin(model, taken);
+            // aboard's keys are already the lowercased seat names, and summon()
+            // adds to it, so the live key set IS the roll of who is taken. The
+            // separate copy that used to sit here was a second place the same
+            // fact was written down, and a second place it could drift.
+            String name = SeatName.coin(model, aboard.keySet());
             // Fan them out around whoever called the muster. Eight players seated
             // on one block resolve their collision by shoving each other across
             // the room, which looks like a bug and is very hard to unsee.
-            double angle = seated.size() * 1.6;
+            //
+            // The step below is an angle in radians; RING is a distance in
+            // blocks. Different quantities, and they only looked interchangeable
+            // while both read 1.6 - which was the bug: a 1.6 rad step wraps after
+            // four seats, so seat 4 lands 0.117 rad from seat 0, or 0.19 blocks
+            // apart at RING, well inside a 0.6-wide player. That is precisely the
+            // shoving these lines exist to prevent, and it started at a muster of
+            // five. The golden angle never repeats, at any crew size.
+            double angle = seated.size() * 2.399963;
             Vec3 spot = where.add(Math.cos(angle) * RING, 0.0, Math.sin(angle) * RING);
             CrewPlayer body = summon(name, served ? model : "", level, spot, yaw);
             if (body != null) {
-                taken.add(name.toLowerCase(Locale.ROOT));
                 seated.add(name);
             }
         }
@@ -294,6 +311,14 @@ public final class Crew {
     }
 
     // ---- What the crew has heard --------------------------------------------
+    //
+    // Server thread only, and that is what makes a plain ArrayDeque enough here
+    // next to an HTTP pool. CHAT_MESSAGE fires on the server thread and tick()
+    // runs on the server thread, so the writer and the reader are the same
+    // thread and there is nothing to synchronise. The snapshot below is where
+    // that stops mattering: Situation.of() folds it into a String on the tick,
+    // and only the finished String is handed to the bench's pool. Nothing
+    // off-tick ever holds a reference to this deque - keep it that way.
 
     private void heard(String line) {
         chatter.addLast(line);
@@ -309,16 +334,5 @@ public final class Crew {
     /** Announces a seating in chat, so logging on is something you watch happen. */
     static void announce(MinecraftServer server, Component line) {
         server.getPlayerList().broadcastSystemMessage(line, false);
-    }
-
-    /** The players who are not crew — everyone the crew is actually here for. */
-    static List<ServerPlayer> people(MinecraftServer server) {
-        List<ServerPlayer> out = new ArrayList<>();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (!(player instanceof CrewPlayer)) {
-                out.add(player);
-            }
-        }
-        return out;
     }
 }

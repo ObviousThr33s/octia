@@ -1,7 +1,7 @@
 ```
 ACT ONE
 MILESTONE 0
-OCTIOID_[0.1.0.A.C.T.1]_spec
+OCTIA_[0.1.0.A.C.T.1]_spec
 SEEK KEG |ALL|
 ```
 
@@ -69,6 +69,15 @@ authored; the underscore form is derived by the filesystem.
 `ArtifactId.toFilesystemName()` performs exactly that derivation, so nobody
 has to rediscover it.
 
+**Except for the separator before the type.** The form line above says `_type`,
+and `ArtifactId.toNotation()` follows it: it always writes `]_` before the type,
+so parsing a level name and re-rendering it does *not* give the level name
+back — the authored `.project` comes back as `_project`. `NotationTest` pins
+that. The three saves in [WORLDS.md](WORLDS.md) and `tools/new-world.ps1` all
+author `.project`, so the dotted type separator is what the world actually
+carries and the canonical render is a normalisation of it, not a copy. Left as
+it stands until KEG says which spelling the notation owns.
+
 Flags are single characters and carry no fixed meaning yet. They are read as a
 word when they spell one: `S.A.F.E` is deliberate.
 
@@ -103,11 +112,11 @@ Headers on a walkthrough, a milestone, or a status report:
 ```
 ACT ONE
 MILESTONE 0
-OCTIOID_[0.1.0.A.C.T.1]_spec
+OCTIA_[0.1.0.A.C.T.1]_spec
 SEEK KEG |ALL|
 ```
 
-`Notation.block(...)` renders precisely this, and its test asserts the sign at
+`Notation.block()` renders precisely this, and its test asserts the sign at
 `(-112, 67, -149)` round-trips through the parser unchanged. If the in-world
 sign and the code ever disagree, the test fails — the world is the source of
 truth, not this document.

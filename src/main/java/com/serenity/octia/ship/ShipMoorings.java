@@ -1,6 +1,5 @@
 package com.serenity.octia.ship;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,6 +41,17 @@ public final class ShipMoorings extends SavedData {
      * on world reload and leave one line in the log. RANDOM_SEQUENCES is chosen
      * because its schema is minimal, and fixers only run at all when a world is
      * opened in a later game version than it was written by.
+     *
+     * <p><b>Borrowing a vanilla type is not free.</b> {@code SavedData.save}
+     * stamps this file with the current DataVersion, so vanilla's fixers for
+     * this type will run over the mod's own NBT on any Minecraft bump. V99
+     * registers it as {@code DSL.remainder()}, which is exactly where
+     * {@code moorings} sits - a future fixer shaped like
+     * {@code RandomSequenceSettingsFix}, which rewrites {@code data} into
+     * {@code data.sequences}, would carry it out of reach. {@link #load} would
+     * then read an absent long array and return an empty set: no crash, no log
+     * line, every moored ship forgotten. docs/UPGRADING.md holds the checkpoint
+     * to run before that bump.
      */
     private static final SavedData.Factory<ShipMoorings> FACTORY = new SavedData.Factory<>(
             ShipMoorings::new, ShipMoorings::load, DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES);
@@ -96,9 +106,13 @@ public final class ShipMoorings extends SavedData {
         return moored.size();
     }
 
-    /** Every moored position. Unordered - the store is a set, not a route. */
+    /**
+     * Every moored position, as a detached snapshot rather than a view. It is
+     * built fresh per call, so writing to it changes nothing and holding it
+     * shows nothing new - which is why it is not wrapped unmodifiable: there is
+     * no shared set to protect. Unordered: the store is a set, not a route.
+     */
     public Set<BlockPos> positions() {
-        return Collections.unmodifiableSet(
-                moored.stream().map(BlockPos::of).collect(Collectors.toSet()));
+        return moored.stream().map(BlockPos::of).collect(Collectors.toSet());
     }
 }

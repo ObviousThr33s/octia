@@ -36,7 +36,11 @@ public record Seek(String target, Scope scope) {
             throw new IllegalArgumentException("no seek line given");
         }
         String body = line.trim();
-        if (!body.toUpperCase().startsWith("SEEK")) {
+        // SEEK has to be the whole first word. startsWith alone let "SEEKING KEG"
+        // through and handed back a target of "ING KEG"; the optional group also
+        // keeps a bare "SEEK" falling through to the constructor, which gives the
+        // better message ("SEEK needs a target") than this one would.
+        if (!body.toUpperCase().matches("SEEK(\\s.*)?")) {
             throw new IllegalArgumentException(
                     "not a SEEK line: '" + line + "'. SEEK is the call verb; no synonym is valid.");
         }

@@ -28,7 +28,18 @@ public class OctiaWorldGameTest implements FabricGameTest {
     /** Off-centre and above the floor, so the plinth has room inside the test box. */
     private static final BlockPos BASE = new BlockPos(3, 2, 3);
 
-    /** The store exists for the running world and answers without throwing. */
+    /**
+     * The store can be built for the running world at all.
+     *
+     * <p>The null below is unreachable: {@code computeIfAbsent}
+     * constructs one when the file is absent and also when reading it
+     * fails, which it swallows. What this pins is therefore narrow -
+     * that {@code get} returns rather than throws, which is the
+     * {@code SavedData.Factory} wiring and no more. A wrong file name
+     * or a null {@code DataFixTypes} would both still pass here; see
+     * the note in {@code ShipMoorings} for why the second loses data
+     * quietly instead of crashing.
+     */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void theWorldHasAnOption(GameTestHelper helper) {
         OctiaWorldOption option = OctiaWorldOption.get(helper.getLevel().getServer());
@@ -63,7 +74,17 @@ public class OctiaWorldGameTest implements FabricGameTest {
         helper.succeed();
     }
 
-    /** The pending flag is what the create-screen button actually writes. */
+    /**
+     * The pending flag is what the create-screen button actually writes.
+     *
+     * <p><b>And that is all it proves.</b> Both assertions read back a
+     * value this method has just written to a static field, so the only
+     * regression it can catch is a setter that ignores its argument. The
+     * link that carries the decision - pending, through the no-arg
+     * constructor, into {@code enabled()} - is not exercised and cannot
+     * be from here: {@code get} memoises one store per save, and this
+     * suite shares a world that already has one.
+     */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void theSwitchRemembersBothPositions(GameTestHelper helper) {
         boolean original = OctiaWorldOption.pending();

@@ -1,7 +1,7 @@
 ```
 ACT ONE
 MILESTONE 0
-OCTIOID_[0.1.0.A.C.T.1]_codex
+OCTIA_[0.1.0.A.C.T.1]_codex
 SEEK KEG |ALL|
 ```
 
@@ -20,7 +20,7 @@ Head walkthroughs, milestones, and status reports with the four-line block.
 Name artifacts with the bracket-flag form. Tag audience with pipe-scopes.
 
 The rules are codified in [docs/NOTATION.md](docs/NOTATION.md) and transposed
-to types in `com.serenity.octioid.codex`. Prefer the types over re-parsing
+to types in `com.serenity.octia.codex`. Prefer the types over re-parsing
 strings — that is what they are for.
 
 `SEEK` is the call verb. Not "find", not "get", not "resolve".
@@ -33,18 +33,19 @@ sign and the code disagree, the test fails and the code is wrong.
 
 ## II. The name will change
 
-`OCTIOID` is not permanent. It changes as goals, milestones, and metrics
-change, and the scaffold is built for that.
+`OCTIA` is not permanent — it was `OCTIOID` until the rename of 2026-07-30. The
+name changes as goals, milestones, and metrics change, and the scaffold is
+built for that.
 
 The name lives in **exactly four places**: `gradle.properties`,
-`rootProject.name`, `Octioid.MOD_ID`, and the directory names. Everything else
+`rootProject.name`, `Octia.MOD_ID`, and the directory names. Everything else
 derives. `fabric.mod.json` is generated — never hand-edit it.
 
 > **Never write a namespaced string literal.** Build every `ResourceLocation`
-> with `Octioid.id("path")`.
+> with `Octia.id("path")`.
 
 A rename can move directories and rewrite a constant. It cannot find
-`"octioid:andesite_frame_panel"` buried mid-string, and a mod with one stale
+`"octia:andesite_frame_panel"` buried mid-string, and a mod with one stale
 literal builds clean and fails at runtime. Rename with
 `tools/rename-mod.ps1`; it greps for survivors afterwards for exactly this
 reason.

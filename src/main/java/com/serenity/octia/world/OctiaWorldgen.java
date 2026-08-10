@@ -15,7 +15,6 @@ import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 
 import java.util.Optional;
 
@@ -73,6 +72,13 @@ public final class OctiaWorldgen {
      * Written by the server thread at world load, read by generation workers.
      * Volatile rather than synchronised: it is one boolean, written rarely and
      * read constantly, and the only guarantee needed is visibility.
+     *
+     * <p><b>Why one static is enough.</b> A process holds at most one save: a
+     * dedicated server owns exactly one for its whole life, and an integrated
+     * server is stopped before the next world opens. That premise is what the
+     * SERVER_STOPPED reset preserves, and it is the thing to re-check before
+     * anything here goes per-level - the day two saves can be open at once,
+     * this field is wrong rather than merely stale.
      */
     private static volatile boolean active;
 
@@ -152,6 +158,12 @@ public final class OctiaWorldgen {
      * @return where it landed, or null if nowhere within reach would take it
      */
     public static BlockPos placeNearSpawn(ServerLevel level) {
+        // "Spawn" here is whatever the level data says at world-load time, which
+        // on a brand-new save is not yet where the player will wake up - see the
+        // note in OctiaBeacon.raise. The rings below are measured from that
+        // point, so on a save whose spawn is chosen elsewhere the guaranteed
+        // derelict sits 48-112 blocks from the origin column, not from the
+        // player, and the promise in this method's own javadoc is not kept.
         BlockPos spawn = level.getSharedSpawnPos();
 
         // Seeded off the world seed so a given save always puts it in the same
@@ -197,6 +209,12 @@ public final class OctiaWorldgen {
         // OCEAN_FLOOR, not the _WG twin: this is a finished chunk on a live
         // level, where the worldgen heightmaps are not maintained and answer
         // bottom-of-world. That mistake cost five gametests once already.
+        //
+        // OCEAN_FLOOR is also the seabed rather than the water surface, so this
+        // path seats a derelict under water where the wild ones - dropped at
+        // WORLD_SURFACE_WG, whose footing check then lands in fluid - are
+        // refused. It lands bare: RuinGround.surfaceNear needs an air block, so
+        // an underwater wreck gets no digs and no debris, and reads MOORED.
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.OCEAN_FLOOR, column);
 
         return derelict.place(new FeaturePlaceContext<>(
@@ -208,10 +226,5 @@ public final class OctiaWorldgen {
                 NoneFeatureConfiguration.INSTANCE))
                 ? surface.below(DerelictFeature.sink())
                 : null;
-    }
-
-    /** The placed feature key, for {@code /place feature} and for tests. */
-    public static ResourceKey<PlacedFeature> placedKey() {
-        return ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(DERELICT));
     }
 }

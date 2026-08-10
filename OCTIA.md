@@ -4,12 +4,13 @@ Set down 2026-08-06, on the day the mod first reached a remote of its own. The R
 opens *"A Serenity-class ship, called to the dig"* — this file is what that costs in
 practice, stated once so a later hand does not have to guess.
 
-**Written 2026-08-06. Updated 2026-08-06.**
+**Written 2026-08-06. Updated 2026-08-10.**
 
-> **STATUS: OPEN.** The README still says *"Scaffold only. `onInitialize` logs a line and
-> returns."* That stopped being true on 2026-08-06, when the front door and the whole
-> `crew/` package landed — 5,765 lines. **The README is stale and outranked by this
-> line until it is rewritten.** That is the first thing owed here.
+> **STATUS: CLOSED 2026-08-10.** The README went on saying *"Scaffold only. `onInitialize`
+> logs a line and returns."* long after the front door and the whole `crew/` package
+> landed — 5,765 lines. It has been rewritten: its status section and its layout tree
+> now say what is actually registered. Kept here rather than deleted, because the
+> failure mode is the point — a status line written once outranks nothing.
 
 ## The rooms
 
@@ -31,7 +32,10 @@ practice, stated once so a later hand does not have to guess.
 3. **Gradle is the parts list.** There is no MANIFEST here and there should not be — a
    second parts list is a second source of truth, and the build already owns that job.
 4. **The package is `com.serenity.octia`.** Not `octioid`. The folder on disk and the
-   repo carry the older spelling; the code does not, and the code wins.
+   remote have both caught up since — `D:\Serenity\octia`, `ObviousThr33s/octia`. Where
+   the older spelling still appears it is sample text or history — the codex's worked
+   examples, the line `ShipCoreBlock` prints on survey, the rename script's own account
+   of the rename, one dev save's datapack name. Grep before assuming one is a live name.
 5. **Sidecars are the safety net beside a file, never the record.** `*.backup-*` and
    `*.bak` are ignored. Two of them were sitting untracked here on 2026-08-06 and were
    deliberately left out of history.

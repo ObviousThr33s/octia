@@ -2,13 +2,31 @@
 
 A Serenity-class ship, called to the dig.
 
-A Fabric mod for Minecraft 1.21.1. This is the bare install: the toolchain,
-the mappings, and the loader handshake, proven before any content leans on
-them. Nothing is registered yet.
+A Fabric mod for Minecraft 1.21.1. The toolchain, the mappings, and the loader
+handshake were proven first, before any content leaned on them. That part is
+done; the content sits on top of it.
 
 ## Status
 
-Scaffold only. `onInitialize` logs a line and returns.
+Not a scaffold any more, and not a finished content mod. What is registered:
+
+- **Two blocks.** `andesite_frame_panel`, whose panel cycles dark, generic,
+  styled and lights with it, and `ship_core`, which surveys the panels around
+  it and reads ADRIFT, MOORED, or CALLED.
+- **Moorings.** A moored core writes its position to `SavedData` keyed by
+  `BlockPos` and nothing else. The same position in another dimension is the
+  same mooring — deliberate, and a gametest pins it.
+- **Worldgen, behind a per-save switch.** A button on the create-world screen
+  decides it once and the save keeps that answer for life. On: a lit mast at
+  spawn, one derelict within a short walk of it, then derelicts and obelisks
+  out through the world.
+- **Crew.** Server-side fake players seated by `/octia crew muster`, spoken for
+  by a local model when one answers and by an offline tender when none does.
+  LAN guests see them without installing anything.
+- **Debug map.** F6 draws the moorings around you; F7 changes its range.
+
+`onInitialize` opens the registries and installs those hooks. Each one carries
+the reason it is registered there and not somewhere earlier.
 
 ## Two scripts
 
@@ -34,8 +52,8 @@ saves are never touched by development.
 
 ## Build directly
 
-```bash
-./gradlew build
+```powershell
+.\gradlew build
 ```
 
 The jar lands in `build/libs/octia-<version>.jar`.
@@ -88,26 +106,46 @@ octia/
 ├─ gradle.properties                    identity + version control panel
 ├─ settings.gradle.kts                  rootProject.name, toolchain resolver
 ├─ build.gradle.kts                     loom, deps, fabric.mod.json templating
+├─ AGENTS.md                            the rules, each one already paid for
+├─ OCTIA.md                             what this repo is, and what it is not
 ├─ .github/workflows/verify.yml         CI: the same two gates on every push
 ├─ docs/
 │  ├─ NAMING.md                         conventions + rename procedure
 │  ├─ DEVOPS.md                         why GameTest, and how it stays open
+│  ├─ UPGRADING.md                      what breaks above 1.21.1, with lines
+│  ├─ NOTATION.md                       the KEG notation, codified
+│  ├─ WORLDS.md                         the dev saves, and what generates now
+│  ├─ ROADMAP.md                        what is wrong, missing, wanted next
+│  ├─ FRONT_DOOR.md                     the desktop window onto the repo
 │  ├─ LSP.md                            shared Java language server setup
 │  └─ NUMERIC_MODEL.md                  which design quantities are measurable
 ├─ tools/
 │  ├─ play.ps1                          build + launch the game
 │  ├─ verify.ps1                        build + headless in-world tests
+│  ├─ new-world.ps1                     generate a world headlessly, then log it
+│  ├─ backup-world.ps1                  snapshot a dev save outside the repo
+│  ├─ world-report.py                   read a save without launching the game
+│  ├─ frontdoor.ps1                     build + open the desktop window
+│  ├─ frontdoor/                        its sources; no Fabric, no Loom
 │  └─ rename-mod.ps1                    the rename
-└─ src/main/
-   ├─ java/com/serenity/octia/
-   │  ├─ Octia.java                   entrypoint; MOD_ID and id() live here
-   │  ├─ OctiaBlocks.java             registration, one place
-   │  ├─ block/                          the andesite frame panel
-   │  └─ gametest/                       in-world tests (ship in the jar)
-   └─ resources/
-      ├─ fabric.mod.json                TEMPLATE — generated, do not hand-edit
-      ├─ assets/octia/                textures, models, blockstates, lang
-      └─ data/octia/                  recipes, loot tables, worldgen
+├─ src/main/
+│  ├─ java/com/serenity/octia/
+│  │  ├─ Octia.java                     entrypoint; MOD_ID and id() live here
+│  │  ├─ OctiaBlocks.java               registration, one place
+│  │  ├─ block/                         the andesite frame panel
+│  │  ├─ ship/                          the core, its status, the moorings
+│  │  ├─ world/                         beacon, derelict, obelisk, the switch
+│  │  ├─ crew/                          seats, orders, the gangway
+│  │  ├─ client/                        client entrypoint and the F6 map
+│  │  ├─ debug/                         the payload that map rides on
+│  │  ├─ codex/                         the KEG notation, as types
+│  │  └─ gametest/                      in-world tests (ship in the jar)
+│  └─ resources/
+│     ├─ fabric.mod.json                TEMPLATE — generated, do not hand-edit
+│     ├─ assets/octia/                  textures, models, blockstates, lang
+│     ├─ data/octia/                    recipes, loot tables, worldgen
+│     └─ data/minecraft/tags/block/     the vanilla tags these blocks join
+└─ src/test/java/com/serenity/octia/    JUnit: codex and crew, no world needed
 ```
 
 ## License

@@ -1,4 +1,6 @@
 plugins {
+    // Must match loom_version in gradle.properties, which carries the pin and
+    // the reasoning. It cannot supply it: a plugins {} block takes a literal.
     id("fabric-loom") version "1.11.8"
 }
 
@@ -37,9 +39,10 @@ dependencies {
     "modImplementation"("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     "modImplementation"("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
 
-    // The codex types are pure Java with no Minecraft on the classpath, so
-    // they get plain JUnit. In-world behaviour is tested by @GameTest instead
-    // - see docs/DEVOPS.md for why that split is deliberate.
+    // The codex types, and crew's pure-logic ones (Order, SeatName), need no
+    // world to exercise, so they get plain JUnit. In-world behaviour is tested
+    // by @GameTest instead - see docs/DEVOPS.md for why that split is
+    // deliberate.
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

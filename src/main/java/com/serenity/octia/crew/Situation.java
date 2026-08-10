@@ -1,7 +1,6 @@
 package com.serenity.octia.crew;
 
 import java.util.List;
-import java.util.Locale;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -44,6 +43,15 @@ final class Situation {
      * conversation, because there is no conversation: each question is
      * independent, which is what makes a slow cleric harmless and a restarted
      * endpoint invisible.
+     *
+     * <p>One line below is worth reading twice. The vocabulary says
+     * {@code follow <player>} and the example under it says a bare
+     * {@code follow}. That does parse - {@code Order.parse} yields FOLLOW with
+     * an empty arg and {@code CrewPlayer.target} reads an empty arg as "whoever
+     * is nearest" - so the example is legal. But it is the only example that
+     * does not match its own vocabulary line, and a 3B copying the examples
+     * will learn to drop the name. Decide that deliberately before editing
+     * either line.
      */
     static String briefing(String seatName) {
         return """
@@ -127,8 +135,17 @@ final class Situation {
         return dz > 0 ? "south" : "north";
     }
 
+    /**
+     * The block underfoot, named the way a player would say it.
+     *
+     * <p>No lowercasing here on purpose. A ResourceLocation validates its path
+     * at construction to [a-z0-9/._-], so a registry key's path is already
+     * lowercase and the toLowerCase call this replaced could never change a
+     * character. Nothing is null either: BuiltInRegistries.BLOCK is a defaulted
+     * registry and answers minecraft:air for anything it does not hold.
+     */
     private static String groundName(ServerLevel level, BlockPos at) {
         BlockState below = level.getBlockState(at.below());
-        return BuiltInRegistries.BLOCK.getKey(below.getBlock()).getPath().toLowerCase(Locale.ROOT);
+        return BuiltInRegistries.BLOCK.getKey(below.getBlock()).getPath();
     }
 }

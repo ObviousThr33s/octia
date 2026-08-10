@@ -32,7 +32,19 @@ final class Tender {
     /** Closer than this and following becomes crowding. */
     private static final double CLOSE = 4.0;
 
-    /** Ticks spent on one leg of the patrol. Twenty ticks to the second. */
+    /**
+     * Ticks spent on one leg of the patrol. Twenty ticks to the second.
+     *
+     * <p><b>Sampled, not counted, and the sampling rate is not ours.</b>
+     * {@code Crew.tick} consults the tender only on {@code tick % pollTicks == 0},
+     * so the phase below advances by {@code pollTicks / LEG} per call, not by
+     * one. At the default {@code poll_seconds} of 5 that ratio is exactly 1 and
+     * the patrol alternates hold, walk, hold, walk as written. At any even
+     * multiple of it - poll_seconds 10, 20, 30 - the ratio is even, the phase
+     * parity never changes, and a crew member either never moves or never stops,
+     * decided only by its own UUID offset. Nothing crashes and nothing logs; it
+     * reads as half the crew being broken.
+     */
     private static final int LEG = 100;
 
     private Tender() {
@@ -54,8 +66,20 @@ final class Tender {
                     : new Order(Order.Verb.LOOK, name);
         }
 
-        // Nobody about. Pace a slow square, offset per crew member so a mustered
-        // bench does not march in formation.
+        // Nobody about. Pace, offset per crew member so a mustered bench does
+        // not march in formation.
+        //
+        // Not a square, despite how that used to read here: the headings come
+        // out in Heading.values() order, which is NORTH, SOUTH, EAST, WEST, so
+        // the figure traced is a cross - out and back along Z, then out and
+        // back along X. Reordering the constants in Order.Heading silently
+        // reshapes this patrol, and that is the only place that enum's
+        // declaration order is load-bearing.
+        //
+        // The offset is stable across restarts because a crew member's UUID is
+        // UUIDUtil.createOfflinePlayerUUID(seatName) - derived from the name,
+        // never random. That is what makes the class javadoc's promise of
+        // "same tick, same world, same order" actually true.
         long phase = (tick / LEG) + Math.abs(body.getUUID().hashCode() % 4L);
         if (phase % 2 == 0) {
             return Order.HOLD;

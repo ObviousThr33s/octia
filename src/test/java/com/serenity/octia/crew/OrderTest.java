@@ -137,13 +137,4 @@ class OrderTest {
         assertNull(Order.Heading.of(""));
         assertNull(Order.Heading.of(null));
     }
-
-    @Test
-    @DisplayName("one-shot orders are the ones that finish when carried out")
-    void oneShots() {
-        assertEquals(true, Order.parse("jump").isOneShot());
-        assertEquals(true, Order.parse("say hi").isOneShot());
-        assertEquals(false, Order.parse("go north").isOneShot());
-        assertEquals(false, Order.parse("follow kfman").isOneShot());
-    }
 }

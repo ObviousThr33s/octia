@@ -145,7 +145,7 @@ identical world and stand in the same place, which is what you want underneath a
 bug report.
 
 Note the spawn is offset from the beacon — you appear at `112 67 176`, roughly
-**204 blocks NW** of the mast at `0 54 0`. That gap is why the map needs the
+**204 blocks SE** of the mast at `0 54 0`. That gap is why the map needs the
 range control at all, and it is the case the bearing readout was added for.
 
 **Structures**

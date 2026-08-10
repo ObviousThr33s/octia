@@ -120,6 +120,12 @@ public final class SeatName {
                 return candidate;
             }
         }
+        // Ninety-eight disambiguators exhausted. This hands back a name that IS
+        // taken, which is the one outcome the javadoc above says must not
+        // happen - so catching it is the caller's job, and Crew.summon does:
+        // it refuses any seat name already aboard and returns null. Reachable
+        // only with ninety-nine clerics of one family, on a bench that
+        // max_crew caps at eight by default.
         return base;
     }
 

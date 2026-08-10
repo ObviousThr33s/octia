@@ -1,7 +1,6 @@
 package com.serenity.octia.codex;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,7 +21,15 @@ import java.util.List;
  */
 public final class Scope {
 
-    /** Everyone. The widest scope, under which aberration averages toward zero. */
+    /**
+     * Everyone. Under the <em>selector</em> reading, one name among many.
+     *
+     * <p><b>It settles nothing about the divisor.</b> {@link #size()} is 1 here
+     * - the constant holds a single member spelled ALL, not a population - so
+     * {@code / |SCOPE|} divides by one and attenuates nothing. Reading ALL as
+     * an unbounded cardinality is exactly the open question above; it is not a
+     * property of this field.
+     */
     public static final Scope ALL = new Scope(List.of("ALL"));
 
     private final List<String> members;
@@ -68,9 +75,14 @@ public final class Scope {
         return of(body.split("\\|", -1));
     }
 
-    /** The members, in written order. */
+    /**
+     * The members, in written order. The field is already immutable - the
+     * constructor stores {@code List.copyOf(members)} - so this hands it back
+     * directly rather than wrapping an unmodifiable view around an
+     * unmodifiable list.
+     */
     public List<String> members() {
-        return Collections.unmodifiableList(members);
+        return members;
     }
 
     /**

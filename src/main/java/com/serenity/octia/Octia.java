@@ -16,9 +16,36 @@ import org.slf4j.LoggerFactory;
 /**
  * Octia — a Serenity-class ship.
  *
- * <p>Nothing is registered yet. This is the bare Fabric entrypoint: it proves
- * the toolchain, the mappings, and the loader handshake all work before any
- * content leans on them.
+ * <p>This is the {@code main} entrypoint, the one that runs on both sides.
+ * It is not the only one - {@code fabric.mod.json} also names
+ * {@code client.OctiaClient} and the {@code gametest} classes - but it is the
+ * one that owns everything below, and everything the mod registers is reached
+ * from {@link #onInitialize()} in this order:
+ *
+ * <ol>
+ *   <li>{@link OctiaBlocks#bootstrap()} - the blocks and their block items are
+ *       filed into the registries on the way through that class's static
+ *       initialiser; the call itself adds them to creative tabs.</li>
+ *   <li>{@code ServerWorldEvents.LOAD} - reads the per-save switch the moment a
+ *       save's Overworld loads, publishes it where the generation workers can
+ *       see it, and on a save's first load raises the beacon and seats the
+ *       spawn derelict.</li>
+ *   <li>{@code ServerLifecycleEvents.SERVER_STOPPED} - clears that switch, so a
+ *       second world opened in the same launch cannot inherit the first one's
+ *       answer.</li>
+ *   <li>{@link Crew#bootstrap()} - the muster's lifecycle hooks, its tick, what
+ *       it can hear in chat, and the {@code /octia crew} commands.</li>
+ *   <li>{@link OctiaDebug#bootstrap()} - the debug view's two payload types and
+ *       the two hooks that serve them, registered common-side because both ends
+ *       must know the types.</li>
+ *   <li>{@link OctiaWorldgen#bootstrap()} - the two features, and the biome
+ *       modifications that schedule them into the Overworld.</li>
+ * </ol>
+ *
+ * <p>Nothing here starts a server, opens a save, or touches a world. Apart from
+ * the closing log line it is all registry writes and event subscriptions, which
+ * is what makes doing it eagerly safe, and why every per-save decision hangs off
+ * an event instead of happening here.
  *
  * <p><b>On the name.</b> The mod's name is expected to change as goals,
  * milestones, and metrics change. Everywhere else it appears it is generated:
@@ -99,6 +126,11 @@ public final class Octia implements ModInitializer {
         // The crew. Registered here rather than lazily on first command because
         // the muster hangs off server start and stop, and a hook installed after
         // the server has already started has missed the only event it wanted.
+        // "Lazily on first command" is not even on the table: Crew.bootstrap is
+        // also what registers /octia, through CommandRegistrationCallback, which
+        // fires while the server builds its command tree - before the
+        // SERVER_STARTED that creates the muster. Five hooks in all: start,
+        // stopping, end-of-tick, chat, and the command tree.
         Crew.bootstrap();
 
         // The debug view's payload types. Common, not client: a type known to

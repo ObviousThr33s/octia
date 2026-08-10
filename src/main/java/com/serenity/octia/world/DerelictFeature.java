@@ -133,9 +133,12 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
                     if (dy > 0 && random.nextInt(8) < EROSION_IN_EIGHT) {
                         continue;
                     }
-                    // One lit panel in the buried course. It is the only light a
-                    // derelict carries besides its core, and it leaks up through
-                    // the gaps erosion opened.
+                    // About one lit panel in the buried course - the only light
+                    // a derelict carries besides its core. It cannot shine up
+                    // through the gaps: erosion only opens the dy > 0 course and
+                    // the dy == 0 ring is exempt, so a solid slice always sits
+                    // over it. It shows where the ground has fallen away from
+                    // the hull instead - a slope, a cave roof, or a player digging.
                     PanelLight light = dy < 0 && random.nextInt(8) == 0
                             ? PanelLight.GENERIC : PanelLight.NONE;
 

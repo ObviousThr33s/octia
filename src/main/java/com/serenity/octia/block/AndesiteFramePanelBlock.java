@@ -58,6 +58,21 @@ public class AndesiteFramePanelBlock extends Block {
      * ring it forms. Vanilla neighbour updates never reach diagonals, so the
      * panel tells the core rather than waiting to be asked - otherwise placing
      * the final corner panel completes a hull that nothing notices.
+     *
+     * <p><b>Known cost, left unguarded until someone decides it matters.</b>
+     * {@code LevelChunk.setBlockState} calls {@code onPlace} on every
+     * server-side write at this position, not only on first placement; it
+     * short-circuits only when the new state is identical to the old. So the
+     * LIGHT cycle in {@link #useWithoutItem} re-enters here, and for a panel in
+     * an intact ring that buys a full {@code ShipCoreBlock} survey - up to
+     * 13x13x13 = 2197 block reads - for a property no hull check ever looks at.
+     * {@link #onRemove} below already guards its own re-entry with
+     * {@code !newState.is(this)}; the matching guard here is
+     * {@code !oldState.is(this)}. It would not remove the cost entirely: for the
+     * four ring positions that share a face with the core, the same survey
+     * arrives again through {@code ShipCoreBlock.neighborChanged}. Deliberately
+     * not applied in this pass: it is a cost, not a wrong answer, and it changes
+     * in-world behaviour.
      */
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {

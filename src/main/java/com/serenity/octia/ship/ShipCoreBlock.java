@@ -106,6 +106,14 @@ public class ShipCoreBlock extends Block {
     /**
      * The archaeology hook. Any brushable block or decorated pot in range is a
      * dig, and a dig is what calls a ship.
+     *
+     * <p><b>The seam, named so it is not improvised.</b> This one condition is
+     * the entire definition of "dig". The moment a second answer is wanted -
+     * another mod's dig, a datapacked block, a pot that has already been
+     * emptied - the hook is a block tag read here, not a longer instanceof
+     * chain and not an event. Nothing needs it today, so nothing is built for
+     * it; this note exists so the next hand adds the tag rather than a second
+     * call site.
      */
     public static boolean digSiteInRange(BlockGetter level, BlockPos core) {
         for (BlockPos p : BlockPos.betweenClosed(
@@ -134,7 +142,9 @@ public class ShipCoreBlock extends Block {
      * the core among its own eight horizontal neighbours. Vanilla neighbour
      * updates only reach the six faces, never the diagonals, so without this a
      * player who places the final corner panel gets no mooring - the core is
-     * never told. Eight reads per panel change is the whole cost.
+     * never told. Eight block reads per panel change while no core is adjacent,
+     * which is the common case; when one is, this costs a full survey - the
+     * same survey a face-adjacent placement would have triggered anyway.
      */
     public static void reconcileAdjacentCores(Level level, BlockPos source, BlockPos treatAsEmpty) {
         if (level.isClientSide) {
@@ -166,7 +176,9 @@ public class ShipCoreBlock extends Block {
 
         ShipStatus status = survey(level, pos, treatAsEmpty);
         BlockState state = level.getBlockState(pos);
-        if (state.hasProperty(STATUS) && state.getValue(STATUS) != status) {
+        // No hasProperty guard: every caller has already established this is a
+        // core, and the client branch above reads STATUS without one.
+        if (state.getValue(STATUS) != status) {
             level.setBlockAndUpdate(pos, state.setValue(STATUS, status));
         }
 
@@ -211,7 +223,13 @@ public class ShipCoreBlock extends Block {
         ShipStatus status = reconcile(level, pos, null);
         ShipMoorings moorings = ShipMoorings.get(level.getServer());
 
-        player.displayClientMessage(Component.literal("OCTIOID ")
+        // The mod's display name, spelled out. tools/rename-mod.ps1 rewrites
+        // only the package, the class name and the MOD_ID literal, and its
+        // survivor grep is case-sensitive on the lower-case id - so any
+        // capitalised spelling of the name in Java survives a rename untouched.
+        // That is why this one still said OCTIOID. It and the "Octia:" log
+        // prefixes are the places a rename has to be finished by hand.
+        player.displayClientMessage(Component.literal("OCTIA ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(status.getSerializedName().toUpperCase())
                         .withStyle(status.isMoored() ? ChatFormatting.AQUA : ChatFormatting.GRAY)), false);

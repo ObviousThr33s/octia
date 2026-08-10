@@ -107,10 +107,11 @@ public final class OctiaDebug {
     }
 
     /**
-     * Registers both payload types. Must run on the common initialiser, not the
-     * client one: a payload type known to only one side is a disconnect on the
-     * first packet, and a dedicated server needs the C2S type registered to be
-     * able to receive at all.
+     * Registers both payload types, the server's receiver for {@link Request},
+     * and the unasked snapshot a joining player gets. Must run on the common
+     * initialiser, not the client one: a payload type known to only one side is
+     * a disconnect on the first packet, and a dedicated server needs the C2S
+     * type registered - and this receiver installed - to answer at all.
      */
     public static void bootstrap() {
         PayloadTypeRegistry.playC2S().register(Request.TYPE, Request.CODEC);
@@ -125,7 +126,16 @@ public final class OctiaDebug {
                 server.execute(() -> send(handler.getPlayer())));
     }
 
-    /** Snapshots the save and sends it to one player. Server thread only. */
+    /**
+     * Snapshots the save and sends it to one player. Server thread only.
+     *
+     * <p><b>Seam.</b> This is the whole push side of the debug view, and nothing
+     * outside this class calls it today - the visibility is the only thing that
+     * makes it a seam rather than a private helper. Anything that wants the map
+     * to react rather than poll (a mooring being made, a beacon being raised)
+     * calls this with the player it concerns; the class note above is the
+     * standing argument for why nothing does yet.
+     */
     public static void send(ServerPlayer player) {
         if (player == null) {
             return;

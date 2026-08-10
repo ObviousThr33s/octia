@@ -71,6 +71,17 @@ public final class OctiaDebugOverlay {
     private static int rangeIndex = 1;
     private static int sinceRefresh;
 
+    /**
+     * The last snapshot the server sent, or null before the first one arrives.
+     *
+     * <p><b>Never cleared.</b> Nothing resets this on disconnect, so it outlives
+     * the world it describes: quit to the title, join a server that does not
+     * have Octia installed, and {@code canSend} correctly refuses to ask for a
+     * fresh one while the box goes on drawing the previous save's moorings as
+     * though they were here. Every other cross-save leak in this mod is closed
+     * at the boundary - see the SERVER_STOPPED reset in {@code Octia.onInitialize}
+     * - and this is the one that is not.
+     */
     private static OctiaDebug.Snapshot snapshot;
 
     private OctiaDebugOverlay() {
@@ -82,6 +93,11 @@ public final class OctiaDebugOverlay {
         rangeKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.octia.debug_range", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F7, "key.categories.octia"));
 
+        // The types themselves are not registered here. OctiaDebug.bootstrap()
+        // does that from Octia.onInitialize, and Fabric runs every main
+        // entrypoint before any client one, so both are already known by the
+        // time this receiver is installed. Registering them on this side alone
+        // is the mistake OctiaDebug's own note is about.
         ClientPlayNetworking.registerGlobalReceiver(OctiaDebug.Snapshot.TYPE, (payload, context) ->
                 context.client().execute(() -> snapshot = payload));
 
@@ -151,6 +167,13 @@ public final class OctiaDebugOverlay {
         double centreX = player.getX();
         double centreZ = player.getZ();
         int mid = SIZE / 2;
+        // The 3 is the inset, and it is written twice: here, and as `limit` in
+        // plot. It is the widest mark's reach plus the border - BEACON draws a
+        // 5x5 ring, so two pixels either side of centre, over a one-pixel edge.
+        // A mooring exactly `range` blocks out therefore lands with its outer
+        // pixels on the border rather than half outside it. Change one of the
+        // two and marks near the rim clamp at a radius the scale never sends
+        // them to.
         double scale = (double) (mid - 3) / range;
 
         BlockPos beacon = snapshot.beacon();
