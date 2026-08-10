@@ -69,6 +69,13 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         if (!RuinGround.hasFooting(level, base.below(1), PLINTH)) {
             return false;
         }
+        // A half-submerged obelisk is a worse object than no obelisk. Checked
+        // over the plinth and the first courses rather than the whole shaft:
+        // the top of a tall one is free to stand in open air over water, which
+        // is a fine silhouette, but its foot is not.
+        if (!RuinGround.isDry(level, base, PLINTH, 0, MIN_HEIGHT)) {
+            return false;
+        }
 
         plinth(level, base);
 

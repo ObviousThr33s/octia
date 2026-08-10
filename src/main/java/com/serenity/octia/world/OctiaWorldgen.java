@@ -206,16 +206,25 @@ public final class OctiaWorldgen {
         // trap OctiaBeacon documents at the top of raise().
         level.getChunk(column);
 
-        // OCEAN_FLOOR, not the _WG twin: this is a finished chunk on a live
-        // level, where the worldgen heightmaps are not maintained and answer
-        // bottom-of-world. That mistake cost five gametests once already.
+        // Not a _WG twin: this is a finished chunk on a live level, where the
+        // worldgen heightmaps are not maintained and answer bottom-of-world.
+        // That mistake cost five gametests once already.
         //
-        // OCEAN_FLOOR is also the seabed rather than the water surface, so this
-        // path seats a derelict under water where the wild ones - dropped at
-        // WORLD_SURFACE_WG, whose footing check then lands in fluid - are
-        // refused. It lands bare: RuinGround.surfaceNear needs an air block, so
-        // an underwater wreck gets no digs and no debris, and reads MOORED.
-        BlockPos surface = level.getHeightmapPos(Heightmap.Types.OCEAN_FLOOR, column);
+        // MOTION_BLOCKING_NO_LEAVES, and the choice is a correction. This asked
+        // OCEAN_FLOOR, which answers with the seabed - so over water the feature
+        // was handed a floor with solid rock beneath it and accepted, and the
+        // guaranteed derelict generated underwater in seagrass, thirteen blocks
+        // below the spawn it is supposed to be a short walk from. The wild ones
+        // are dropped at WORLD_SURFACE_WG and their footing check lands in fluid,
+        // so they refuse water outright. Two paths through one feature,
+        // disagreeing about what counts as ground.
+        //
+        // Fluid counts as surface here, so the ring search rejects the sea and
+        // keeps looking. Leaves do not, or a forest spawn seats the wreck in a
+        // canopy. A wreck on a seabed is arguably the most in-fiction place for
+        // one, but that is ROADMAP VI and wants the beacon's walk-down, not an
+        // accident of which heightmap this line happened to name.
+        BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
 
         return derelict.place(new FeaturePlaceContext<>(
                 Optional.empty(),

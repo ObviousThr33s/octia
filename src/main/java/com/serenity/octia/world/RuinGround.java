@@ -72,6 +72,28 @@ final class RuinGround {
         return true;
     }
 
+    /**
+     * Whether the box a ruin is about to occupy is free of fluid.
+     *
+     * <p>{@link #hasFooting} only ever looked at the plane a ruin stands on,
+     * which is not the same question. A wreck on a dry seabed shelf, or on the
+     * shore of a lake that rises over its top course, passes a floor check and
+     * still ends up underwater. This asks about the volume that is going to be
+     * built in, which is the thing that actually has to be dry.
+     */
+    static boolean isDry(WorldGenLevel level, BlockPos centre, int radius, int below, int above) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                for (int dy = -below; dy <= above; dy++) {
+                    if (!level.getFluidState(centre.offset(dx, dy, dz)).is(Fluids.EMPTY)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     /** The first free space over solid ground in one column, or null. */
     static BlockPos surfaceNear(WorldGenLevel level, BlockPos column) {
         for (int y = SURFACE_UP; y >= -SURFACE_DOWN; y--) {

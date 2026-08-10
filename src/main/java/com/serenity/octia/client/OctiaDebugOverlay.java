@@ -216,14 +216,24 @@ public final class OctiaDebugOverlay {
             }
         },
 
-        /** A hollow 5x5 ring. Bigger and outlined, so it wins at a glance. */
+        /**
+         * A hollow 7x7 ring. Bigger and outlined, so it wins at a glance.
+         *
+         * <p>Seven rather than five because the beacon now stands at spawn -
+         * it used to be placed at the world origin, which on most seeds was
+         * somewhere else entirely. A five-wide ring put its edge on exactly the
+         * pixels the player's cross reaches, so standing at your own beacon
+         * drew the two marks through each other and the overlap changed as the
+         * rounding shifted by a block. At seven the cross sits cleanly inside
+         * the ring and the pair reads as one thing: you, at the beacon.
+         */
         BEACON {
             @Override
             void draw(GuiGraphics graphics, int x, int y, int colour) {
-                graphics.fill(x - 2, y - 2, x + 3, y - 1, colour);
-                graphics.fill(x - 2, y + 2, x + 3, y + 3, colour);
-                graphics.fill(x - 2, y - 1, x - 1, y + 2, colour);
-                graphics.fill(x + 2, y - 1, x + 3, y + 2, colour);
+                graphics.fill(x - 3, y - 3, x + 4, y - 2, colour);
+                graphics.fill(x - 3, y + 3, x + 4, y + 4, colour);
+                graphics.fill(x - 3, y - 2, x - 2, y + 3, colour);
+                graphics.fill(x + 3, y - 2, x + 4, y + 3, colour);
             }
         },
 

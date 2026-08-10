@@ -145,9 +145,20 @@ over water gets its guaranteed derelict on the floor of it - bare, because
 `RuinGround.surfaceNear` needs an air block and neither digs nor debris can find
 one. The walk-down this entry asks for is owed to the placed-feature path only.
 
-**Closing it.** Give the feature the beacon's walk-down: drop through fluid to
-the floor, then decide. A wreck on the seabed is arguably the *most* in-fiction
-place for one - a ship that was called and never arrived.
+**One half of this was a bug, and is fixed.** `placeNearSpawn` asked
+`OCEAN_FLOOR`, which answers with the seabed, so the guaranteed derelict was
+handed solid rock beneath it and accepted - it generated underwater in seagrass,
+thirteen blocks below the spawn it is meant to be a short walk from. The wild
+ones refused water the whole time. Two paths through one feature, disagreeing
+about what counts as ground. It now asks `MOTION_BLOCKING_NO_LEAVES`, and
+`RuinGround.isDry` checks the volume a ruin will occupy rather than only the
+plane it stands on.
+
+**Still open, and now the only question.** Whether derelicts *should* generate on
+seabeds at all. A ship that was called and never arrived is arguably most at home
+under water, and the beacon already knows how - `raise` walks down through fluid
+to the floor. That is a decision to take on purpose, not an accident of which
+heightmap a line happened to name.
 
 ---
 

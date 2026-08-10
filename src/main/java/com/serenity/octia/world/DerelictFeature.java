@@ -99,6 +99,12 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         if (!RuinGround.hasFooting(level, core.below(2), 1)) {
             return false;
         }
+        // The cube's own volume, not just the ground under it. A footing check
+        // passes on a dry seabed shelf and on a lake shore that rises over the
+        // top course, and a hexahedron in seagrass is not what this is.
+        if (!RuinGround.isDry(level, core, 1, 1, 1)) {
+            return false;
+        }
 
         cube(level, random, core);
         debris(level, random, core);
