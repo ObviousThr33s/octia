@@ -173,6 +173,106 @@ who arrive from somewhere. Not acting on it until which one is meant is settled.
 
 ---
 
+## IX. Strangers
+
+**Wanted.** Mysterious but friendly and reserved strangers.
+
+**The hard part is already built.** `com.serenity.octia.crew` is a complete
+LLM-backed fake-player framework: `CrewPlayer` is a real server-side
+`ServerPlayer`, so a stranger appears in the tab list and is visible to LAN
+guests who have never installed Octia. `Cleric` runs the model asynchronously
+and never blocks a tick. `Tender` supplies orders with the bench powered down,
+which matters because most players will not be running Ollama. `Situation`
+already assembles a briefing. A stranger is not new machinery; it is a crew
+member nobody mustered.
+
+**What makes it a stranger rather than a crew member.**
+
+| | crew | stranger |
+|---|---|---|
+| arrives | `/octia crew muster` | unbidden, near an obelisk, at dusk |
+| distance | fans out around you at 1.6 blocks | holds a band, will not close past ~6 |
+| speech | answers freely | short, oblique, deflects direct questions |
+| leaving | dismissed | logs off once nobody has had eyes on them |
+
+**Reserved is a prompt, not a behaviour tree.** The briefing is the whole
+mechanism - short answers, no exposition, never volunteer where you are going.
+That also degrades correctly: with the bench down, `Tender` gives a stranger who
+says almost nothing, which is *in character* rather than broken. Very few
+designs get a graceful offline mode for free.
+
+**The detail worth building it for.** A stranger you meet twice remembers. Keep
+a small per-save record of which names have been met and where, and have the
+second meeting open by naming the *place* rather than you. That is the entire
+feature; everything else is staging.
+
+**Note against entry IV and VIII.** Ruins stay empty - always. Strangers are met
+on the road, never found living in a wreck. The emptiness is what makes an
+encounter land.
+
+---
+
+## X. The echo across eras
+
+**The best-value idea available, because it is already paid for.**
+`ShipMoorings` is keyed by `BlockPos` with no dimension, deliberately, and
+`ShipGameTest.mooringsAreDimensionAgnostic` pins it. That property is the spine
+of the whole design and **nothing currently uses it.**
+
+Stand in the Nether at the same X/Z as a ship moored in the Overworld and there
+should be something: a low hum, a faint particle column, the core's light
+bleeding through from a world away. No new state, no new store, no new packet -
+the answer is already in the save. It is the cheapest wonderment in the codebase
+and the closest thing the mod has to a thesis statement.
+
+---
+
+## XI. Mod integrations
+
+**First, a problem worth raising.** `D:\Serenity\OctiaModpack\mods-manifest.tsv`
+lists 124 mods: **116 NeoForge**, one NeoForge decoy, one unknown, and six that
+ship for both loaders. Octia is Fabric. As things stand it cannot go in its own
+modpack, and neither can the 116.
+
+That is a fork to take deliberately rather than discover late - port Octia to
+NeoForge, build multi-loader, or accept that the pack and the mod are separate
+projects that will never share a launcher. Worth settling before the integration
+list below is written against the wrong loader, since Jade, JourneyMap and EMI
+all have distinct APIs per side.
+
+Integrations should be **soft** in every case: `FabricLoader.isModLoaded` plus a
+separate entrypoint class, so the base mod never hard-depends and never
+reflects.
+
+- **Jade / WTHIT** — put `ADRIFT / MOORED / CALLED` and the mooring count in the
+  look-at tooltip. The survey already exists and returns exactly this; the
+  integration is a display. Highest value for the least code.
+- **JourneyMap / Xaero** — moorings and obelisks as real waypoints. This is the
+  honest answer to roadmap entries II and III: rather than growing the F6 box
+  into a cartography mod, hand the data to the cartography mods people already
+  run, and let the debug box stay a debug box.
+- **EMI / REI** — recipe display. Expected rather than interesting.
+- **Mod Menu + Cloth Config** — a real screen for the crew endpoints, which are
+  currently a JSON file nobody will find.
+
+---
+
+## XII. Smaller things, all cheap
+
+- **First light.** The first time a player surveys a wild derelict in a save, the
+  spawn beacon flares once, visible from wherever they are. Two points in the
+  world acknowledging each other.
+- **The hum rises.** An ambient tone whose density scales with the moorings
+  count. A progress bar you hear instead of read.
+- **Obelisk chain.** Two or more obelisks in view pulse in sequence, so you
+  learn to navigate by them.
+- **Stratigraphy.** Deeper digs draw from older loot tables. Archaeology that
+  means something vertically instead of being flat everywhere.
+- **The ledger.** A lectern at spawn that gains a line every time you brush a
+  dig. The world keeping your record, in KEG notation.
+
+---
+
 ## Kept for whoever hits it next
 
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
