@@ -7,7 +7,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BrushableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 
 /**
  * The ground-handling every Octia ruin needs, in one place.
@@ -152,7 +151,7 @@ final class RuinGround {
             put(level, spot, brushable);
 
             if (level.getBlockEntity(spot) instanceof BrushableBlockEntity brush) {
-                brush.setLootTable(BuiltInLootTables.TRAIL_RUINS_ARCHAEOLOGY_COMMON, random.nextLong());
+                brush.setLootTable(OctiaLoot.RUIN_DIG, random.nextLong());
             }
             placed++;
         }

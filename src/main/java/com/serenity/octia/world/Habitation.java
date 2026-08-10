@@ -14,7 +14,6 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 
 /**
  * The signs that somebody lived here, scattered over a ruin after it is built.
@@ -160,9 +159,10 @@ public final class Habitation {
     /**
      * Somebody's things, still where they were put.
      *
-     * <p>Village loot rather than treasure, because these were people and not
-     * dragons. The tables are vanilla's for now; Octia's own belong here and
-     * are the next thing this wants - what you find should say who lived here.
+     * <p>Belongings rather than treasure, because these were people and not
+     * dragons: bread, a torch, a worn tool, and a panel off the hull. The age
+     * picks the table, so a recent barrel still holds something fresh and a
+     * weathered one holds what did not rot. See {@link OctiaLoot}.
      */
     private static void store(WorldGenLevel level, RandomSource random, BlockPos anchor, RuinAge age) {
         if (!rolls(random, age)) {
@@ -182,8 +182,8 @@ public final class Habitation {
         put(level, spot, Blocks.BARREL.defaultBlockState());
         if (level.getBlockEntity(spot) instanceof RandomizableContainerBlockEntity chest) {
             chest.setLootTable(age == RuinAge.RECENT
-                    ? BuiltInLootTables.VILLAGE_PLAINS_HOUSE
-                    : BuiltInLootTables.VILLAGE_TAIGA_HOUSE);
+                    ? OctiaLoot.RUIN_STORE
+                    : OctiaLoot.RUIN_STORE_OLD);
             chest.setLootTableSeed(random.nextLong());
         }
     }

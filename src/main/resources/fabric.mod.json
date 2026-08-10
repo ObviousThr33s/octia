@@ -22,7 +22,8 @@
       "${mod_package}.gametest.DerelictGameTest",
       "${mod_package}.gametest.ObeliskGameTest",
       "${mod_package}.gametest.TemplateRuinGameTest",
-      "${mod_package}.gametest.HabitationGameTest"
+      "${mod_package}.gametest.HabitationGameTest",
+      "${mod_package}.gametest.LootGameTest"
     ]
   },
   "depends": {
