@@ -11,6 +11,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,32 +92,48 @@ public final class Octia implements ModInitializer {
 
         // The world-create switch, read at the one moment it can be read: the
         // first time a save's Overworld loads. Asking earlier means asking
-        // before the save directory exists; asking later means the player is
-        // already standing in a world that should have looked different.
+        // before the save directory exists.
+        //
+        // Only the FLAG is read here, and it has to be. What it publishes is
+        // what the chunk-generation workers consult, and chunks begin
+        // generating inside prepareLevels - before the server has started.
         ServerWorldEvents.LOAD.register((server, level) -> {
             if (level != server.overworld()) {
                 return;
             }
             OctiaWorldOption option = OctiaWorldOption.get(server);
-
-            // Published here, on the server thread, before a single chunk can
-            // generate - this is the only read of the save's flag that the
-            // worldgen workers are allowed to depend on. See OctiaWorldgen.
             OctiaWorldgen.setActive(option.enabled());
 
             if (!option.enabled()) {
                 LOGGER.info("Octia: disabled for this world. Spawn left as vanilla found it.");
+            }
+        });
+
+        // Placement waits for SERVER_STARTED, and the wait is the whole point.
+        //
+        // Both of these are placed relative to the world spawn, and at LOAD the
+        // world spawn does not exist yet: Minecraft chooses it in prepareLevels,
+        // which runs after every level is created. getSharedSpawnPos() answers
+        // (0, y, 0) until then. On the seeds this was first built against that
+        // was invisible, because their spawn genuinely is near the origin - but
+        // on seed 1, spawn is (112, 67, 176), and the beacon went up 209 blocks
+        // away from the player while the log cheerfully reported a derelict "48
+        // blocks from spawn" that was 170 blocks from where anyone arrives.
+        //
+        // SERVER_STARTED is the first moment the answer is real.
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            OctiaWorldOption option = OctiaWorldOption.get(server);
+            if (!option.enabled() || !option.claimBeacon()) {
                 return;
             }
-            if (option.claimBeacon()) {
-                OctiaBeacon.raise(level);
+            ServerLevel overworld = server.overworld();
+            OctiaBeacon.raise(overworld);
 
-                // The same claim covers both: this is the one moment a save is
-                // new, and the guaranteed derelict is as much a first-load fact
-                // as the beacon is. A rarity filter cannot promise a player will
-                // ever meet one, so the first is placed rather than rolled.
-                OctiaWorldgen.placeNearSpawn(level);
-            }
+            // The same claim covers both: this is the one moment a save is new,
+            // and the guaranteed derelict is as much a first-start fact as the
+            // beacon. A rarity filter cannot promise a player will ever meet
+            // one, so the first is placed rather than rolled.
+            OctiaWorldgen.placeNearSpawn(overworld);
         });
 
         // Cleared on the way out so a second world opened in the same launch

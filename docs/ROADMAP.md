@@ -286,6 +286,17 @@ reflects.
 
 ## Kept for whoever hits it next
 
+**Worlds made before 2026-08-10 have their beacon in the wrong place, forever.**
+The beacon and the spawn derelict were placed on `ServerWorldEvents.LOAD`, which
+fires before Minecraft chooses the world spawn, so `getSharedSpawnPos()` answered
+`(0, y, 0)`. On seeds that spawn near the origin - which is most of them, and all
+three of the early dev saves - it made no difference. On seed 1, spawn is
+`(112, 67, 176)` and the beacon went up 209 blocks away. Fixed by moving
+placement to `SERVER_STARTED`, but `claimBeacon()` fires once per save, so every
+world made before the fix keeps the beacon it got. `[0.2.1]` and `[0.2.2]` are
+both wrong; `[0.2.3]` is the first correct one.
+
+
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it
 does not survive a clone and is not discoverable from the repo - you find out by
