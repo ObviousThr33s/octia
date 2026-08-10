@@ -16,9 +16,16 @@ Reports, per save:
   * octia         - enabled, beacon raised, where, and every mooring
   * exploration   - how many chunks exist and the block extent they cover
   * structures    - every vanilla structure start the world has generated
+  * ruins         - where Octia's own features landed, and how far apart
 
 Usage:
-    python tools/world-report.py [--json] [saves-dir]
+    python tools/world-report.py [--json|--ruins|--catalogue] [save-or-saves-dir]
+
+--ruins      density and spacing of Octia's ruins, for tuning against a real
+             world rather than a guess.
+--catalogue  a docs/WORLDS.md section per save, headed with the KEG block,
+             ready to append to the register. Called by tools/new-world.ps1 so
+             that a world is catalogued the moment it exists.
 """
 
 import gzip
@@ -190,6 +197,7 @@ def scan_regions(save):
         "chunks": 0,
         "min_x": None, "max_x": None, "min_z": None, "max_z": None,
         "structures": defaultdict(list),
+        "cores": [],
     }
     if not os.path.isdir(folder):
         return out
@@ -211,6 +219,20 @@ def scan_regions(save):
                 else:
                     out[key] = max(cur, value)
 
+            # Octia's own ruins are not structure starts - they are features,
+            # and a feature leaves no record of itself anywhere in the save
+            # except the blocks it wrote. So they are found the only way they
+            # can be: by the section palette naming one of our blocks. A core
+            # in a palette means a hull somewhere in that 16-cube.
+            for section in (chunk.get("sections") or []):
+                palette = ((section.get("block_states") or {}).get("palette") or [])
+                for entry in palette:
+                    if not isinstance(entry, dict):
+                        continue
+                    if entry.get("Name") == "octia:ship_core":
+                        out["cores"].append((cx * 16 + 8, (section.get("Y") or 0) * 16, cz * 16 + 8))
+                        break
+
             starts = (chunk.get("structures") or {}).get("starts") or {}
             for sid, start in starts.items():
                 # A start whose id is INVALID is the game recording that it
@@ -227,6 +249,7 @@ def scan_regions(save):
                     out["structures"][sid].append(pos)
 
     out["structures"] = {k: sorted(v) for k, v in sorted(out["structures"].items())}
+    out["cores"] = sorted(set(out["cores"]))
     return out
 
 
@@ -305,22 +328,138 @@ def render(r):
     return "\n".join(lines)
 
 
+def render_ruins(r):
+    """Where Octia's own ruins landed, and how far apart."""
+    lines = ["== %s  ruins" % r["folder"]]
+
+    spawn = r["spawn"]
+    cores = r["cores"]
+    if not cores:
+        lines.append("   no ship cores found in %d generated chunks" % r["chunks"])
+        return "\n".join(lines)
+
+    def flat(a, b):
+        return round(((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5)
+
+    spawn_xz = (spawn[0] or 0, 0, spawn[2] or 0)
+    ranked = sorted(cores, key=lambda c: flat(c, spawn_xz))
+
+    lines.append("   %d ship core(s) in %d chunks  (1 per %d chunks)"
+                 % (len(cores), r["chunks"], r["chunks"] // max(1, len(cores))))
+    # Chunk resolution, and said so. A palette names what is somewhere in a
+    # 16-cube, not where - unpacking the block data would give exact positions
+    # and is not worth it for a density measurement. Do not read these as
+    # coordinates to walk to; read them as somewhere-in-that-chunk.
+    lines.append("   positions are chunk-centres, +/-8 blocks")
+    lines.append("   nearest to spawn: ~%s  (~%db)"
+                 % (" ".join(str(v) for v in ranked[0]), flat(ranked[0], spawn_xz)))
+
+    for core in ranked[:12]:
+        lines.append("     %-22s %db from spawn"
+                     % (" ".join(str(v) for v in core), flat(core, spawn_xz)))
+    if len(ranked) > 12:
+        lines.append("     ... and %d more" % (len(ranked) - 12))
+
+    # Nearest-neighbour spacing is the number that decides whether a density
+    # reads as litter or as absence. One-per-N-chunks hides clumping entirely.
+    if len(cores) > 1:
+        gaps = sorted(min(flat(a, b) for b in cores if b != a) for a in cores)
+        lines.append("   nearest-neighbour spacing: min %db, median %db, max %db"
+                     % (gaps[0], gaps[len(gaps) // 2], gaps[-1]))
+    return "\n".join(lines)
+
+
+def render_catalogue(r, act="ACT TWO", milestone="MILESTONE 2", scope="|ALL|"):
+    """
+    A docs/WORLDS.md section for one save, headed with the KEG block.
+
+    This FORMATS the notation. It must never parse it. `com.serenity.octia.codex`
+    is the canonical implementation and NotationTest pins it against the physical
+    sign at (-112, 67, -149) - the world is the source of truth, not the docs. A
+    second parser written here would drift from the Java one and nothing would
+    catch it, because nothing would be testing it. So the act, milestone and
+    scope arrive as arguments, and the world's name is copied, never read.
+    """
+    artifact = r["folder"].replace(".", "_")
+    beacon = r["octia"]["beacon_at"]
+    out = [
+        "```",
+        act,
+        milestone,
+        artifact,
+        "SEEK KEG %s" % scope,
+        "```",
+        "",
+        "## %s" % (r["level_name"] or r["folder"]),
+        "",
+        "**Read from the save**",
+        "",
+        "| | |",
+        "|---|---|",
+        "| seed | `%s` |" % r["seed"],
+        "| terrain | `%s` |" % r["generator"],
+        "| spawn | `%s` |" % " ".join(str(v) for v in r["spawn"]),
+        "| age | day %d |" % r["day"],
+        "| explored | %d chunks |" % r["chunks"],
+        "| octia | enabled=%s raised=%s |" % (r["octia"]["enabled"], r["octia"]["beacon_raised"]),
+        "| beacon | %s |" % ("not recorded" if beacon is None
+                             else "`%s`" % " ".join(str(v) for v in beacon)),
+        "| moorings | %d |" % len(r["moorings"]),
+        "| ship cores | %d |" % len(r["cores"]),
+        "",
+    ]
+
+    if r["structures"]:
+        out += ["**Structures**", "", "| structure | at |", "|---|---|"]
+        for sid, spots in r["structures"].items():
+            where = ", ".join("(%d,%d)" % p for p in spots[:5])
+            if len(spots) > 5:
+                where += ", +%d more" % (len(spots) - 5)
+            out.append("| %s | %s |" % (sid, where))
+        out.append("")
+
+    out += [
+        "**Seen in world**",
+        "",
+        "- _nothing recorded - nobody has walked this one yet_",
+        "",
+    ]
+    return "\n".join(out)
+
+
 def main():
-    argv = [a for a in sys.argv[1:] if a != "--json"]
+    flags = {"--json", "--ruins", "--catalogue"}
+    argv = [a for a in sys.argv[1:] if a not in flags]
     as_json = "--json" in sys.argv
+    as_ruins = "--ruins" in sys.argv
+    as_catalogue = "--catalogue" in sys.argv
     root = argv[0] if argv else os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "run", "saves")
 
     if not os.path.isdir(root):
-        print("no saves directory at %s" % root)
+        print("no directory at %s" % root)
         return 1
 
-    saves = [os.path.join(root, d) for d in sorted(os.listdir(root))
-             if os.path.isdir(os.path.join(root, d))]
+    # Accept either one save or a folder of them, because the two callers want
+    # different things: a human runs this over run/saves, and new-world.ps1 runs
+    # it over the single world it just made.
+    if os.path.isfile(os.path.join(root, "level.dat")):
+        saves = [root]
+    else:
+        saves = [os.path.join(root, d) for d in sorted(os.listdir(root))
+                 if os.path.isdir(os.path.join(root, d))]
+        if not saves:
+            print("no saves under %s" % root)
+            return 1
+
     reports = [describe(s) for s in saves]
 
     if as_json:
         print(json.dumps(reports, indent=2, default=str))
+    elif as_catalogue:
+        print("\n---\n\n".join(render_catalogue(r) for r in reports))
+    elif as_ruins:
+        print("\n\n".join(render_ruins(r) for r in reports))
     else:
         print("\n\n".join(render(r) for r in reports))
     return 0

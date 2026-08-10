@@ -74,7 +74,10 @@ if (-not $SkipBuild) {
 }
 
 if ($Server) {
-    $eula = Join-Path $repo 'run\server\eula.txt'
+    # run/, not run/server/. Loom gives runServer the default run directory, so
+    # the path this used to print was one the server would never create - the
+    # message sent you to look for a file that could not appear.
+    $eula = Join-Path $repo 'run\eula.txt'
     if (-not (Test-Path $eula) -or -not (Select-String -Path $eula -Pattern 'eula\s*=\s*true' -Quiet)) {
         Write-Host "`nMinecraft's EULA has not been accepted for this server." -ForegroundColor Yellow
         Write-Host "That is yours to accept, not mine. The server will write"

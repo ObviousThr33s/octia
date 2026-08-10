@@ -81,6 +81,36 @@ loom {
                     layout.buildDirectory.file("test-results/gametest/report.xml").get().asFile.absolutePath)
             runDir("build/gametest")
         }
+
+        // A real dedicated server, used to generate worlds headlessly so that
+        // "does this actually look right in a world" stops costing a human at a
+        // keyboard. Driven by tools/new-world.ps1.
+        //
+        // Its own runDir, deliberately: the default would be run/, which holds
+        // the client's options.txt, its saves and its logs. And under run/
+        // rather than build/, because build/ is what `gradlew clean` deletes and
+        // this directory holds the one file the user has to accept by hand.
+        create("worldgen") {
+            server()
+            name = "Worldgen"
+            source(sourceSets.main.get())
+            runDir("run/worldgen")
+        }
+    }
+}
+
+// The generator script tells the server to `stop` once spawn has been written.
+// Without a connected stdin the only way to end the run is to kill the JVM,
+// which races the final chunk save - the one thing a world generator must not do.
+//
+// Gated behind -PoctiaStdin, and the gate is not optional. Declaring
+// standardInput = System.`in` unconditionally makes the Gradle client forward
+// stdin for the WHOLE build and then wait for an EOF that a scripted caller
+// never sends, so every other task hangs after finishing. That cost a ten
+// minute verify run that had already printed "All 29 required tests passed".
+if (project.hasProperty("octiaStdin")) {
+    tasks.withType<JavaExec>().matching { it.name == "runWorldgen" }.configureEach {
+        standardInput = System.`in`
     }
 }
 
