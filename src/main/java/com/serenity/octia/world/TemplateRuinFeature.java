@@ -145,6 +145,10 @@ public class TemplateRuinFeature extends Feature<TemplateRuinFeature.Config> {
         }
 
         markers(level, random, template, shape, corner, middle);
+
+        // After the markers, so any core stamped by one is standing before
+        // Habitation looks for hull rings to keep out of.
+        Habitation.dress(level, random, middle, RuinAge.roll(random));
         return true;
     }
 

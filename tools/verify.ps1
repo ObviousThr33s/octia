@@ -65,6 +65,22 @@ if (-not $SkipBuild) {
     }
 }
 
+# A gametest server from an earlier run can still be alive, because Minecraft's
+# shutdown occasionally spins forever draining chunks - see docs/ROADMAP.md. It
+# holds build/gametest/session.lock while it does, and the next run then dies at
+# startup with "another process has locked a portion of the file", which looks
+# like a mod failure and is not one. Sweep first.
+#
+# This kills only leftovers, never a run in progress, so it cannot hide a hang in
+# our own code: a hang still hangs, it just stops poisoning the run after it.
+$stale = @(Get-CimInstance Win32_Process -Filter "Name='java.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like '*runGametest*' })
+if ($stale.Count -gt 0) {
+    Write-Host "  clearing $($stale.Count) stale gametest server(s) holding the world lock" -ForegroundColor Yellow
+    $stale | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 2
+}
+
 Step "gametest  (headless dedicated server, real game)"
 & $gradlew -p $repo runGametest --console=plain
 $gametestExit = $LASTEXITCODE

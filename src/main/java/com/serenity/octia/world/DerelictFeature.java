@@ -119,6 +119,10 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         // ground. Building the evidence first makes the survey and the literal
         // agree, whichever path got here.
         RuinGround.put(level, core, coreState(digs > 0 ? ShipStatus.CALLED : ShipStatus.MOORED));
+
+        // Dressed last, and it has to be. Habitation refuses any position in a
+        // hull ring, and it can only see the ring once the core is standing.
+        Habitation.dress(level, random, core, RuinAge.roll(random));
         return true;
     }
 

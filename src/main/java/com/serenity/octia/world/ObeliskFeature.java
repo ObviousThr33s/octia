@@ -79,8 +79,12 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
 
         plinth(level, base);
 
+        RuinAge age = RuinAge.roll(random);
+
         int height = MIN_HEIGHT + random.nextInt(MAX_HEIGHT - MIN_HEIGHT + 1);
-        boolean broken = random.nextInt(4) < BROKEN_IN_FOUR;
+        // An ancient one has always come down. Tying the break to the age means
+        // the silhouette and the dressing tell the same story instead of two.
+        boolean broken = age == RuinAge.ANCIENT || random.nextInt(4) < BROKEN_IN_FOUR;
         if (broken) {
             // A snapped obelisk loses its crown, so it also loses the light.
             // That asymmetry is worth keeping: a lit spire on the horizon is a
@@ -95,6 +99,7 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         if (broken) {
             fallen(level, random, base);
         }
+        Habitation.dress(level, random, base, age);
         return true;
     }
 
