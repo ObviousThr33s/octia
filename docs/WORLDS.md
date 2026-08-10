@@ -168,10 +168,31 @@ range control at all, and it is the case the bearing readout was added for.
 
 ## What Octia now generates
 
-**The derelict** — a Serenity-class hull that was called and never arrived,
-half-buried, with the dig that called it still in the ground beside it. A real
-hull by `ShipCoreBlock`'s own rule, with brushable ground inside the call
-radius, so it surveys as `CALLED`.
+Two ruin types, both andesite, both with a dig in the ground. One is a ship and
+one deliberately is not — a derelict says a ship came and failed, which only
+means something if there is separate evidence somebody was here on purpose.
+
+**The derelict** — a Serenity-class hull that was called and never arrived.
+**The ship is a cube**: twenty-six frame panels around one core, a solid 3×3×3
+hexahedron sunk to two thirds with its top face breaking the ground. That is the
+Hexahedron brief, and it is also the shape the mechanics were always describing —
+`hullIntact` wants the core's eight horizontal neighbours to be panels, which is
+exactly the middle slice of a cube.
+
+Its top course weathers away at random so no two look stamped from one die, but
+**erosion may never touch the core's own slice**. Take one panel out of that ring
+and `hullIntact` fails, the core reads ADRIFT, and the ruin quietly stops being a
+ship. A wreck eroded down to precisely the ring that still makes it a hull is a
+better object than either a pristine cube or a rubble pile. A gametest pins it.
+
+**The obelisk** — a lit marker standing over a dig, with no ship in it. Crowned
+with a `STYLED` panel at light 15, the brightest thing the mod owns, because an
+obelisk is meant to be the thing you see across a valley and walk toward. One in
+four has snapped, and a snapped one loses its crown and therefore its light —
+a lit spire on the horizon is a promise that something is still standing.
+
+It carries no core and never should. A landmark that moored itself would put
+positions into the spine that no player built and no player can take apart.
 
 **One is guaranteed near spawn.** On a save's first load, `placeNearSpawn` seats
 a derelict 48–112 blocks out, ringing outward until ground takes it, seeded off
@@ -186,13 +207,21 @@ Octia: derelict seated at BlockPos{...} (48 blocks from spawn).
 Because that one is placed into a live level it moors on placement, so it is on
 the F6 map from the moment the world opens. The wild ones are not — see below.
 
-Rarity for the rest is `900` in
-`data/octia/worldgen/placed_feature/derelict.json` — roughly one per 900 chunks,
-between the density of ocean ruins and trial chambers in these three saves. Far
-too rare to go looking for on foot while testing. Place one instead:
+Rarity for the wild ones lives in one field per `placed_feature` JSON —
+`derelict` at `260`, `obelisk` at `180`, meaning a one-in-N roll per chunk.
+Denser than vanilla trial chambers (about one per 1400 chunks in these saves)
+and than ocean ruins (about one per 700), which is deliberate while the shapes
+are still being judged: you cannot tune what you never meet. Pull both numbers
+up once the silhouettes are settled.
+
+Either can be placed on demand rather than walked to:
 
 ```bash
 /place feature octia:derelict
+```
+
+```bash
+/place feature octia:obelisk
 ```
 
 Two things behave differently between a placed derelict and a generated one, and

@@ -4,8 +4,6 @@ import com.serenity.octia.Octia;
 import com.serenity.octia.OctiaBlocks;
 import com.serenity.octia.block.PanelLight;
 import com.serenity.octia.block.AndesiteFramePanelBlock;
-import com.serenity.octia.ship.ShipCoreBlock;
-import com.serenity.octia.ship.ShipStatus;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;

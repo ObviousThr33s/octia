@@ -1,9 +1,9 @@
 {
-  "feature": "octia:derelict",
+  "feature": "octia:obelisk",
   "placement": [
     {
       "type": "minecraft:rarity_filter",
-      "chance": 260
+      "chance": 180
     },
     {
       "type": "minecraft:in_square"

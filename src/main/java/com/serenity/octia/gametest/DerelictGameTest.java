@@ -1,5 +1,6 @@
 package com.serenity.octia.gametest;
 
+import com.serenity.octia.OctiaBlocks;
 import com.serenity.octia.ship.ShipCoreBlock;
 import com.serenity.octia.ship.ShipMoorings;
 import com.serenity.octia.ship.ShipStatus;
@@ -207,6 +208,50 @@ public class DerelictGameTest implements FabricGameTest {
 
         if (built) {
             throw new AssertionError("a derelict generated in a world with Octia switched off");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The ship is a cube, and erosion is not allowed to eat the ring.
+     *
+     * <p>The top course weathers at random, which is what keeps wrecks from
+     * looking stamped from one die. The core's own slice is exempt, and this is
+     * the test that says so: lose one panel from {@code dy == 0} and
+     * {@code hullIntact} fails, the core reads ADRIFT, and the ruin has quietly
+     * stopped being a ship. Widening the erosion roll to all courses is a
+     * one-character change that would do exactly that.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void theHullIsACubeAndTheRingSurvives(GameTestHelper helper) {
+        BlockPos core = place(helper, GROUND);
+        if (core == null) {
+            throw new AssertionError("the feature declined ground it should have accepted");
+        }
+
+        ServerLevel level = helper.getLevel();
+
+        // The middle slice: all eight, no exceptions.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                if (!level.getBlockState(core.offset(dx, 0, dz)).is(OctiaBlocks.ANDESITE_FRAME_PANEL)) {
+                    throw new AssertionError("erosion took " + core.offset(dx, 0, dz)
+                            + " out of the core's ring - the derelict is no longer a hull");
+                }
+            }
+        }
+
+        // The buried course is untouched too, so the cube has a floor.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!level.getBlockState(core.offset(dx, -1, dz)).is(OctiaBlocks.ANDESITE_FRAME_PANEL)) {
+                    throw new AssertionError("the cube has a hole in its bottom course at "
+                            + core.offset(dx, -1, dz));
+                }
+            }
         }
         helper.succeed();
     }

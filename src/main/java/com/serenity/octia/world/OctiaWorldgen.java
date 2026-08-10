@@ -53,6 +53,7 @@ public final class OctiaWorldgen {
      * that configure and place it. They must agree; this constant is why they do.
      */
     private static final String DERELICT = "derelict";
+    private static final String OBELISK = "obelisk";
 
     /**
      * How far out to look for somewhere to seat the spawn derelict, nearest
@@ -75,8 +76,9 @@ public final class OctiaWorldgen {
      */
     private static volatile boolean active;
 
-    /** Held from registration so nothing has to cast it back out of the registry. */
+    /** Held from registration so nothing has to cast them back out of the registry. */
     private static DerelictFeature derelict;
+    private static ObeliskFeature obelisk;
 
     private OctiaWorldgen() {
     }
@@ -85,15 +87,19 @@ public final class OctiaWorldgen {
     public static void bootstrap() {
         derelict = Registry.register(BuiltInRegistries.FEATURE, Octia.id(DERELICT),
                 new DerelictFeature(NoneFeatureConfiguration.CODEC));
+        obelisk = Registry.register(BuiltInRegistries.FEATURE, Octia.id(OBELISK),
+                new ObeliskFeature(NoneFeatureConfiguration.CODEC));
 
-        // SURFACE_STRUCTURES rather than a later step: the derelict sits on the
-        // ground and wants to be there before grass, flowers and trees decorate
-        // over it, so the wreck looks weathered into the landscape rather than
+        // SURFACE_STRUCTURES rather than a later step: these sit on the ground
+        // and want to be there before grass, flowers and trees decorate over
+        // them, so a ruin looks weathered into the landscape rather than
         // dropped on top of it.
-        BiomeModifications.addFeature(
-                BiomeSelectors.foundInOverworld(),
-                GenerationStep.Decoration.SURFACE_STRUCTURES,
-                ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(DERELICT)));
+        for (String path : new String[] {DERELICT, OBELISK}) {
+            BiomeModifications.addFeature(
+                    BiomeSelectors.foundInOverworld(),
+                    GenerationStep.Decoration.SURFACE_STRUCTURES,
+                    ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(path)));
+        }
     }
 
     /**
@@ -109,9 +115,13 @@ public final class OctiaWorldgen {
         return active;
     }
 
-    /** The registered feature itself, for tests that place one directly. */
+    /** The registered features themselves, for tests that place one directly. */
     public static DerelictFeature derelict() {
         return derelict;
+    }
+
+    public static ObeliskFeature obelisk() {
+        return obelisk;
     }
 
     /**

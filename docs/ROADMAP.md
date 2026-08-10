@@ -88,14 +88,17 @@ with holes in the middle and panels floating above the gap. Debris panels were
 scattered onto any free surface with no relation to the wreck. Neither reads as
 a structure; both read as litter.
 
-**Closing it.** *(First pass landed.)* The mast is now contiguous from the base
-to a break height, which is what a snapped mast looks like. Debris is placed
-low and near.
+**Closed, by throwing the shape away.** The mast was the wrong object. The ship
+is a **cube** - the Hexahedron brief, and the shape `hullIntact` was always
+describing, since the core's eight horizontal neighbours *are* the middle slice
+of a 3x3x3. A derelict is now twenty-six panels around one core, sunk to two
+thirds. Erosion eats the top course only; the core's slice is exempt, because
+taking one panel out of it stops the ruin being a ship at all.
 
-**Still open.** Whether the silhouette is right at all is a judgement that needs
-eyes in the world, not a rule. Look at one and decide whether a nine-block
-footprint with a four-block stub is the shape, or whether the derelict should be
-longer, lower, and more obviously a *vessel* than a mast.
+**Still open.** Whether a 3x3x3 is the right *size*. It is legible and it is
+correct, but it is small - a wreck the player can step over. A larger hull would
+mean a hollow shell with a solid slice at the core's level, which is buildable
+but is a different object. Decide with eyes in the world.
 
 ---
 
@@ -113,7 +116,11 @@ is not density as experienced on foot, and the explored areas in
 one per 1400 chunks in these saves, ocean ruins about one per 700. A landmark
 should sit nearer those than to mineshafts at one per 185.
 
-**Closing it.** Raised to 900. Revisit against a walked world, not a flown one.
+**Where it sits now.** Deliberately dense while the shapes are being judged:
+`derelict` at 260, `obelisk` at 180. You cannot tune a silhouette you never
+meet. This is the wrong number for shipping and the right one for looking, and
+the two should not be confused - pull both up once the shapes are settled, and
+judge the result from a walked world rather than a flown one.
 
 ---
 
@@ -172,9 +179,6 @@ who arrive from somewhere. Not acting on it until which one is meant is settled.
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it
 does not survive a clone and is not discoverable from the repo - you find out by
 being rejected. The recent history is all 29 on purpose.
-
-**`OctiaBeacon` has two unused imports**, `ShipCoreBlock` and `ShipStatus`.
-Harmless, still noise.
 
 **No world has ever rendered the gold beacon mark.** `recordBeaconAt` arrived in
 `644b83e` and every existing save raised its beacon before that;
