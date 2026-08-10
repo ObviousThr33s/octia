@@ -160,6 +160,13 @@ $levelType = "minecraft\:$Type"
     "level-name=$Name",
     "level-seed=$Seed",
     "level-type=$levelType",
+    # Creative, because there are no survival features yet. Octia's content is
+    # things to find and look at, and a dev world where you spend the first ten
+    # minutes punching a tree is a dev world nobody tests the ruins in.
+    # force-gamemode makes it stick for a player rejoining an existing save
+    # rather than only applying to a first login.
+    'gamemode=creative',
+    'force-gamemode=true',
     'server-ip=127.0.0.1',
     'max-players=0',
     'online-mode=true',
