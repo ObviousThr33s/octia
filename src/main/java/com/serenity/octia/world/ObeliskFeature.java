@@ -6,6 +6,7 @@ import com.serenity.octia.block.AndesiteFramePanelBlock;
 import com.serenity.octia.block.PanelLight;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -93,7 +94,7 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
             height = Math.max(2, height - (2 + random.nextInt(3)));
         }
 
-        column(level, base, height, broken);
+        column(level, random, base, height, broken);
         RuinGround.dig(level, random, base, DIG_MIN, DIG_MAX, 2 + random.nextInt(3));
 
         if (broken) {
@@ -113,14 +114,33 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         }
     }
 
-    /** The shaft, unbroken from the plinth up, crowned if it still stands. */
-    private static void column(WorldGenLevel level, BlockPos base, int height, boolean broken) {
+    /**
+     * The shaft, unbroken from the plinth up, crowned if it still stands.
+     *
+     * <p>A broken one leans. The courses above the lean point step one block to
+     * the side and carry on, which in a world made of cubes is what a topple
+     * looks like: the stone did not fall over, it slid. A perfectly vertical
+     * stump reads as unfinished rather than as ruined, and every broken obelisk
+     * looking identical was the same complaint the mast had before it became a
+     * hexahedron.
+     */
+    private static void column(WorldGenLevel level, RandomSource random,
+                               BlockPos base, int height, boolean broken) {
+        // Where it gave way, and which way it went. Never the first course -
+        // something has to still be standing on the plinth or it is rubble.
+        int lean = broken ? 2 + random.nextInt(Math.max(1, height - 2)) : height + 1;
+        Direction fell = Direction.Plane.HORIZONTAL.getRandomDirection(random);
+
+        BlockPos shaft = base;
         for (int y = 1; y <= height; y++) {
+            if (y == lean) {
+                shaft = shaft.relative(fell);
+            }
             boolean crown = !broken && y == height;
             PanelLight light = crown ? PanelLight.STYLED
                     : (y == height - 1 && !broken ? PanelLight.GENERIC : PanelLight.NONE);
 
-            RuinGround.put(level, base.above(y),
+            RuinGround.put(level, shaft.above(y),
                     OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
                             .setValue(AndesiteFramePanelBlock.LIGHT, light));
         }

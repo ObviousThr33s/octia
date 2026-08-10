@@ -116,11 +116,28 @@ is not density as experienced on foot, and the explored areas in
 one per 1400 chunks in these saves, ocean ruins about one per 700. A landmark
 should sit nearer those than to mineshafts at one per 185.
 
-**Where it sits now.** Deliberately dense while the shapes are being judged:
-`derelict` at 260, `obelisk` at 180. You cannot tune a silhouette you never
-meet. This is the wrong number for shipping and the right one for looking, and
-the two should not be confused - pull both up once the shapes are settled, and
-judge the result from a walked world rather than a flown one.
+**Closed, with numbers.** Measured rather than guessed, over 5041 generated
+chunks of seed 4242 via `new-world.ps1 -Chunks 24` and `world-report.py --ruins`:
+
+| | before | after |
+|---|---|---|
+| `derelict` / `obelisk` / `waystation` | 260 / 180 / 320 | **800 / 520 / 900** |
+| hull-bearing ruins | 1 per 240 chunks | 1 per 840 |
+| nearest-neighbour spacing | min 36b, median **97b** | min 58b, median **122b**, max 272b |
+
+One per 240 chunks is mineshaft density - vanilla runs about one per 185 in
+these saves - and a median of 97 blocks between wrecks means one is nearly
+always in view, which is the definition of litter. One per 840 sits just past
+vanilla's ocean ruins at one per 700, which is a find.
+
+The counts include the two guaranteed at spawn, so the wild density is slightly
+lower than the figures above. Obelisks carry no core and are not counted at all;
+their number was moved by the same factor on the same reasoning.
+
+**What would change it again.** These are numbers from a *generated* area, not a
+walked one. Density as experienced on foot depends on sightlines, and an obelisk
+is meant to be seen from much further than a half-buried cube. If obelisks start
+feeling sparse before wrecks do, move obelisks alone.
 
 ---
 
@@ -154,11 +171,22 @@ about what counts as ground. It now asks `MOTION_BLOCKING_NO_LEAVES`, and
 `RuinGround.isDry` checks the volume a ruin will occupy rather than only the
 plane it stands on.
 
-**Still open, and now the only question.** Whether derelicts *should* generate on
-seabeds at all. A ship that was called and never arrived is arguably most at home
-under water, and the beacon already knows how - `raise` walks down through fluid
-to the floor. That is a decision to take on purpose, not an accident of which
-heightmap a line happened to name.
+**And now they do.** Taken on purpose: a ship that was called and never arrived
+is most at home under water. `RuinGround.descend` is the beacon's walk-down,
+written against block reads so a feature can use it during generation, and a
+derelict now drops through air and fluid to whatever is holding the world up.
+
+What it still refuses is the **waterline**. A hull with its floor in the sea and
+its lid in the air is neither a shipwreck nor a ruin, so the water has to still
+be water two courses above the cube. Digs go in the seabed the way vanilla's
+ocean ruins bury suspicious sand.
+
+**Left undone deliberately.** A submerged wreck is not dressed at all. Every prop
+in `Habitation` is a thing somebody left in a room - a lit campfire, a made bed,
+a path worn into dirt - and none of them mean anything on a seabed. World 0's
+palette has the marine half already (sea lantern, sea pickle, prismarine,
+seagrass); a submerged dressing built from those would be better than nothing.
+Nothing is better than a bed underwater.
 
 ---
 

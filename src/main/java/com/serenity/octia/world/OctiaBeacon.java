@@ -53,15 +53,16 @@ public final class OctiaBeacon {
      * column of panels bobbing in open water.
      */
     public static void raise(ServerLevel level) {
-        // What "spawn" is at this moment, and it is not what it looks like.
-        // ServerWorldEvents.LOAD fires while the level is still being built, so
-        // on a brand-new save the level data's spawn has not been chosen yet and
-        // this answers the default column at the world origin. docs/WORLDS.md is
-        // the receipt: all three saves carry their mast at x=0 z=0, and [0.2.1]
-        // records a player spawn of 112 67 176 - the mast is 200-odd blocks from
-        // where that world actually starts you. Verify against
-        // MinecraftServer.createLevels before treating it as intended: the same
-        // call decides where placeNearSpawn measures its rings from.
+        // The real spawn, and it only became real recently. This used to be
+        // called from ServerWorldEvents.LOAD, which fires while levels are still
+        // being created - before Minecraft chooses a spawn in prepareLevels - so
+        // it answered the default column at the world origin. On seeds that
+        // spawn near origin nothing looked wrong; on seed 1, spawn is
+        // (112, 67, 176) and the mast went up 209 blocks from where the player
+        // arrives. Placement moved to SERVER_STARTED and the saves are the
+        // receipt: [0.2.1] and [0.2.2] carry their mast at x=0 z=0, [0.2.3]
+        // onward carry it at spawn. claimBeacon fires once per save, so the
+        // early worlds keep what they got.
         BlockPos spawn = level.getSharedSpawnPos();
 
         // The spawn chunk is not guaranteed resident the instant the level loads,

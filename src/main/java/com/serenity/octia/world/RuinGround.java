@@ -93,6 +93,63 @@ final class RuinGround {
         return true;
     }
 
+    /**
+     * Walks down from a position to the first free space above solid ground,
+     * dropping through air <em>and</em> fluid on the way.
+     *
+     * <p>This is {@code OctiaBeacon.groundAt}'s idea, which is why an ocean
+     * spawn gets a mast standing on the seabed rather than a column of panels
+     * bobbing at the surface. Written here against block reads only - no
+     * heightmap - because a feature runs during generation where the non-{@code _WG}
+     * heightmaps are not maintained, and that lesson has been paid for once.
+     *
+     * @param drop how far down to look before giving up
+     * @return the floor position, or null if nothing solid is within reach
+     */
+    static BlockPos descend(WorldGenLevel level, BlockPos from, int drop) {
+        BlockPos p = from;
+        for (int i = 0; i < drop; i++) {
+            if (level.isOutsideBuildHeight(p.below())) {
+                return null;
+            }
+            BlockState below = level.getBlockState(p.below());
+            if (!below.isAir() && level.getFluidState(p.below()).is(Fluids.EMPTY)) {
+                return p;
+            }
+            p = p.below();
+        }
+        return null;
+    }
+
+    /** Whether this position is standing in fluid. */
+    static boolean submerged(WorldGenLevel level, BlockPos pos) {
+        return !level.getFluidState(pos).is(Fluids.EMPTY);
+    }
+
+    /**
+     * A free position around a centre, allowing fluid.
+     *
+     * <p>The dry {@link #scatter} refuses anything wet, which is right on land
+     * and wrong on a seabed - vanilla's own ocean ruins bury suspicious sand
+     * under water, and a wreck on the floor of the sea should be diggable for
+     * the same reason.
+     */
+    static BlockPos scatterWet(WorldGenLevel level, RandomSource random, BlockPos centre,
+                               int min, int max) {
+        for (int tries = 0; tries < SCATTER_TRIES; tries++) {
+            int dx = random.nextInt(max * 2 + 1) - max;
+            int dz = random.nextInt(max * 2 + 1) - max;
+            if (Math.abs(dx) < min && Math.abs(dz) < min) {
+                continue;
+            }
+            BlockPos floor = descend(level, centre.offset(dx, 2, dz), 8);
+            if (floor != null) {
+                return floor;
+            }
+        }
+        return null;
+    }
+
     /** The first free space over solid ground in one column, or null. */
     static BlockPos surfaceNear(WorldGenLevel level, BlockPos column) {
         for (int y = SURFACE_UP; y >= -SURFACE_DOWN; y--) {
@@ -135,9 +192,17 @@ final class RuinGround {
      */
     static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
                    int min, int max, int attempts) {
+        return dig(level, random, centre, min, max, attempts, false);
+    }
+
+    /** As above, but a wet site digs on the seabed instead of refusing it. */
+    static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
+                   int min, int max, int attempts, boolean wet) {
         int placed = 0;
         for (int i = 0; i < attempts; i++) {
-            BlockPos spot = scatter(level, random, centre, min, max);
+            BlockPos spot = wet
+                    ? scatterWet(level, random, centre, min, max)
+                    : scatter(level, random, centre, min, max);
             if (spot == null) {
                 continue;
             }

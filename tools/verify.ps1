@@ -47,6 +47,12 @@ function Step($text) {
 
 if (-not (Test-Path $gradlew)) { throw "no gradlew.bat at $gradlew" }
 
+# Which checkout this is. $repo comes from $PSScriptRoot so it cannot be the
+# wrong one, but a green run is only reassuring if you can see what it was green
+# about - and there is more than one octia tree on this machine.
+Write-Host ""
+Write-Host "  repo: $repo" -ForegroundColor Green
+
 # A stale report would be read as a pass if the run itself died early.
 if (Test-Path $report) { Remove-Item $report -Force }
 

@@ -9,6 +9,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import com.serenity.octia.ship.ShipCoreBlock;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.GenerationStep;
@@ -257,14 +259,27 @@ public final class OctiaWorldgen {
         // accident of which heightmap this line happened to name.
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
 
-        return derelict.place(new FeaturePlaceContext<>(
+        boolean built = derelict.place(new FeaturePlaceContext<>(
                 Optional.empty(),
                 level,
                 level.getChunkSource().getGenerator(),
                 random,
                 surface,
-                NoneFeatureConfiguration.INSTANCE))
-                ? surface.below(DerelictFeature.sink())
-                : null;
+                NoneFeatureConfiguration.INSTANCE));
+        if (!built) {
+            return null;
+        }
+
+        // Found rather than calculated. The wreck sinks by its age and walks
+        // down to real ground before it settles, so "surface minus a constant"
+        // stopped being where the core is the moment either of those landed -
+        // and this position is what gets logged and reported as the answer.
+        for (int dy = 2; dy >= -DerelictFeature.searchDepth(); dy--) {
+            BlockPos candidate = surface.offset(0, dy, 0);
+            if (level.getBlockState(candidate).getBlock() instanceof ShipCoreBlock) {
+                return candidate;
+            }
+        }
+        return surface;
     }
 }

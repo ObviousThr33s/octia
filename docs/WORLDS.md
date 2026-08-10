@@ -207,12 +207,19 @@ Octia: derelict seated at BlockPos{...} (48 blocks from spawn).
 Because that one is placed into a live level it moors on placement, so it is on
 the F6 map from the moment the world opens. The wild ones are not — see below.
 
-Rarity for the wild ones lives in one field per `placed_feature` JSON —
-`derelict` at `260`, `obelisk` at `180`, meaning a one-in-N roll per chunk.
-Denser than vanilla trial chambers (about one per 1400 chunks in these saves)
-and than ocean ruins (about one per 700), which is deliberate while the shapes
-are still being judged: you cannot tune what you never meet. Pull both numbers
-up once the silhouettes are settled.
+Rarity lives in one field per `placed_feature` JSON — `derelict` at `800`,
+`obelisk` at `520`, `waystation` at `900`, meaning a one-in-N roll per chunk.
+
+Those numbers were **measured, not guessed**: 5041 generated chunks of seed 4242
+put hull-bearing ruins at one per 840, with a median of 122 blocks between them.
+That sits just past vanilla's ocean ruins (about one per 700 in these saves) and
+well clear of mineshafts (one per 185). The previous settings gave one per 240
+and a 97-block median — one nearly always in view, which is litter. Re-measure
+any time with:
+
+```bash
+python tools\world-report.py --ruins "run\saves\<world>"
+```
 
 **The waystation** — the first ruin that is not written in Java. It is an
 `.nbt` under `data/octia/structure/`, placed by `TemplateRuinFeature` with a
