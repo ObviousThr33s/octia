@@ -1,6 +1,7 @@
 package com.serenity.octia;
 
 import com.serenity.octia.crew.Crew;
+import com.serenity.octia.crew.Wayfarer;
 import com.serenity.octia.debug.OctiaDebug;
 import com.serenity.octia.world.EraEcho;
 import com.serenity.octia.world.HeadlessRun;
@@ -151,6 +152,12 @@ public final class Octia implements ModInitializer {
         // SERVER_STARTED that creates the muster. Five hooks in all: start,
         // stopping, end-of-tick, chat, and the command tree.
         Crew.bootstrap();
+
+        // Strangers on the road. Built on the crew's machinery rather than
+        // beside it - a wayfarer is a crew member nobody mustered, told
+        // something different, and left alone. The ruins stay empty; these are
+        // the only people you meet, which is what makes meeting one land.
+        Wayfarer.bootstrap();
 
         // The debug view's payload types. Common, not client: a type known to
         // one side only is a disconnect on the first packet, and a dedicated

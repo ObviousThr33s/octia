@@ -253,6 +253,31 @@ a small per-save record of which names have been met and where, and have the
 second meeting open by naming the *place* rather than you. That is the entire
 feature; everything else is staging.
 
+**Landed.** `Wayfarer` drives one at a time: arrives at night under open sky,
+more than 64 blocks from spawn, on a cooldown; holds a 6-block band; asks its
+cleric every ten seconds; leaves once nobody has been within 30 blocks for
+twenty. `WayfarerLedger` is the memory, and `Situation.wayfarerBriefing` is the
+reserve — a paragraph, not a state machine, which is why it still works with the
+bench switched off.
+
+**They are chaos, and the design is built for that rather than against it.**
+Three things make a strange answer harmless, and only the third is about the
+model at all:
+
+- **No hands.** A `CrewPlayer` has no client sending block-break or item-use
+  packets, so a wayfarer physically cannot mine, build, steal or attack.
+- **A narrower vocabulary.** `Wayfarer.permit` drops FOLLOW and JUMP even when a
+  model produces them. A stranger that trails you home is not reserved.
+- **The band is not the model's to decide.** `Wayfarer.band` overrides whatever
+  the cleric said. Reserve that depends on a language model remembering to be
+  reserved is not reserve.
+
+**Still open.** They arrive anywhere outdoors at night rather than near an
+obelisk, because obelisk positions are not recorded anywhere — a ruin registry
+would fix that and would also serve the minimap integration. And nothing yet
+puts a wayfarer at a ruin *they* are also visiting, which is the encounter the
+fiction most wants.
+
 **Note against entry IV and VIII.** Ruins stay empty - always. Strangers are met
 on the road, never found living in a wreck. The emptiness is what makes an
 encounter land.

@@ -74,6 +74,55 @@ final class Situation {
                 .formatted(seatName);
     }
 
+    /**
+     * The briefing a stranger gets. Reserved, and reserved on purpose.
+     *
+     * <p><b>Reserved is a prompt, not a behaviour tree.</b> There is no state
+     * machine here deciding when a wayfarer opens up; there is a paragraph
+     * telling it to say little. That matters for a reason beyond taste: it
+     * degrades correctly. With the bench down there is no cleric at all, the
+     * stranger says almost nothing, and almost nothing is exactly what the
+     * character was going to do anyway. Very few designs get a graceful offline
+     * mode for free.
+     *
+     * <p>The vocabulary is deliberately narrower than the crew's. A stranger is
+     * never asked to follow anybody, so {@code follow} is not offered - see
+     * {@code Wayfarer.permit}, which refuses it even if a model produces it.
+     *
+     * @param memory a place this person was met before, or empty on a first
+     *               meeting. When it is present the model is told to open with
+     *               it, because being remembered by where rather than by who is
+     *               the whole reason this feature exists.
+     */
+    static String wayfarerBriefing(String seatName, String memory) {
+        String opening = memory.isEmpty()
+                ? "You have never met these people before."
+                : "You have met them before, near " + memory + ". Mention that place in your first words, and nothing else about it.";
+
+        return """
+                You are %s, a traveller on a road in Minecraft. You are passing through.
+                %s
+
+                You are friendly but reserved. You answer briefly. You do not explain yourself,
+                you do not say where you are going, and you never ask to join anyone.
+                Most of the time you say nothing at all.
+
+                Reply with EXACTLY ONE order and nothing else. No explanation, no quotes.
+
+                Orders you may give:
+                say <words>              speak, briefly
+                go north|south|east|west walk that way
+                look <player>            turn to face them
+                hold                     do nothing
+
+                Examples of a whole reply:
+                hold
+                say cold night for it
+                go west
+                hold"""
+                .formatted(seatName, opening);
+    }
+
     /** The state of the world as this crew member can see it, right now. */
     static String of(CrewPlayer body, List<String> chatter) {
         ServerLevel level = body.serverLevel();
