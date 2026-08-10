@@ -164,6 +164,11 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         if (!wet) {
             Habitation.dress(level, random, core, age);
         }
+
+        // Say where this went. A feature leaves no record of itself anywhere, so
+        // without this the mod cannot answer "where are the wrecks" about its
+        // own world. Queued rather than written - see RuinRegistry.
+        RuinRegistry.report(level.getLevel(), OctiaWorldgen.DERELICT, core);
         return true;
     }
 

@@ -8,6 +8,7 @@ import com.serenity.octia.world.HeadlessRun;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
 import com.serenity.octia.world.OctiaWorldgen;
+import com.serenity.octia.world.RuinRegistry;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -168,6 +169,11 @@ public final class Octia implements ModInitializer {
         // has to be; whether it actually places anything is decided per save,
         // inside the feature. See OctiaWorldgen for why it has to be that way.
         OctiaWorldgen.bootstrap();
+
+        // The landmark registry's drain. Features report from generation
+        // workers and this is what moves those reports onto the server thread,
+        // so it has to be running before any chunk generates.
+        RuinRegistry.bootstrap();
 
         // The one thing that makes the dimension-agnostic moorings store
         // perceptible. Registered here rather than with the worldgen because it

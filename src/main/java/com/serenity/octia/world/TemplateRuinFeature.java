@@ -149,6 +149,11 @@ public class TemplateRuinFeature extends Feature<TemplateRuinFeature.Config> {
         // After the markers, so any core stamped by one is standing before
         // Habitation looks for hull rings to keep out of.
         Habitation.dress(level, random, middle, RuinAge.roll(random));
+
+        // Recorded under the template's own path, so a save that ships three
+        // authored ruins can be asked about each of them separately without
+        // anyone editing an enum.
+        RuinRegistry.report(level.getLevel(), config.template().getPath(), middle);
         return true;
     }
 

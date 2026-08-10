@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.serenity.octia.Octia;
+import com.serenity.octia.world.OctiaWorldgen;
+import com.serenity.octia.world.RuinRegistry;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -74,6 +76,9 @@ public final class Wayfarer {
 
     /** Unwatched for this long and they are gone. Twenty seconds. */
     private static final int LINGER = 400;
+
+    /** How far a landmark may be and still be what drew somebody here. */
+    private static final double LANDMARK_RANGE = 96.0;
 
     /** How often the cleric is asked, in ticks. Slower than the crew: they talk less. */
     private static final int ASK_TICKS = 200;
@@ -165,7 +170,13 @@ public final class Wayfarer {
             return;
         }
 
-        BlockPos spot = arrivalSpot(level, person.blockPosition(), random);
+        // Near a landmark if there is one within sight of the player, otherwise
+        // simply near the player. An obelisk is a thing travellers walk toward
+        // - that is what the lit crown is for - so meeting one at the foot of
+        // it is the encounter the fiction actually wants, and meeting one in an
+        // empty field is the fallback rather than the design.
+        BlockPos anchor = landmarkNear(person.blockPosition());
+        BlockPos spot = arrivalSpot(level, anchor == null ? person.blockPosition() : anchor, random);
         if (spot == null) {
             return;
         }
@@ -260,6 +271,18 @@ public final class Wayfarer {
             case SAY, GO, LOOK, HOLD -> order;
             case FOLLOW, JUMP -> Order.HOLD;
         };
+    }
+
+    /**
+     * An obelisk the player is already near, or null.
+     *
+     * <p>Only obelisks. A derelict is somewhere a ship failed and a waystation is
+     * somewhere people stopped, but an obelisk is a marker raised to be walked
+     * toward - it is the one landmark that implies a road, and a road is where
+     * you meet somebody.
+     */
+    private BlockPos landmarkNear(BlockPos from) {
+        return RuinRegistry.get(server).nearest(from, OctiaWorldgen.OBELISK, LANDMARK_RANGE);
     }
 
     /** Somewhere solid, a fair way off, that the person is not looking at. */

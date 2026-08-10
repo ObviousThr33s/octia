@@ -101,6 +101,12 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
             fallen(level, random, base);
         }
         Habitation.dress(level, random, base, age);
+
+        // Recorded so something can be told where the obelisks are. This one
+        // matters most: an obelisk is a landmark by design - the lit crown
+        // exists to be seen across a valley and walked toward - and until now
+        // nothing but a player's eyes could find one.
+        RuinRegistry.report(level.getLevel(), OctiaWorldgen.OBELISK, base);
         return true;
     }
 

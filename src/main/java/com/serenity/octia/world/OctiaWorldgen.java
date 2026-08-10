@@ -53,8 +53,15 @@ public final class OctiaWorldgen {
      * Registry path for both the feature type and the two worldgen JSON files
      * that configure and place it. They must agree; this constant is why they do.
      */
-    private static final String DERELICT = "derelict";
-    private static final String OBELISK = "obelisk";
+    /**
+     * Registry paths, and also the kinds a ruin is recorded under.
+     *
+     * <p>Public because {@link RuinRegistry} keys on exactly these strings and a
+     * second spelling of "obelisk" somewhere else would be a landmark nobody can
+     * look up. One name, one place.
+     */
+    public static final String DERELICT = "derelict";
+    public static final String OBELISK = "obelisk";
 
     /**
      * The feature type that places authored .nbt ruins. Its registry path is

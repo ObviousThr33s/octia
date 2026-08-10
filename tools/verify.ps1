@@ -77,10 +77,15 @@ if (-not $SkipBuild) {
 # startup with "another process has locked a portion of the file", which looks
 # like a mod failure and is not one. Sweep first.
 #
-# This kills only leftovers, never a run in progress, so it cannot hide a hang in
-# our own code: a hang still hangs, it just stops poisoning the run after it.
+# STALE means old, and the age test is not decoration. A first version killed
+# every runGametest process it could see, which murdered a concurrent run the
+# moment two verifies overlapped - and then reported "No report", which reads
+# like the suite failed rather than like it was shot. A whole run is about a
+# minute; anything still alive after five is not working.
+$cutoff = (Get-Date).AddMinutes(-5)
 $stale = @(Get-CimInstance Win32_Process -Filter "Name='java.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like '*runGametest*' })
+    Where-Object { $_.CommandLine -like '*runGametest*' } |
+    Where-Object { $_.CreationDate -lt $cutoff })
 if ($stale.Count -gt 0) {
     Write-Host "  clearing $($stale.Count) stale gametest server(s) holding the world lock" -ForegroundColor Yellow
     $stale | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }

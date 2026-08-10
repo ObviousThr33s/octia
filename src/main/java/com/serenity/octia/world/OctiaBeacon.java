@@ -40,6 +40,9 @@ public final class OctiaBeacon {
     /** Half-width of the plinth. A 5x5 pad reads as built, not as an accident. */
     private static final int PAD = 2;
 
+    /** What the beacon is called in {@link RuinRegistry}. Not a feature path. */
+    public static final String BEACON = "beacon";
+
     /**
      * Finds honest ground at the save's spawn column and raises the beacon
      * there.
@@ -75,6 +78,12 @@ public final class OctiaBeacon {
         // rolls, and the debug map needs to know where this went for the life of
         // the save.
         OctiaWorldOption.get(level.getServer()).recordBeaconAt(base);
+
+        // Also into the landmark registry. The option already knows where the
+        // beacon is and will go on being the authority on that, but anything
+        // asking "what has Octia put in this world" should get one answer, and
+        // a mast at spawn is the first landmark there is.
+        RuinRegistry.report(level, BEACON, base);
         Octia.LOGGER.info("Octia: beacon raised at {} ({} panels tall, {}x{} plinth).",
                 base, HEIGHT, PAD * 2 + 1, PAD * 2 + 1);
     }
