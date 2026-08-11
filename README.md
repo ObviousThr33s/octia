@@ -116,6 +116,7 @@ octia/
 │  ├─ NOTATION.md                       the KEG notation, codified
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
+│  ├─ MINUTES.md                        the sittings, and what each resolved
 │  ├─ FRONT_DOOR.md                     the desktop window onto the repo
 │  ├─ LSP.md                            shared Java language server setup
 │  └─ NUMERIC_MODEL.md                  which design quantities are measurable
