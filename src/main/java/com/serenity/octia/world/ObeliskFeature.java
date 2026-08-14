@@ -8,49 +8,120 @@ import com.serenity.octia.block.PanelLight;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 
 /**
- * An obelisk: a lit marker, standing over a dig, with no ship in it.
+ * An obelisk: a large andesite prism, standing over a dig, laid along a thread.
  *
  * <p><b>Why a second ruin at all.</b> One structure type is a curiosity; two are
  * a culture. The derelict says a ship came and failed - which only means
  * something if there is separate evidence that somebody was here on purpose.
- * An obelisk is that evidence: a mast raised deliberately over a dig, in the
- * same andesite, by whoever was calling ships in the first place.
+ * An obelisk is that evidence: masonry raised deliberately over a dig, in the
+ * same andesite frame panels the hulls are built from, by whoever was calling
+ * ships in the first place.
+ *
+ * <p><b>It was a column and it is now a prism.</b> One block square is a fence
+ * post. It read as a marker only because nothing else in the world was that
+ * shape, and at any distance where an obelisk is supposed to do its job - the
+ * thing you see across a valley and decide to walk toward - a 1x1 column is one
+ * pixel wide and gone. A {@value #ACROSS}x{@value #ALONG} prism reaching
+ * {@value #MIN_HEIGHT} to {@value #MAX_HEIGHT} blocks is a silhouette, and a
+ * silhouette has an orientation, which is what the rest of this class is about.
+ *
+ * <p><b>It points.</b> {@link Sightlines} lays a lattice of nodes over the world
+ * and gives each one a next node; the prism's long axis lies along the leg
+ * between them, and the {@link #slot} bored through it at eye level is a line of
+ * sight down that leg. Stand at one end, look through, and you are looking the
+ * way the thread runs. Nothing in a vanilla world does this - the note on
+ * {@code Sightlines} has the survey of the saves that establishes it - so the
+ * alignment is the one piece of evidence in the terrain that these were placed
+ * by somebody rather than scattered.
+ *
+ * <p><b>The thread shows in what is still standing, not in what exists.</b>
+ * Distance to the leg decides how likely an obelisk is to have stayed up, and
+ * nothing else: {@value #BROKEN_IN_NEAR} in {@value #ODDS} within
+ * {@link Sightlines#CORRIDOR} blocks of the line, {@value #BROKEN_IN_FAR} in
+ * {@value #ODDS} beyond it. So the lit spires trace the route and the stumps lie
+ * off it, and the route is something you notice rather than something you are
+ * told. It is deliberately not a filter on placement: an obelisk that could only
+ * generate inside a corridor would make {@code /place feature octia:obelisk}
+ * fail nine times in ten and would quietly re-tune the density in
+ * {@code placed_feature/obelisk.json} by a factor nobody wrote down.
  *
  * <p><b>Deliberately not a ship.</b> There is no core in it and there never
  * should be. {@link com.serenity.octia.ship.ShipCoreBlock} is the mod's one
  * piece of machinery and the moorings store is its spine; a landmark that
  * quietly moored itself would put positions into that store that no player ever
- * built and no player can unbuild. An obelisk is masonry. It is legible at
- * night because of the lit crown, it is worth walking to because of the dig at
- * its foot, and it stays out of the store entirely.
- *
- * <p>The crown is {@link PanelLight#STYLED}, light 15, which is the brightest
- * thing the mod owns. That is the point of it - an obelisk is meant to be the
- * thing you see across a valley and decide to walk toward.
+ * built and no player can unbuild. An obelisk is masonry. It stays out of the
+ * store entirely.
  */
 public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
 
-    /** Shortest and tallest a standing obelisk gets, before the break. */
-    private static final int MIN_HEIGHT = 5;
-    private static final int MAX_HEIGHT = 9;
+    /** Footprint across the thread, and along it. Odd, so there is a centre line. */
+    private static final int ACROSS = 3;
+    private static final int ALONG = 5;
 
-    /** How far the plinth reaches from the column. A 3x3 pad reads as built. */
+    /** Shortest and tallest a standing obelisk gets, before the break. */
+    private static final int MIN_HEIGHT = 9;
+    private static final int MAX_HEIGHT = 13;
+
+    /** How far the plinth reaches past the prism on every side. */
     private static final int PLINTH = 1;
 
-    /** Digs sit off the plinth and inside a comfortable walk of the foot. */
-    private static final int DIG_MIN = 2;
-    private static final int DIG_MAX = 4;
+    /**
+     * The sighting slot: a one-wide gap bored the whole length of the prism, at
+     * the height of a player's eyes standing on the plinth. Two courses rather
+     * than one because a single course is at eye level only when the ground
+     * under your feet is exactly the ground under the plinth, which outside a
+     * gametest it never is.
+     */
+    private static final int SLOT_LOW = 2;
+    private static final int SLOT_HIGH = 3;
 
-    /** Chance in four that an obelisk has snapped rather than stands whole. */
-    private static final int BROKEN_IN_FOUR = 1;
+    /** Digs sit off the plinth and inside a comfortable walk of the foot. */
+    private static final int DIG_MIN = 4;
+    private static final int DIG_MAX = 6;
+
+    /** How likely a break is, on and off the thread. Out of {@value #ODDS}. */
+    private static final int ODDS = 8;
+    private static final int BROKEN_IN_NEAR = 1;
+    private static final int BROKEN_IN_FAR = 4;
+
+    /**
+     * A broken one is never cut below this. The slot has to survive the break -
+     * a stump whose sighting line has gone is a rock, and the whole point of the
+     * broken variant is that it still says which way the thread ran, it just no
+     * longer says it in light.
+     */
+    private static final int MIN_BROKEN_HEIGHT = SLOT_HIGH + 2;
 
     public ObeliskFeature(Codec<NoneFeatureConfiguration> codec) {
         super(codec);
+    }
+
+    /**
+     * The prism's footprint and the height of its slot, for the gametests that
+     * have to walk the shape rather than assume it. Same reasoning as
+     * {@code DerelictFeature.sink()}: a test that hard-codes 3 and 5 passes
+     * against the wrong building the day either constant moves.
+     */
+    public static int across() {
+        return ACROSS;
+    }
+
+    public static int along() {
+        return ALONG;
+    }
+
+    public static int slotLow() {
+        return SLOT_LOW;
+    }
+
+    public static int slotHigh() {
+        return SLOT_HIGH;
     }
 
     @Override
@@ -66,23 +137,43 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         // perched on it. Same reasoning as the derelict: found, not installed.
         BlockPos base = context.origin().below(1);
 
-        if (!RuinGround.hasFooting(level, base.below(1), PLINTH)) {
+        Sightlines.Leg leg = Sightlines.legAt(level.getSeed(), base.getX(), base.getZ());
+        boolean alongX = leg.heading() == Sightlines.Heading.EAST
+                || leg.heading() == Sightlines.Heading.WEST;
+        int toward = leg.heading() == Sightlines.Heading.EAST
+                || leg.heading() == Sightlines.Heading.SOUTH ? 1 : -1;
+
+        int half = ALONG / 2;
+        int side = ACROSS / 2;
+        int radiusX = (alongX ? half : side) + PLINTH;
+        int radiusZ = (alongX ? side : half) + PLINTH;
+
+        // The height is settled before the footing is checked, not after, so the
+        // headroom asked for is the headroom about to be used. Getting that
+        // backwards is what let an obelisk pass the check and then lose its
+        // crown to the build ceiling.
+        int height = MIN_HEIGHT + random.nextInt(MAX_HEIGHT - MIN_HEIGHT + 1);
+        boolean broken = random.nextInt(ODDS)
+                < (leg.distanceToLine(base.getX(), base.getZ()) <= Sightlines.CORRIDOR
+                        ? BROKEN_IN_NEAR : BROKEN_IN_FAR);
+        if (broken) {
+            height = Math.max(MIN_BROKEN_HEIGHT, height - (3 + random.nextInt(4)));
+        }
+
+        if (!RuinGround.hasFooting(level, base.below(1), radiusX, radiusZ, height + 1)) {
             return false;
         }
 
-        plinth(level, base);
-
-        int height = MIN_HEIGHT + random.nextInt(MAX_HEIGHT - MIN_HEIGHT + 1);
-        boolean broken = random.nextInt(4) < BROKEN_IN_FOUR;
+        plinth(level, base, radiusX, radiusZ);
+        prism(level, base, alongX, height, broken);
+        if (!broken) {
+            stripe(level, base, alongX, toward, height);
+        }
+        slot(level, base, alongX);
         if (broken) {
-            // A snapped obelisk loses its crown, so it also loses the light.
-            // That asymmetry is worth keeping: a lit spire on the horizon is a
-            // promise that something is standing, and a broken one should not
-            // be able to make it.
-            height = Math.max(2, height - (2 + random.nextInt(3)));
+            erode(level, random, base, alongX, height);
         }
 
-        column(level, base, height, broken);
         RuinGround.dig(level, random, base, DIG_MIN, DIG_MAX, 2 + random.nextInt(3));
 
         if (broken) {
@@ -91,34 +182,111 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         return true;
     }
 
-    /** A 3x3 pad at the foot, so the column reads as founded rather than stuck in. */
-    private static void plinth(WorldGenLevel level, BlockPos base) {
-        for (int dx = -PLINTH; dx <= PLINTH; dx++) {
-            for (int dz = -PLINTH; dz <= PLINTH; dz++) {
+    /** A pad one block proud of the prism, so it reads as founded, not stuck in. */
+    private static void plinth(WorldGenLevel level, BlockPos base, int radiusX, int radiusZ) {
+        for (int dx = -radiusX; dx <= radiusX; dx++) {
+            for (int dz = -radiusZ; dz <= radiusZ; dz++) {
                 RuinGround.put(level, base.offset(dx, 0, dz),
                         OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState());
             }
         }
     }
 
-    /** The shaft, unbroken from the plinth up, crowned if it still stands. */
-    private static void column(WorldGenLevel level, BlockPos base, int height, boolean broken) {
-        for (int y = 1; y <= height; y++) {
-            boolean crown = !broken && y == height;
-            PanelLight light = crown ? PanelLight.STYLED
-                    : (y == height - 1 && !broken ? PanelLight.GENERIC : PanelLight.NONE);
+    /**
+     * The prism itself, solid, from the plinth up.
+     *
+     * <p>The top course is the crown at {@link PanelLight#STYLED}, light 15 and
+     * the brightest thing the mod owns, over a collar of {@link PanelLight#GENERIC}.
+     * A broken one gets neither, and that asymmetry is the whole contract: a lit
+     * mass on the horizon is a promise that something is still standing, and a
+     * stump must not be able to make it.
+     */
+    private static void prism(WorldGenLevel level, BlockPos base, boolean alongX,
+                              int height, boolean broken) {
+        int half = ALONG / 2;
+        int side = ACROSS / 2;
 
-            RuinGround.put(level, base.above(y),
-                    OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
-                            .setValue(AndesiteFramePanelBlock.LIGHT, light));
+        for (int y = 1; y <= height; y++) {
+            PanelLight light = broken ? PanelLight.NONE
+                    : (y == height ? PanelLight.STYLED
+                            : (y == height - 1 ? PanelLight.GENERIC : PanelLight.NONE));
+
+            for (int a = -half; a <= half; a++) {
+                for (int c = -side; c <= side; c++) {
+                    RuinGround.put(level, base.offset(alongX ? a : c, y, alongX ? c : a),
+                            OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
+                                    .setValue(AndesiteFramePanelBlock.LIGHT, light));
+                }
+            }
         }
     }
 
-    /** The piece that came down, lying near the foot where it landed. */
+    /**
+     * A band up the face that points down the thread.
+     *
+     * <p>The crown says "something is standing here" to anyone who can see the
+     * top of it. This says "and it runs that way" to somebody who has already
+     * walked up to it, which is a different job and wants a different mark -
+     * visible from one side only, at ground level, on the end the leg leaves by.
+     * The slot's mouth is bored through the middle of it afterwards, so what is
+     * left is a frame around the hole you are meant to look through.
+     *
+     * <p>Only a standing one gets it. {@link PanelLight#GENERIC} is light 7, so
+     * a stripe on a broken obelisk would be a lit mark on a ruin that is
+     * supposed to have lost its light - the caller skips this rather than
+     * passing a flag, because an unlit stripe is indistinguishable from the
+     * prism it is cut into and would be a no-op with a comment on it.
+     */
+    private static void stripe(WorldGenLevel level, BlockPos base, boolean alongX,
+                               int toward, int height) {
+        int end = (ALONG / 2) * toward;
+        int top = Math.min(height - 2, SLOT_HIGH + 2);
+
+        for (int y = 1; y <= top; y++) {
+            RuinGround.put(level, base.offset(alongX ? end : 0, y, alongX ? 0 : end),
+                    OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState()
+                            .setValue(AndesiteFramePanelBlock.LIGHT, PanelLight.GENERIC));
+        }
+    }
+
+    /**
+     * The line of sight: bored last, through everything already written, so
+     * nothing can fill it back in.
+     */
+    private static void slot(WorldGenLevel level, BlockPos base, boolean alongX) {
+        int half = ALONG / 2;
+        for (int y = SLOT_LOW; y <= SLOT_HIGH; y++) {
+            for (int a = -half; a <= half; a++) {
+                RuinGround.put(level, base.offset(alongX ? a : 0, y, alongX ? 0 : a),
+                        Blocks.AIR.defaultBlockState());
+            }
+        }
+    }
+
+    /**
+     * What the weather took off a broken one. The top course only, and never far
+     * enough down to reach the slot - see {@link #MIN_BROKEN_HEIGHT}.
+     */
+    private static void erode(WorldGenLevel level, RandomSource random, BlockPos base,
+                              boolean alongX, int height) {
+        int half = ALONG / 2;
+        int side = ACROSS / 2;
+
+        for (int a = -half; a <= half; a++) {
+            for (int c = -side; c <= side; c++) {
+                if (random.nextInt(2) == 0) {
+                    RuinGround.put(level, base.offset(alongX ? a : c, height, alongX ? c : a),
+                            Blocks.AIR.defaultBlockState());
+                }
+            }
+        }
+    }
+
+    /** The pieces that came down, lying near the foot where they landed. */
     private static void fallen(WorldGenLevel level, RandomSource random, BlockPos base) {
         int count = 1 + random.nextInt(3);
         for (int i = 0; i < count; i++) {
-            BlockPos spot = RuinGround.scatter(level, random, base, DIG_MIN, DIG_MIN + 1);
+            BlockPos spot = RuinGround.scatter(level, random, base, DIG_MIN, DIG_MIN + 2);
             if (spot != null) {
                 RuinGround.put(level, spot, OctiaBlocks.ANDESITE_FRAME_PANEL.defaultBlockState());
             }

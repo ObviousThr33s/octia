@@ -122,6 +122,13 @@ meet. This is the wrong number for shipping and the right one for looking, and
 the two should not be confused - pull both up once the shapes are settled, and
 judge the result from a walked world rather than a flown one.
 
+**The obelisk's 180 has stopped being a rate.** Its footprint grew from a 3x3
+plinth to a 7x5 one and its footing check now asks for headroom over the whole
+prism rather than a flat eight, and the check refuses rather than levels. So
+strictly fewer candidates survive it than did, by a factor nobody has measured.
+Read 180 as an upper bound on the density until somebody walks a world and says
+what it actually is.
+
 ---
 
 ## VI. Derelicts refuse water
@@ -268,7 +275,36 @@ reflects.
 
 ---
 
-## XII. Smaller things, all cheap
+## XII. The threads point at nothing
+
+**What landed.** `Sightlines` lays a seeded lattice over the world — a node
+every 512 blocks, each with a next node one cardinal step away — and
+`ObeliskFeature` stands its prism along the leg between them, with a sighting
+slot bored down it. Distance to the leg decides how likely an obelisk is to have
+stayed standing, so the lit ones trace the route. The survey of the saves that
+motivated it, and the reason none of this could be read out of vanilla terrain,
+is in [SIGHTLINES.md](SIGHTLINES.md).
+
+**What is wrong with it.** A leg points at a waypoint with nothing on it.
+Placement is still a per-chunk rarity roll that knows nothing about the lattice,
+so following a thread converges on an empty field. That is a promise the world
+does not keep, and it is the kind of thing a player only has to hit once.
+
+**Closing it, two ways, and they are different designs.** Either the first-load
+path seats an obelisk at the nearest node the way `placeNearSpawn` seats the
+guaranteed derelict — the node becomes a place — or a node is declared to be
+only a direction and never a destination, and the fiction has to carry that. The
+second is cheaper and the first is what a player will expect. Decide it out
+loud; do not let the current behaviour become the answer by default.
+
+**Also open, and cheap: the map cannot draw a thread.** The legs are a pure
+function of the world seed, so the F6 overlay could draw them with no new
+packet — except that a vanilla client is never told the seed. That is the whole
+obstacle, and it is one long in `OctiaDebug.Snapshot` away from not being one.
+
+---
+
+## XIII. Smaller things, all cheap
 
 - **First light.** The first time a player surveys a wild derelict in a save, the
   spawn beacon flares once, visible from wherever they are. Two points in the

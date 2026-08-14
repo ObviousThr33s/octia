@@ -185,11 +185,21 @@ and `hullIntact` fails, the core reads ADRIFT, and the ruin quietly stops being 
 ship. A wreck eroded down to precisely the ring that still makes it a hull is a
 better object than either a pristine cube or a rubble pile. A gametest pins it.
 
-**The obelisk** — a lit marker standing over a dig, with no ship in it. Crowned
-with a `STYLED` panel at light 15, the brightest thing the mod owns, because an
-obelisk is meant to be the thing you see across a valley and walk toward. One in
-four has snapped, and a snapped one loses its crown and therefore its light —
-a lit spire on the horizon is a promise that something is still standing.
+**The obelisk** — a large andesite prism standing over a dig, with no ship in
+it. A solid 3×5 footprint, 9 to 13 blocks tall, on a plinth one block proud of
+it. It was a 1×1 column until the sightlines work, and one block square is one
+pixel wide at the distance an obelisk is supposed to be seen from.
+
+**It points.** The long axis lies along the leg of the seeded lattice under it,
+and a sighting slot is bored the whole length at eye level: stand at one end,
+look through, and you are looking the way the thread runs. The top course is
+`STYLED` at light 15, the brightest thing the mod owns; a band of `GENERIC` runs
+up the end face the leg leaves by. A broken one loses both marks and keeps the
+slot — it still says which way the thread ran, it just no longer says it in
+light. How likely a break is depends on distance to the leg, 1 in 8 near it
+against 4 in 8 away, so the standing lit ones trace the route. See
+[SIGHTLINES.md](SIGHTLINES.md), which also has the survey of these saves that
+established nothing in a vanilla world points at anything.
 
 It carries no core and never should. A landmark that moored itself would put
 positions into the spine that no player built and no player can take apart.
@@ -209,6 +219,12 @@ the F6 map from the moment the world opens. The wild ones are not — see below.
 
 Rarity for the wild ones lives in one field per `placed_feature` JSON —
 `derelict` at `260`, `obelisk` at `180`, meaning a one-in-N roll per chunk.
+**For the obelisk that number is now a bound rather than a rate**: the prism
+needs a flat 7×5 with headroom for its whole height where the column needed a
+3×3 with eight blocks above it, and a candidate that fails the footing check is
+refused rather than levelled. Strictly fewer sites pass than did. It has not
+been re-tuned, because tuning it from arithmetic rather than from a walked world
+is how the last number got written down wrong.
 Denser than vanilla trial chambers (about one per 1400 chunks in these saves)
 and than ocean ruins (about one per 700), which is deliberate while the shapes
 are still being judged: you cannot tune what you never meet. Pull both numbers

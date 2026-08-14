@@ -48,18 +48,30 @@ final class RuinGround {
      */
     static boolean hasFooting(WorldGenLevel level, BlockPos floor, int radius) {
         // Eight is the headroom a ruin is assumed to want above its floor. It
-        // clears the derelict's cube - floor+3 at its top - with room to spare,
-        // and it is two short of the obelisk, whose column can reach floor+10.
-        // An obelisk seated that near the build ceiling passes here and then
-        // loses its crown to it, because setBlock above build height is a silent
-        // no-op: a spire left standing without the one block that says so, which
-        // is the state ObeliskFeature reserves for a broken one. Amplified
-        // peaks only.
-        if (level.isOutsideBuildHeight(floor) || level.isOutsideBuildHeight(floor.above(8))) {
+        // clears the derelict's cube - floor+3 at its top - with room to spare.
+        // It used to be two short of the obelisk, whose column could reach
+        // floor+10: seated near the build ceiling it passed here and then lost
+        // its crown to it, because setBlock above build height is a silent
+        // no-op - a spire left standing without the one block that says so,
+        // which is the state ObeliskFeature reserves for a broken one. That is
+        // why the overload below exists, and why the obelisk calls it with the
+        // height it is actually about to build.
+        return hasFooting(level, floor, radius, radius, 8);
+    }
+
+    /**
+     * The same check over a rectangle, with the headroom stated rather than
+     * assumed. A prism laid along a thread is longer than it is wide, and a
+     * square check would either reject ground the narrow axis clears or accept
+     * ground the long axis does not.
+     */
+    static boolean hasFooting(WorldGenLevel level, BlockPos floor,
+                              int radiusX, int radiusZ, int headroom) {
+        if (level.isOutsideBuildHeight(floor) || level.isOutsideBuildHeight(floor.above(headroom))) {
             return false;
         }
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
+        for (int dx = -radiusX; dx <= radiusX; dx++) {
+            for (int dz = -radiusZ; dz <= radiusZ; dz++) {
                 BlockPos under = floor.offset(dx, 0, dz);
                 if (level.getBlockState(under).isAir()) {
                     return false;

@@ -20,6 +20,11 @@ Not a scaffold any more, and not a finished content mod. What is registered:
   decides it once and the save keeps that answer for life. On: a lit mast at
   spawn, one derelict within a short walk of it, then derelicts and obelisks
   out through the world.
+- **Sightlines.** A seeded lattice of waypoints, and a leg from each one to the
+  next. Every obelisk is a large andesite prism laid along the leg under it,
+  with a slot bored down its length that you can sight through. Nothing in a
+  vanilla world points at anything — the survey of the dev saves that
+  establishes that is in [docs/SIGHTLINES.md](docs/SIGHTLINES.md).
 - **Crew.** Server-side fake players seated by `/octia crew muster`, spoken for
   by a local model when one answers and by an offline tender when none does.
   LAN guests see them without installing anything.
@@ -115,6 +120,7 @@ octia/
 │  ├─ UPGRADING.md                      what breaks above 1.21.1, with lines
 │  ├─ NOTATION.md                       the KEG notation, codified
 │  ├─ WORLDS.md                         the dev saves, and what generates now
+│  ├─ SIGHTLINES.md                     the survey, the lattice, the prism
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
 │  ├─ FRONT_DOOR.md                     the desktop window onto the repo
 │  ├─ LSP.md                            shared Java language server setup
@@ -134,7 +140,7 @@ octia/
 │  │  ├─ OctiaBlocks.java               registration, one place
 │  │  ├─ block/                         the andesite frame panel
 │  │  ├─ ship/                          the core, its status, the moorings
-│  │  ├─ world/                         beacon, derelict, obelisk, the switch
+│  │  ├─ world/                         beacon, derelict, obelisk, sightlines
 │  │  ├─ crew/                          seats, orders, the gangway
 │  │  ├─ client/                        client entrypoint and the F6 map
 │  │  ├─ debug/                         the payload that map rides on
@@ -145,7 +151,7 @@ octia/
 │     ├─ assets/octia/                  textures, models, blockstates, lang
 │     ├─ data/octia/                    recipes, loot tables, worldgen
 │     └─ data/minecraft/tags/block/     the vanilla tags these blocks join
-└─ src/test/java/com/serenity/octia/    JUnit: codex and crew, no world needed
+└─ src/test/java/com/serenity/octia/    JUnit: codex, crew, sightlines
 ```
 
 ## License
