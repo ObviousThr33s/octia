@@ -131,6 +131,8 @@ octia/
 │  ├─ new-world.ps1                     generate a world headlessly, then log it
 │  ├─ backup-world.ps1                  snapshot a dev save outside the repo
 │  ├─ world-report.py                   read a save without launching the game
+│  ├─ sightline-map.py                  draw the lattice over a save, as HTML
+│  ├─ sightline-map/                    that page's parts; no network, no CDN
 │  ├─ frontdoor.ps1                     build + open the desktop window
 │  ├─ frontdoor/                        its sources; no Fabric, no Loom
 │  └─ rename-mod.ps1                    the rename

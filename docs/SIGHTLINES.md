@@ -78,6 +78,33 @@ Reproduce the read with:
 python tools/world-report.py worlds
 ```
 
+Or look at it. This draws the lattice over the save's own structure starts — one
+self-contained HTML file, no network, pan and zoom, and hovering anywhere
+reports which cell you are in, which way its leg runs, how far off the line you
+are, and therefore whether the feature would stand an obelisk there or break
+one:
+
+```bash
+python tools/sightline-map.py worlds -o sightlines.html
+```
+
+> **The map's arithmetic is a copy, and copies drift.** `Sightlines.java` is the
+> authority and it runs in the JVM, so the Python cannot share it — only match
+> it. `--probe` prints the same handful of nodes the Java prints, for diffing:
+>
+> ```bash
+> javac -d /tmp/sl src/main/java/com/serenity/octia/world/Sightlines.java \
+>                  tools/sightline-map/Probe.java
+> diff <(python tools/sightline-map.py --probe) <(java -cp /tmp/sl Probe)
+> ```
+>
+> No Gradle and no Minecraft in that: `Sightlines` has neither on its imports,
+> which is the practical dividend of keeping it pure.
+>
+> This is not hypothetical. The generator carried `JITTER = 144` after the Java
+> moved to 96, and drew every node in the wrong place while looking entirely
+> plausible. The probe is what caught it.
+
 ---
 
 ## II. The lattice

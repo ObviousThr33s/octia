@@ -1,0 +1,65 @@
+<div class="wrap">
+<header>
+<div class="keg">ACT TWO
+MILESTONE 3
+OCTIA_[0.1.0.S.I.G.H.T]_survey
+SEEK KEG |ALL|</div>
+<h1>Sightlines Survey</h1>
+<p class="sub">Every structure start read out of the dev save, and the lattice Octia lays over it. North is up and the map does not rotate — same rule as the F6 box, for the same reason.</p>
+<div class="facts" id="facts"></div>
+</header>
+
+<section>
+<h2>The map</h2>
+<div class="mapshell">
+  <div class="chips" id="chips"></div>
+  <canvas id="map"></canvas>
+  <div class="readout">
+    <div class="cellr"><span>cursor</span><b id="rXZ">—</b></div>
+    <div class="cellr"><span>cell</span><b id="rCell">—</b></div>
+    <div class="cellr"><span>leg</span><b id="rLeg">—</b></div>
+    <div class="cellr"><span>off the line</span><b id="rDist">—</b></div>
+    <div class="cellr"><span>an obelisk here</span><b id="rVerdict">—</b></div>
+  </div>
+</div>
+<div class="legend">
+  <span><i style="background:#FFD24A"></i>node</span>
+  <span><i style="background:#7FDBCA"></i>leg + corridor</span>
+  <span><i style="background:#E06C4E"></i>vanilla structure start</span>
+  <span><i style="border:1px solid #3D4744"></i>512-block cell / explored extent</span>
+</div>
+<p class="note">Drag to pan, scroll or pinch to zoom. Hover anywhere to see which cell you are in, which way its leg runs, and whether the feature would stand an obelisk there or break one — 1 in 8 broken inside the corridor, 4 in 8 outside it.</p>
+</section>
+
+<section>
+<h2>Do vanilla landmarks point at each other?</h2>
+<p>No. Every structure start in the save falls on its own jittered grid: one start per cell, dropped somewhere in the first part of it. Different types use different cells and are independently salted, so they never relate to each other at all.</p>
+<p>That is a <b>spacing rule, not a route</b>. Below, each start with the cell it landed in and its offset inside that cell. Distinct cells throughout, every offset inside the window the rule allows.</p>
+<div class="scroll"><table id="proof"><thead><tr>
+<th>type</th><th>cell</th><th>chunk</th><th>lands in</th><th>offset</th><th>window</th><th></th>
+</tr></thead><tbody></tbody></table></div>
+<p class="caveat"><b>Not verified against the jar.</b> The cell sizes and separations — 34/12, 40/15, 20/8 — are recalled, not read out of the 1.21.1 artifact. What is verified is that the save's starts fit them exactly. Treat them as a hypothesis the data has not falsified. Nothing in <code>Sightlines</code> depends on them; it lays its own grid.</p>
+</section>
+
+<section>
+<h2>One oddity, recorded and not explained</h2>
+<p>16 of the 21 mineshaft chunks in this save pair up as exact negations about the origin. The explored region is not symmetric, so the exploration bounds are not causing it. Left here as an observation — do not build on it.</p>
+<div class="scroll"><table id="mirror"><thead><tr><th>chunk</th><th>its negation</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+<h2>What Octia lays instead</h2>
+<p>A node every 512 blocks, wandering up to 96 from the middle of its cell, and — the part vanilla never does — a <b>next</b> node one cardinal step away. The segment between them is a leg: a line across the world with a direction along it. Each obelisk is a 3×5 andesite prism laid along the leg under its feet, with a slot bored down its length you can sight through.</p>
+<p class="note">Cardinal steps and never diagonal: two nodes a step apart wander independently, so the worst a leg bends is atan(2J / (SPACING − 2J)) — 31° at 96 against 512. Under 45°, so the cardinal a leg lies nearest is never in doubt. A diagonal step would sit exactly between two of them and the prism's long axis would be a coin toss.</p>
+<div class="scroll"><table id="legs"><thead><tr>
+<th>cell</th><th>node</th><th>step</th><th>next node</th><th>length</th><th>bend</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="note">First 24 of 169 cells. Values computed by the same arithmetic as <code>Sightlines.java</code> and cross-checked against the compiled class.</p>
+</section>
+
+<footer>
+<span>seed 95512464</span><span>minecraft:amplified</span>
+<span>read from worlds/ with tools/world-report.py</span>
+<span>docs/SIGHTLINES.md</span>
+</footer>
+</div>
