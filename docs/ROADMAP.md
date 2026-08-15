@@ -372,6 +372,25 @@ working tree: a plain `chmod` on Windows does nothing git will record.
 missing bit rather than restoring it, and every fresh clone stays broken for
 anyone on a filesystem that honours the mode.
 
+**The gate hangs after it passes, and the tests are not the reason.** The first
+run that ever got past `gradlew` - 31861107125 - ran all thirty GameTests in
+5.122 seconds, printed `All 30 required tests passed :)`, wrote the JUnit report,
+and then logged `Stopping server` / `Saving players` / `Saving worlds` and said
+nothing for twenty-seven minutes, until the job timeout cancelled it. Runner
+cleanup then terminated three orphan `java` processes.
+
+The suspicion that cost the first round trip - that a gametest with twenty
+iterations in it was too slow - is disproved by the 5.122: whatever this is, it
+happens *after* every test has passed. `MinecraftServer.stopServer` in 1.21.1
+spins `while (chunkMap.hasWork())` immediately after logging `Saving worlds`,
+and that loop logs nothing at all, which fits the shape of the silence. It is a
+fit, not a finding, and it is not written down here as one.
+
+What is written down is the response: `tools/gametest-ci.sh` bounds the run and
+`jstack`s every JVM on the box before killing it. **Do not replace it with
+`timeout(1)`** - that kills the process and takes the stacks with it, which is
+the only thing worth having.
+
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it
 does not survive a clone and is not discoverable from the repo - you find out by
