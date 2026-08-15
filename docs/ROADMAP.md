@@ -355,6 +355,23 @@ obstacle, and it is one long in `OctiaDebug.Snapshot` away from not being one.
 
 ## Kept for whoever hits it next
 
+**`gradlew` was never executable, and CI had never once run.** Every workflow
+run in this repo's history - all eight, from 2026-08-07 to the sightlines branch
+- died in about eighteen seconds on `./gradlew: Permission denied`, exit 126,
+before Gradle started. The file was committed mode `100644`. So the verify
+workflow has never built the mod, never run a GameTest, and never uploaded a
+jar; a red badge that had always been red read as normal.
+
+That contradicts standing order 1 in [../OCTIA.md](../OCTIA.md) - *the local gate
+and the CI gate are one gate, and CI is the one that cannot be skipped* - which
+was true as written and false in practice for the life of the repo. Fixed with
+`git update-index --chmod=+x gradlew`, which is a change to the index, not the
+working tree: a plain `chmod` on Windows does nothing git will record.
+
+**Do not "fix" this with a `chmod +x` step in the workflow.** That hides the
+missing bit rather than restoring it, and every fresh clone stays broken for
+anyone on a filesystem that honours the mode.
+
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it
 does not survive a clone and is not discoverable from the repo - you find out by
