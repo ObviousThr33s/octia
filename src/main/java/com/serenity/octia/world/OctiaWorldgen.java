@@ -53,6 +53,7 @@ public final class OctiaWorldgen {
      */
     private static final String DERELICT = "derelict";
     private static final String OBELISK = "obelisk";
+    private static final String ARCH = "arch";
 
     /**
      * How far out to look for somewhere to seat the spawn derelict, nearest
@@ -85,6 +86,7 @@ public final class OctiaWorldgen {
     /** Held from registration so nothing has to cast them back out of the registry. */
     private static DerelictFeature derelict;
     private static ObeliskFeature obelisk;
+    private static ArchFeature arch;
 
     private OctiaWorldgen() {
     }
@@ -95,12 +97,14 @@ public final class OctiaWorldgen {
                 new DerelictFeature(NoneFeatureConfiguration.CODEC));
         obelisk = Registry.register(BuiltInRegistries.FEATURE, Octia.id(OBELISK),
                 new ObeliskFeature(NoneFeatureConfiguration.CODEC));
+        arch = Registry.register(BuiltInRegistries.FEATURE, Octia.id(ARCH),
+                new ArchFeature(NoneFeatureConfiguration.CODEC));
 
         // SURFACE_STRUCTURES rather than a later step: these sit on the ground
         // and want to be there before grass, flowers and trees decorate over
         // them, so a ruin looks weathered into the landscape rather than
         // dropped on top of it.
-        for (String path : new String[] {DERELICT, OBELISK}) {
+        for (String path : new String[] {DERELICT, OBELISK, ARCH}) {
             BiomeModifications.addFeature(
                     BiomeSelectors.foundInOverworld(),
                     GenerationStep.Decoration.SURFACE_STRUCTURES,
@@ -128,6 +132,10 @@ public final class OctiaWorldgen {
 
     public static ObeliskFeature obelisk() {
         return obelisk;
+    }
+
+    public static ArchFeature arch() {
+        return arch;
     }
 
     /**

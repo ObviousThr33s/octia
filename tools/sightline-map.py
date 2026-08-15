@@ -207,11 +207,34 @@ def main():
     ap.add_argument("-o", "--out", default="sightlines.html")
     ap.add_argument("--range", type=int, default=6, help="cells drawn either side of origin")
     ap.add_argument("--probe", action="store_true", help="print nodes to diff against Sightlines.java")
-    ap.add_argument("--seed", type=int, default=95512464, help="seed for --probe")
+    ap.add_argument("--node", nargs=2, type=int, metavar=("X", "Z"),
+                    help="print the node and leg for a world position, for /tp")
+    ap.add_argument("--seed", type=int, default=95512464, help="seed for --probe and --node")
     args = ap.parse_args()
 
     if args.probe:
         probe(args.seed)
+        return
+
+    if args.node:
+        # An arch stands on the node, so this is the coordinate to teleport to.
+        # There is no command that finds one in game and there should not be -
+        # the whole point is that you arrive at one by following the obelisks.
+        x, z = args.node
+        cell_x, cell_z = x // SPACING, z // SPACING
+        here = node(args.seed, cell_x, cell_z)
+        name, dx, dz = step(args.seed, cell_x, cell_z)
+        there = node(args.seed, cell_x + dx, cell_z + dz)
+        print("seed %d, position %d %d" % (args.seed, x, z))
+        print("  cell   %d %d" % (cell_x, cell_z))
+        print("  node   %d %d      /tp @s %d ~ %d" % (here[0], here[1], here[0], here[1]))
+        print("  leg    %s, to %d %d" % (name.lower(), there[0], there[1]))
+        # Same formula as Sightlines.Leg.distanceToLine: the infinite line, not
+        # the segment, because that is what ObeliskFeature asks.
+        lx, lz = there[0] - here[0], there[1] - here[1]
+        d = abs(lz * (x - here[0]) - lx * (z - here[1])) / (lx * lx + lz * lz) ** 0.5
+        print("  you are %.0f blocks off that line (%s the %d-block corridor)"
+              % (d, "inside" if d <= CORRIDOR else "outside", CORRIDOR))
         return
 
     save = read_save(args.save)

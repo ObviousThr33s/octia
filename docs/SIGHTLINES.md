@@ -12,7 +12,7 @@ point from one location to another?** and, since the answer turned out to be no,
 **what does it take to make Octia's own point?**
 
 Everything in the first half is read out of the saves in `worlds/`. Everything
-in the second half is `Sightlines` and `ObeliskFeature`.
+in the second half is `Sightlines`, `ObeliskFeature` and `ArchFeature`.
 
 ---
 
@@ -231,15 +231,69 @@ changes the odds of a break. It does not change what exists.
 
 ---
 
-## VI. Open
+## VI. The arch on the node
 
-1. **A node carries nothing.** The leg points at a waypoint that is guaranteed
-   to have no obelisk on it, because placement is still a per-chunk rarity roll
-   that knows nothing about the lattice. Following a thread converges on a place
-   where nothing is. Either the near-spawn path should seat one at the first
-   node the way it seats the guaranteed derelict, or a node should stop being a
-   place and be only a direction — and the second answer needs saying out loud
-   rather than being what happens by default.
+The threads shipped pointing at waypoints with nothing on them. That is closed:
+an arch now stands on every node, squared across the leg leaving it, so you walk
+**through** it and the way you face on the way through is the way the thread
+runs.
+
+**Keystone plus four.** The ring is five stones, stepping up from the springers
+to the middle:
+
+```
+            [K]          keystone, STYLED, light 15
+        [v]     [v]      voussoirs, GENERIC, light 7
+    [s]             [s]  springers, dark, on top of the piers
+    [p]             [p]
+    [p]     ^       [p]  the opening: three wide, facing down the leg
+    [p]             [p]
+```
+
+Five is the smallest span that reads as an arch rather than a doorway, and it is
+odd — which is what lets a single keystone sit on the centre line. An even span
+could not carry one at all: there would be a joint where the middle stone
+belongs. The opening left under it is three wide and clear to the ring, and the
+whole thing is one block thick, so walking the leg means passing one plane of
+stone.
+
+The light does the work at range. A bright point with two dimmer ones under it
+is a *shape* across a valley; the springers stay dark on purpose, because a ring
+lit all the way round smears into one glow and the step stops reading.
+
+**Nothing here ever breaks.** Obelisks erode and snap so that what is still
+upright carries information. A node is the thing that is maintained. That
+asymmetry is the design: the road between nodes is not kept, the places are.
+`ArchGameTest.anArchIsNeverBroken` raises twenty with twenty different randoms
+and is the test that should stop erosion ever being added here.
+
+**How it finds its site.** No placement vocabulary can say "the node of this
+cell" — modifiers see a chunk and a random, never a function of the world seed.
+So the placed feature has *no rarity filter at all*: it is offered once per
+chunk, and `ArchFeature.place` declines every chunk whose node is elsewhere. One
+arithmetic test per chunk, one acceptance per 1,024 of them. A rarity filter in
+front of that would be strictly wrong — it would throw away the one chunk that
+matters and leave nodes bare at random.
+
+To find one without wandering:
+
+```bash
+python tools/sightline-map.py --node 0 0 --seed 95512464
+```
+
+which prints the node, the leg leaving it, and the `/tp` for it.
+
+---
+
+## VII. Open
+
+1. **A node's ground may refuse it.** The arch closed the empty-waypoint
+   problem, but not unconditionally: it rejects rather than terraforms, like
+   every ruin here, so a node whose column is a cliff face, a lake, or a cave
+   roof gets nothing. The thread still points there and there is still nothing
+   to find. Unknown how often — it wants the same walked-world measurement the
+   density question does, and it is the one case where levelling a five-block
+   strip might be worth breaking the no-terraforming rule for.
 2. **Density moved and was not re-tuned.** The footing check now demands a
    flat 7x5 with headroom for the whole prism, where it used to want a 3x3 with
    eight above. Strictly fewer sites pass, so obelisks are rarer than

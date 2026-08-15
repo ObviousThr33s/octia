@@ -168,9 +168,11 @@ range control at all, and it is the case the bearing readout was added for.
 
 ## What Octia now generates
 
-Two ruin types, both andesite, both with a dig in the ground. One is a ship and
-one deliberately is not — a derelict says a ship came and failed, which only
-means something if there is separate evidence somebody was here on purpose.
+Three structure types, all andesite. One is a ship and two deliberately are not
+— a derelict says a ship came and failed, which only means something if there is
+separate evidence somebody was here on purpose. The derelict and the obelisk
+carry a dig; the arch does not, because an arch marks a place rather than a
+find.
 
 **The derelict** — a Serenity-class hull that was called and never arrived.
 **The ship is a cube**: twenty-six frame panels around one core, a solid 3×3×3
@@ -203,6 +205,25 @@ established nothing in a vanilla world points at anything.
 
 It carries no core and never should. A landmark that moored itself would put
 positions into the spine that no player built and no player can take apart.
+
+**The arch** — five stones of andesite over a three-wide gate, standing on a
+`Sightlines` node and squared across the leg leaving it. Keystone plus four: the
+ring steps up from dark springers through `GENERIC` voussoirs to a `STYLED`
+keystone at light 15, so what carries at night is a bright point with two dimmer
+ones under it. You walk **through** it, and the way you face going through is the
+way the thread runs.
+
+Nothing about an arch ever erodes, and that is the counterpart to the obelisks
+between nodes that do. The road is not maintained; the places are.
+
+There is no rarity roll on it. The placed feature is offered once per chunk with
+no filter at all and declines every chunk whose cell's node is somewhere else —
+one arithmetic test per chunk, one acceptance per 1,024 of them, which works out
+at one arch per 512-block cell. To find one without wandering:
+
+```bash
+python tools/sightline-map.py --node 0 0 --seed 95512464
+```
 
 **One is guaranteed near spawn.** On a save's first load, `placeNearSpawn` seats
 a derelict 48–112 blocks out, ringing outward until ground takes it, seeded off

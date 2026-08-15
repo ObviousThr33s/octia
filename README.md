@@ -22,9 +22,11 @@ Not a scaffold any more, and not a finished content mod. What is registered:
   out through the world.
 - **Sightlines.** A seeded lattice of waypoints, and a leg from each one to the
   next. Every obelisk is a large andesite prism laid along the leg under it,
-  with a slot bored down its length that you can sight through. Nothing in a
-  vanilla world points at anything — the survey of the dev saves that
-  establishes that is in [docs/SIGHTLINES.md](docs/SIGHTLINES.md).
+  with a slot bored down its length that you can sight through, and an arch
+  stands on every node — keystone plus four — squared across the leg so you walk
+  through it facing the way the thread runs. Nothing in a vanilla world points
+  at anything; the survey of the dev saves that establishes that is in
+  [docs/SIGHTLINES.md](docs/SIGHTLINES.md).
 - **Crew.** Server-side fake players seated by `/octia crew muster`, spoken for
   by a local model when one answers and by an offline tender when none does.
   LAN guests see them without installing anything.
@@ -120,7 +122,7 @@ octia/
 │  ├─ UPGRADING.md                      what breaks above 1.21.1, with lines
 │  ├─ NOTATION.md                       the KEG notation, codified
 │  ├─ WORLDS.md                         the dev saves, and what generates now
-│  ├─ SIGHTLINES.md                     the survey, the lattice, the prism
+│  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
 │  ├─ FRONT_DOOR.md                     the desktop window onto the repo
 │  ├─ LSP.md                            shared Java language server setup
@@ -142,7 +144,7 @@ octia/
 │  │  ├─ OctiaBlocks.java               registration, one place
 │  │  ├─ block/                         the andesite frame panel
 │  │  ├─ ship/                          the core, its status, the moorings
-│  │  ├─ world/                         beacon, derelict, obelisk, sightlines
+│  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice
 │  │  ├─ crew/                          seats, orders, the gangway
 │  │  ├─ client/                        client entrypoint and the F6 map
 │  │  ├─ debug/                         the payload that map rides on

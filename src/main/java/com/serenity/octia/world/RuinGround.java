@@ -86,7 +86,24 @@ final class RuinGround {
 
     /** The first free space over solid ground in one column, or null. */
     static BlockPos surfaceNear(WorldGenLevel level, BlockPos column) {
-        for (int y = SURFACE_UP; y >= -SURFACE_DOWN; y--) {
+        return surfaceNear(level, column, SURFACE_UP, SURFACE_DOWN);
+    }
+
+    /**
+     * The same scan over a stated reach.
+     *
+     * <p>The wide form exists because one feature does not build where its
+     * placement modifier dropped it. {@link ArchFeature} is offered a chunk's
+     * corner and builds at the lattice node inside that chunk, up to fifteen
+     * blocks away on both axes - and on amplified terrain fifteen blocks
+     * sideways is easily sixty blocks of height. A four-block look either way
+     * finds nothing and the arch declines a site that was perfectly good.
+     *
+     * <p>Top down, so an overhang answers with the surface you would stand on
+     * rather than the roof of the cave under it.
+     */
+    static BlockPos surfaceNear(WorldGenLevel level, BlockPos column, int up, int down) {
+        for (int y = up; y >= -down; y--) {
             BlockPos at = column.above(y);
             if (!level.getBlockState(at).isAir()) {
                 continue;

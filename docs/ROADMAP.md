@@ -275,7 +275,7 @@ reflects.
 
 ---
 
-## XII. The threads point at nothing
+## XII. The threads, and what they point at
 
 **What landed.** `Sightlines` lays a seeded lattice over the world — a node
 every 512 blocks, each with a next node one cardinal step away — and
@@ -285,17 +285,25 @@ stayed standing, so the lit ones trace the route. The survey of the saves that
 motivated it, and the reason none of this could be read out of vanilla terrain,
 is in [SIGHTLINES.md](SIGHTLINES.md).
 
-**What is wrong with it.** A leg points at a waypoint with nothing on it.
-Placement is still a per-chunk rarity roll that knows nothing about the lattice,
-so following a thread converges on an empty field. That is a promise the world
-does not keep, and it is the kind of thing a player only has to hit once.
+**Closed: the node is a place.** A leg used to point at a waypoint with nothing
+on it, because placement was a per-chunk rarity roll that knew nothing about the
+lattice - a promise the world does not keep, and the kind a player only has to
+hit once. `ArchFeature` now stands an arch on every node, squared across the leg
+leaving it, so you walk through it facing the way the thread runs. Keystone plus
+four: five stones in the ring, a three-wide opening, one block thick. Nothing
+about it erodes, which is the counterpart to the obelisks between nodes that do -
+the road is not maintained, the places are.
 
-**Closing it, two ways, and they are different designs.** Either the first-load
-path seats an obelisk at the nearest node the way `placeNearSpawn` seats the
-guaranteed derelict — the node becomes a place — or a node is declared to be
-only a direction and never a destination, and the fiction has to carry that. The
-second is cheaper and the first is what a player will expect. Decide it out
-loud; do not let the current behaviour become the answer by default.
+It carries no rarity filter and must not grow one. The placed feature is offered
+once per chunk and declines every chunk whose cell's node is elsewhere: one
+arithmetic test per chunk, one acceptance per 1,024. A rarity filter in front of
+that would throw away the one chunk that matters and leave nodes bare at random.
+
+**Still open about it.** The arch rejects rather than terraforms, like every ruin
+here, so a node on a cliff face or under water gets nothing and the thread points
+at an empty place after all. How often is unmeasured. It is the one case where
+levelling a five-block strip might be worth breaking the no-terraforming rule
+for.
 
 **The corridor is an eighth of the world, and the prose said half.** Measured,
 not guessed: `tools/sightline-map/Sweep.java` over 200 seeds and sixteen million
