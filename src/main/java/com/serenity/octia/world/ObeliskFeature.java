@@ -44,9 +44,22 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * Distance to the leg decides how likely an obelisk is to have stayed up, and
  * nothing else: {@value #BROKEN_IN_NEAR} in {@value #ODDS} within
  * {@link Sightlines#CORRIDOR} blocks of the line, {@value #BROKEN_IN_FAR} in
- * {@value #ODDS} beyond it. So the lit spires trace the route and the stumps lie
- * off it, and the route is something you notice rather than something you are
- * told. It is deliberately not a filter on placement: an obelisk that could only
+ * {@value #ODDS} beyond it.
+ *
+ * <p><b>How strong that signal actually is, measured rather than asserted.</b>
+ * A leg is a line through a cell 512 blocks across, so the corridor is a thin
+ * ribbon: {@code Sweep} puts it at <b>12.66% of the ground</b> over sixteen
+ * million sampled points. Run the odds through that and a standing obelisk is
+ * only about <b>20% likely to be on a thread</b> - better than the 12.66% base
+ * rate, and nowhere near proof. Roughly <b>45% of all obelisks are broken</b>.
+ *
+ * <p>So "the lit ones trace the route" is a tendency and not an inference, and
+ * this javadoc used to claim more than the arithmetic supports. What a player
+ * can actually do is read a <em>run</em> of them - several standing obelisks
+ * lying along one bearing is strong, any single one is weak. Whether that is the
+ * design or whether the corridor wants widening is open; see ROADMAP.
+ *
+ * <p>It is deliberately not a filter on placement: an obelisk that could only
  * generate inside a corridor would make {@code /place feature octia:obelisk}
  * fail nine times in ten and would quietly re-tune the density in
  * {@code placed_feature/obelisk.json} by a factor nobody wrote down.

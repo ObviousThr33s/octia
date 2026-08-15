@@ -297,6 +297,31 @@ only a direction and never a destination, and the fiction has to carry that. The
 second is cheaper and the first is what a player will expect. Decide it out
 loud; do not let the current behaviour become the answer by default.
 
+**The corridor is an eighth of the world, and the prose said half.** Measured,
+not guessed: `tools/sightline-map/Sweep.java` over 200 seeds and sixteen million
+sampled points puts the ground within 32 blocks of its own cell's leg at
+**12.66%**. Push the break odds through that and about **45% of every obelisk in
+the world is broken**, and a standing obelisk is only **20% likely to be on a
+thread** against a 12.66% base rate. The signal is real and weak - a run of
+standing obelisks along one bearing means something, a single one barely does.
+
+Three ways out, and they are different games. Widen `CORRIDOR` toward 128, which
+buys about half the world and stops the corridor being a corridor. Soften the
+far odds from 4-in-8, which keeps the ribbon thin and makes the contrast quieter.
+Or leave it, on the grounds that a route you have to read from several markers is
+a better puzzle than one a single lit block hands you. **Do not pick by editing
+the constant** - whichever it is, the sweep number moves with it and the prose
+has to move too.
+
+**A quarter of all legs double back.** Each node picks from four cardinals
+independently, so the neighbour steps straight back one time in four - measured
+at 24.998%. A thread runs about four legs, two kilometres, before it returns on
+itself. That was never decided; it fell out of the step being uniform over four
+options. Excluding the reverse step costs four extra hashes and turns the weave
+into longer routes. Worth doing only once the corridor question above is settled,
+since the two together decide whether a thread is something a player can follow
+at all.
+
 **Also open, and cheap: the map cannot draw a thread.** The legs are a pure
 function of the world seed, so the F6 overlay could draw them with no new
 packet — except that a vanilla client is never told the seed. That is the whole

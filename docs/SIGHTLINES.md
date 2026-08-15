@@ -130,12 +130,13 @@ the whole invention.
 **Why the steps are cardinal and never diagonal.** Two nodes a step apart wander
 independently, so a leg's cross-axis can reach `2 x JITTER` while its along-axis
 shrinks to `SPACING - 2 x JITTER`. The worst bend is therefore
-`atan(2J / (SPACING - 2J))` — 31 degrees at 96 against 512. Under 45, so the
-cardinal a leg lies nearest is never in doubt. A diagonal step would sit *at* 45
-degrees, exactly between two cardinals, and the prism's long axis would be a
-coin toss. **`JITTER` must stay under a quarter of `SPACING`** or that guarantee
-goes, and `SightlinesTest` measures the worst bend over four thousand cells
-rather than trusting the arithmetic.
+`atan(2J / (SPACING - 2J))` — 30.96 degrees at 96 against 512, and the sweep in
+section IV measured 30.007 over two million cells, so the bound is nearly tight
+rather than generous. Under 45, so the cardinal a leg lies nearest is never in
+doubt. A diagonal step would sit *at* 45 degrees, exactly between two cardinals,
+and the prism's long axis would be a coin toss. **`JITTER` must stay under a
+quarter of `SPACING`** or that guarantee goes, and `SightlinesTest` measures the
+worst bend across sixty seeds rather than trusting the arithmetic.
 
 ---
 
@@ -170,7 +171,51 @@ erosion is confined to the top course and a break can never cut below
 
 ---
 
-## IV. How the thread becomes visible
+## IV. The lattice, measured
+
+Everything above about the lattice was arithmetic and spot checks. `Sweep` runs
+the same questions over 200 seeds — 2,040,200 cells, 16,321,600 sampled points:
+
+```bash
+javac -d /tmp/sl src/main/java/com/serenity/octia/world/Sightlines.java \
+                 tools/sightline-map/Sweep.java
+java -cp /tmp/sl Sweep 200 50 8
+```
+
+| | measured |
+|---|---|
+| nodes outside their own cell | **0** — the containment invariant holds |
+| worst bend off the cardinal | **30.007°** (bound is 30.96°, one leg past 30 in two million) |
+| heading balance | 24.93% – 25.03%, all four |
+| leg length | min 320, mean 518, max 725 |
+| two-cycles (A→B→A) | **25.0%** |
+| ground inside the corridor | **12.66%** |
+
+**Two of these corrected the design, and both had been asserted rather than
+checked.**
+
+**The corridor is a thin ribbon, not half the world.** A leg is a line through a
+cell 512 blocks across, so 32 blocks either side of it is about an eighth of the
+ground. Run the break odds through that and roughly **45% of all obelisks are
+broken**, and — the number that actually matters — a standing obelisk is only
+about **20% likely to be on a thread**, against a 12.66% base rate. That is a
+real signal and a weak one. The prose here and in `ObeliskFeature` said the lit
+spires *trace the route*; they lean that way, which is not the same claim. What
+holds up is the plural: several standing obelisks along one bearing means
+something, any single one means very little.
+
+**A quarter of all legs double back.** Each node picks its step independently
+from four cardinals, so the chance the neighbour steps straight back is exactly
+1 in 4 — and it is, to three decimal places. A thread therefore runs about four
+legs, two kilometres, before it returns on itself. "A chain across the world" was
+the wrong picture; it is closer to a loose weave of short routes and facing
+pairs. Not necessarily wrong — two arches facing each other across half a
+kilometre is a good object — but it was not a decision, it was a consequence
+nobody had looked at.
+
+---
+
+## V. How the thread becomes visible
 
 Distance to the leg decides **how likely an obelisk is to have stayed up**, and
 nothing else: 1 in 8 broken within 32 blocks of the line, 4 in 8 beyond it. The
@@ -178,15 +223,15 @@ lit spires trace the route and the stumps lie off it, so the route is something
 you notice rather than something you are told.
 
 **It is deliberately not a filter on placement.** An obelisk that could only
-generate inside a corridor would make `/place feature octia:obelisk` fail nine
-times in ten — the command is how both ruins are judged, per
+generate inside a corridor would refuse seven sites in eight — the measurement
+above — so `/place feature octia:obelisk` would fail almost every time — the command is how both ruins are judged, per
 [WORLDS.md](WORLDS.md) — and it would silently re-tune the rarity in
 `placed_feature/obelisk.json` by a factor nobody wrote down. The corridor
 changes the odds of a break. It does not change what exists.
 
 ---
 
-## V. Open
+## VI. Open
 
 1. **A node carries nothing.** The leg points at a waypoint that is guaranteed
    to have no obelisk on it, because placement is still a per-chunk rarity roll
