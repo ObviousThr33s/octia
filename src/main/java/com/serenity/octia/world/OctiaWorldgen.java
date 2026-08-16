@@ -13,10 +13,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 
-import java.util.Optional;
 
 /**
  * What Octia adds to the terrain, and the one honest place the world switch can
@@ -225,14 +223,11 @@ public final class OctiaWorldgen {
         // an underwater wreck gets no digs and no debris, and reads MOORED.
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.OCEAN_FLOOR, column);
 
-        return derelict.place(new FeaturePlaceContext<>(
-                Optional.empty(),
-                level,
-                level.getChunkSource().getGenerator(),
-                random,
-                surface,
-                NoneFeatureConfiguration.INSTANCE))
-                ? surface.below(DerelictFeature.sink())
-                : null;
+        // Straight to seat() rather than through the feature's place(), so the
+        // guaranteed wreck is exempt from the structure check. See the javadoc
+        // on DerelictFeature.seat for why the guarantee outranks it, and for
+        // what the check would cost on the server thread if it ran here.
+        BlockPos core = surface.below(DerelictFeature.sink());
+        return DerelictFeature.seat(level, random, core) ? core : null;
     }
 }

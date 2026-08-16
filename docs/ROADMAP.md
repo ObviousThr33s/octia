@@ -316,6 +316,23 @@ therefore immune to what order things get placed in within
 obelisk needs it most, being rolled per chunk across the whole world rather than
 once per cell.
 
+**The radius checked is the radius written to, and those are not the ruin's own
+dimensions.** The obelisk's prism is three from the middle but its digs and its
+fallen panels reach six; the derelict's cube is one but its digs reach four. A
+site cleared on the footing's footprint alone passes, builds clear of the
+village, and then puts suspicious gravel in somebody's wheat. Both features
+therefore check `DIG_MAX` rather than their own radii. Anyone adding a scatter
+that reaches further has to move that number with it.
+
+**The guaranteed spawn derelict is exempt, deliberately.** `placeNearSpawn` goes
+straight to `DerelictFeature.seat` and never asks. Two reasons, and the first
+outranks the second: a check in front of forty candidate columns can refuse all
+forty and hand back a world with no starter wreck, which breaks the one promise
+that a player meets a derelict at all - and a rarity roll cannot make that
+promise, which is why the first one is placed rather than rolled. Second, the
+query's inner read passes `require=true`, so on a live level it *generates*
+missing chunks; forty of those during `SERVER_STARTED` is a world-load stall.
+
 **What that check is not proven to do.** A gametest plot cannot contain a
 village - there is no way to ask the framework for a vanilla structure start - so
 `bareGroundIsAClearSite` proves only that the question can be asked without

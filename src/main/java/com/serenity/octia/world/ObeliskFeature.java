@@ -183,7 +183,14 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         // land in somebody else's build. Refusing the site rather than moving
         // it, like every other answer this file gives to ground it does not
         // like.
-        if (!RuinGround.clearOfStructures(level, base, radiusX, radiusZ, height)) {
+        //
+        // DIG_MAX, not the prism's own radii. The prism is at most three from
+        // the middle, but the digs below reach six and a fallen panel reaches
+        // six, so checking the footing's footprint would clear a site whose
+        // litter still lands in the village. Vertically this over-covers - it
+        // asks about the obelisk's full height over ground that only ever gets
+        // one course of gravel - and that is the safe direction to be wrong in.
+        if (!RuinGround.clearOfStructures(level, base, DIG_MAX, DIG_MAX, height)) {
             return false;
         }
 

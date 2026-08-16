@@ -134,8 +134,15 @@ final class RuinGround {
         // through the ServerLevel, and ServerLevel.getChunk from a generation
         // worker joins a future on the server thread - which is the deadlock,
         // not a crash. Off the worldgen path there is no region and the level
-        // is the right thing to ask; every caller of that branch (/place, a
-        // gametest, placeNearSpawn) is on the server thread already.
+        // is the right thing to ask; both callers of that branch, /place and a
+        // gametest, are on the server thread already.
+        //
+        // That branch is not free, and the cost is not obvious from here: the
+        // reads below pass require=true, so against a live level they do not
+        // merely look, they GENERATE any chunk that is missing. Fine for
+        // /place, where the player is standing in loaded terrain. Not fine in a
+        // loop at world load, which is one of the reasons the guaranteed spawn
+        // derelict goes around this entirely - see DerelictFeature.seat.
         StructureManager structures = level instanceof WorldGenRegion region
                 ? level.getLevel().structureManager().forWorldGenRegion(region)
                 : level.getLevel().structureManager();
