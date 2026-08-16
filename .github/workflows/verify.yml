@@ -39,8 +39,11 @@ jobs:
       - name: Build
         run: ./gradlew build --console=plain
 
+      # Not `./gradlew runGametest` directly. The gate has hung once after the
+      # tests themselves passed, in silence, until the job timeout — see the
+      # header of the script for what happened and what it dumps instead.
       - name: Game tests
-        run: ./gradlew runGametest --console=plain
+        run: bash tools/gametest-ci.sh
 
       # Uploaded on failure too — a red run is exactly when the report matters.
       - name: Upload test report

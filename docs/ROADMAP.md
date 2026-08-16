@@ -122,6 +122,13 @@ meet. This is the wrong number for shipping and the right one for looking, and
 the two should not be confused - pull both up once the shapes are settled, and
 judge the result from a walked world rather than a flown one.
 
+**The obelisk's 180 has stopped being a rate.** Its footprint grew from a 3x3
+plinth to a 7x5 one and its footing check now asks for headroom over the whole
+prism rather than a flat eight, and the check refuses rather than levels. So
+strictly fewer candidates survive it than did, by a factor nobody has measured.
+Read 180 as an upper bound on the density until somebody walks a world and says
+what it actually is.
+
 ---
 
 ## VI. Derelicts refuse water
@@ -268,7 +275,69 @@ reflects.
 
 ---
 
-## XII. Smaller things, all cheap
+## XII. The threads, and what they point at
+
+**What landed.** `Sightlines` lays a seeded lattice over the world — a node
+every 512 blocks, each with a next node one cardinal step away — and
+`ObeliskFeature` stands its prism along the leg between them, with a sighting
+slot bored down it. Distance to the leg decides how likely an obelisk is to have
+stayed standing, so the lit ones trace the route. The survey of the saves that
+motivated it, and the reason none of this could be read out of vanilla terrain,
+is in [SIGHTLINES.md](SIGHTLINES.md).
+
+**Closed: the node is a place.** A leg used to point at a waypoint with nothing
+on it, because placement was a per-chunk rarity roll that knew nothing about the
+lattice - a promise the world does not keep, and the kind a player only has to
+hit once. `ArchFeature` now stands an arch on every node, squared across the leg
+leaving it, so you walk through it facing the way the thread runs. Keystone plus
+four: five stones in the ring, a three-wide opening, one block thick. Nothing
+about it erodes, which is the counterpart to the obelisks between nodes that do -
+the road is not maintained, the places are.
+
+It carries no rarity filter and must not grow one. The placed feature is offered
+once per chunk and declines every chunk whose cell's node is elsewhere: one
+arithmetic test per chunk, one acceptance per 1,024. A rarity filter in front of
+that would throw away the one chunk that matters and leave nodes bare at random.
+
+**Still open about it.** The arch rejects rather than terraforms, like every ruin
+here, so a node on a cliff face or under water gets nothing and the thread points
+at an empty place after all. How often is unmeasured. It is the one case where
+levelling a five-block strip might be worth breaking the no-terraforming rule
+for.
+
+**The corridor is an eighth of the world, and the prose said half.** Measured,
+not guessed: `tools/sightline-map/Sweep.java` over 200 seeds and sixteen million
+sampled points puts the ground within 32 blocks of its own cell's leg at
+**12.66%**. Push the break odds through that and about **45% of every obelisk in
+the world is broken**, and a standing obelisk is only **20% likely to be on a
+thread** against a 12.66% base rate. The signal is real and weak - a run of
+standing obelisks along one bearing means something, a single one barely does.
+
+Three ways out, and they are different games. Widen `CORRIDOR` toward 128, which
+buys about half the world and stops the corridor being a corridor. Soften the
+far odds from 4-in-8, which keeps the ribbon thin and makes the contrast quieter.
+Or leave it, on the grounds that a route you have to read from several markers is
+a better puzzle than one a single lit block hands you. **Do not pick by editing
+the constant** - whichever it is, the sweep number moves with it and the prose
+has to move too.
+
+**A quarter of all legs double back.** Each node picks from four cardinals
+independently, so the neighbour steps straight back one time in four - measured
+at 24.998%. A thread runs about four legs, two kilometres, before it returns on
+itself. That was never decided; it fell out of the step being uniform over four
+options. Excluding the reverse step costs four extra hashes and turns the weave
+into longer routes. Worth doing only once the corridor question above is settled,
+since the two together decide whether a thread is something a player can follow
+at all.
+
+**Also open, and cheap: the map cannot draw a thread.** The legs are a pure
+function of the world seed, so the F6 overlay could draw them with no new
+packet — except that a vanilla client is never told the seed. That is the whole
+obstacle, and it is one long in `OctiaDebug.Snapshot` away from not being one.
+
+---
+
+## XIII. Smaller things, all cheap
 
 - **First light.** The first time a player surveys a wild derelict in a save, the
   spawn beacon flares once, visible from wherever they are. Two points in the
@@ -285,6 +354,42 @@ reflects.
 ---
 
 ## Kept for whoever hits it next
+
+**`gradlew` was never executable, and CI had never once run.** Every workflow
+run in this repo's history - all eight, from 2026-08-07 to the sightlines branch
+- died in about eighteen seconds on `./gradlew: Permission denied`, exit 126,
+before Gradle started. The file was committed mode `100644`. So the verify
+workflow has never built the mod, never run a GameTest, and never uploaded a
+jar; a red badge that had always been red read as normal.
+
+That contradicts standing order 1 in [../OCTIA.md](../OCTIA.md) - *the local gate
+and the CI gate are one gate, and CI is the one that cannot be skipped* - which
+was true as written and false in practice for the life of the repo. Fixed with
+`git update-index --chmod=+x gradlew`, which is a change to the index, not the
+working tree: a plain `chmod` on Windows does nothing git will record.
+
+**Do not "fix" this with a `chmod +x` step in the workflow.** That hides the
+missing bit rather than restoring it, and every fresh clone stays broken for
+anyone on a filesystem that honours the mode.
+
+**The gate hangs after it passes, and the tests are not the reason.** The first
+run that ever got past `gradlew` - 31861107125 - ran all thirty GameTests in
+5.122 seconds, printed `All 30 required tests passed :)`, wrote the JUnit report,
+and then logged `Stopping server` / `Saving players` / `Saving worlds` and said
+nothing for twenty-seven minutes, until the job timeout cancelled it. Runner
+cleanup then terminated three orphan `java` processes.
+
+The suspicion that cost the first round trip - that a gametest with twenty
+iterations in it was too slow - is disproved by the 5.122: whatever this is, it
+happens *after* every test has passed. `MinecraftServer.stopServer` in 1.21.1
+spins `while (chunkMap.hasWork())` immediately after logging `Saving worlds`,
+and that loop logs nothing at all, which fits the shape of the silence. It is a
+fit, not a finding, and it is not written down here as one.
+
+What is written down is the response: `tools/gametest-ci.sh` bounds the run and
+`jstack`s every JVM on the box before killing it. **Do not replace it with
+`timeout(1)`** - that kills the process and takes the stacks with it, which is
+the only thing worth having.
 
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it
