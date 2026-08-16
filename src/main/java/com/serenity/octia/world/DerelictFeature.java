@@ -96,6 +96,42 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         // RuinGround.
         BlockPos core = context.origin().below(SINK);
 
+        // A wreck in a village square reads as somebody's yard ornament rather
+        // than as a ship that came and failed.
+        //
+        // DIG_MAX and not the cube's own radius, and that is the whole point of
+        // the number. The cube is one block either side of the core, but this
+        // feature goes on to scatter digs out to four and debris out to three -
+        // so a site cleared on the hull's footprint alone would pass, build
+        // clear of the village, and then put suspicious gravel in somebody's
+        // wheat. The radius checked has to be the radius written to.
+        if (!RuinGround.clearOfStructures(level, core.below(1), DIG_MAX, DIG_MAX, 3)) {
+            return false;
+        }
+
+        return seat(level, random, core);
+    }
+
+    /**
+     * Builds the wreck on a known column, with no question asked about who else
+     * might have claimed it.
+     *
+     * <p>Split out of {@link #place} for one caller: {@link OctiaWorldgen#placeNearSpawn},
+     * which is the promise that a player meets a derelict at all. A rarity roll
+     * cannot make that promise, so the first one is placed rather than rolled -
+     * and a structure check in front of it can refuse all forty candidate
+     * columns and quietly hand back a world with no starter wreck. Between "the
+     * first wreck is guaranteed" and "no wreck ever shares ground with a
+     * village", the guarantee wins, because a player who never meets one has no
+     * way to discover the rest of the mod.
+     *
+     * <p>Keeping the check out of here also keeps it off the server thread at
+     * world load. The structure query's second read is a
+     * {@code getChunk(..., STRUCTURE_STARTS, true)} - {@code require} is true,
+     * so on a live level it <em>generates</em> what is missing. Forty candidate
+     * columns of that during {@code SERVER_STARTED} is a stall nobody asked for.
+     */
+    public static boolean seat(WorldGenLevel level, RandomSource random, BlockPos core) {
         if (!RuinGround.hasFooting(level, core.below(2), 1)) {
             return false;
         }

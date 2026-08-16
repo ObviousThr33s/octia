@@ -305,6 +305,43 @@ at an empty place after all. How often is unmeasured. It is the one case where
 levelling a five-block strip might be worth breaking the no-terraforming rule
 for.
 
+**It now also declines a site somebody already built on.** The lattice is a
+function of the seed and has never heard of a structure, so a node lands inside a
+village exactly as often as chance says - and an arch is the one thing here that
+never erodes, so it would stand in the wheat for the life of the save.
+`RuinGround.clearOfStructures` asks the structure *starts* rather than the
+blocks, because starts are settled two chunk statuses before features run and are
+therefore immune to what order things get placed in within
+`SURFACE_STRUCTURES`. The obelisk and the derelict ask the same question; the
+obelisk needs it most, being rolled per chunk across the whole world rather than
+once per cell.
+
+**The radius checked is the radius written to, and those are not the ruin's own
+dimensions.** The obelisk's prism is three from the middle but its digs and its
+fallen panels reach six; the derelict's cube is one but its digs reach four. A
+site cleared on the footing's footprint alone passes, builds clear of the
+village, and then puts suspicious gravel in somebody's wheat. Both features
+therefore check `DIG_MAX` rather than their own radii. Anyone adding a scatter
+that reaches further has to move that number with it.
+
+**The guaranteed spawn derelict is exempt, deliberately.** `placeNearSpawn` goes
+straight to `DerelictFeature.seat` and never asks. Two reasons, and the first
+outranks the second: a check in front of forty candidate columns can refuse all
+forty and hand back a world with no starter wreck, which breaks the one promise
+that a player meets a derelict at all - and a rarity roll cannot make that
+promise, which is why the first one is placed rather than rolled. Second, the
+query's inner read passes `require=true`, so on a live level it *generates*
+missing chunks; forty of those during `SERVER_STARTED` is a world-load stall.
+
+**What that check is not proven to do.** A gametest plot cannot contain a
+village - there is no way to ask the framework for a vanilla structure start - so
+`bareGroundIsAClearSite` proves only that the question can be asked without
+throwing and that empty ground answers yes. That is the failure that would be
+silent (a blanket no takes every arch in the world out and looks exactly like the
+1,023-in-1,024 decline it does anyway). **The rejection itself has been verified
+by reading, not by running.** Walk a seed with a village on a node before
+believing it.
+
 **The corridor is an eighth of the world, and the prose said half.** Measured,
 not guessed: `tools/sightline-map/Sweep.java` over 200 seeds and sixteen million
 sampled points puts the ground within 32 blocks of its own cell's leg at
@@ -390,6 +427,22 @@ What is written down is the response: `tools/gametest-ci.sh` bounds the run and
 `jstack`s every JVM on the box before killing it. **Do not replace it with
 `timeout(1)`** - that kills the process and takes the stacks with it, which is
 the only thing worth having.
+
+**A structure query may only ever ask about its own chunk.** `startsForStructure`
+reads twice - the references held by the chunk you name, and then the chunk that
+*owns* each start those references point at. A chunk's references are filled from
+every start within **eight** chunks, and a `WorldGenRegion` at `FEATURES`
+declares dependencies for distances zero through eight only. So naming a chunk
+one over lets the second read reach nine, and past the end `WorldGenRegion` does
+not return null or block - it throws *"Requested chunk unavailable during world
+generation"* and takes the server down mid-generation.
+
+`RuinGround.clearOfStructures` therefore asks about `new ChunkPos(floor)` and
+nothing else, which is what vanilla's own `applyBiomeDecoration` does. **Do not
+"improve" it by sampling the footprint's corner chunks** to catch a ruin
+overhanging a border. The bug it would buy is seed-dependent, needs a mineshaft
+or a stronghold in range, and no gametest can reach it - a test plot holds no
+structure references at all, so the whole path is dead code under `verify.ps1`.
 
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it

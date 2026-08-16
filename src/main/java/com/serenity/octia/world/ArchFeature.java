@@ -91,6 +91,20 @@ public class ArchFeature extends Feature<NoneFeatureConfiguration> {
         return HALF_SPAN;
     }
 
+    /**
+     * Whether nobody has already built on this footing.
+     *
+     * <p>Named and public rather than folded into {@link #place} because it is
+     * the one thing here a gametest can reach: a test plot will never contain a
+     * village, so what a test can prove is the other half - that the question
+     * can be asked at all without throwing, and that empty ground answers yes.
+     * A blanket no would take every arch in the world out silently.
+     */
+    public static boolean siteIsClear(WorldGenLevel level, BlockPos base) {
+        return RuinGround.clearOfStructures(level, base,
+                HALF_SPAN, HALF_SPAN, MAX_PIER + 1 + HALF_SPAN);
+    }
+
     @Override
     public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
         if (!OctiaWorldgen.active()) {
@@ -120,6 +134,20 @@ public class ArchFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
+        // Somebody already built here. A node landing inside a village is not
+        // rare - the lattice is a function of the seed alone and has never
+        // heard of a structure - and an arch is the one thing in this mod that
+        // never erodes, so it would stand in the wheat for the life of the
+        // save. The node goes unmarked instead, which is the same answer a
+        // cliff face or open water already gets.
+        //
+        // A square of the ring's half-span rather than the strip the arch
+        // actually occupies: over-covering by two blocks on the thin axis is
+        // free, and the alternative is spelling the heading out twice.
+        if (!siteIsClear(level, surface.below(1))) {
+            return false;
+        }
+
         return raise(level, surface.below(1), leg.heading(), context.random());
     }
 
@@ -132,6 +160,12 @@ public class ArchFeature extends Feature<NoneFeatureConfiguration> {
      * otherwise: a gametest plot would have to happen to contain a node, which
      * for a world seed that changes every run it never does. The tests drive
      * this directly with a heading they chose.
+     *
+     * <p>The structure check is deliberately <em>not</em> here. It is a question
+     * about the site, like the gate above, and putting it in this half would
+     * make every geometry test depend on what happens to generate near a test
+     * plot - a test that goes red because a village turned up says nothing
+     * about arches.
      *
      * @param base    the block the piers stand on, one below the walking surface
      * @param heading which way the leg runs; the arch is squared across it

@@ -1,11 +1,16 @@
 package com.serenity.octia.world;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BrushableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 
@@ -79,6 +84,95 @@ final class RuinGround {
                 if (!level.getFluidState(under).is(Fluids.EMPTY)) {
                     return false;
                 }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether a box of this size, standing on this floor, is clear of every
+     * vanilla structure.
+     *
+     * <p><b>Why this is not the footing check.</b> A village is made of blocks
+     * that {@link #hasFooting} is perfectly happy with - a path is solid, a
+     * field is solid, a roof is solid. The ground under a village says yes.
+     * What has to be asked instead is whether somebody already built here, and
+     * the only thing that knows that is the structure that claimed the site.
+     *
+     * <p><b>It asks the start, not the blocks.</b> Octia's features are
+     * registered at {@code SURFACE_STRUCTURES}, which is the step villages
+     * place in too, so whether the houses are down yet when this runs is a
+     * question about ordering inside one decoration step - exactly the kind of
+     * coupling that breaks silently on a version bump. The structure
+     * <em>starts</em> are settled two chunk statuses earlier and are already
+     * final here, so reading those is immune to it. A village that has not laid
+     * a single plank yet still answers.
+     *
+     * <p><b>Y is doing more work here than X and Z.</b> The test is against the
+     * start's whole bounding box, which for a village is the hull of the houses,
+     * the paths, the fields and the gaps between them - blunt on purpose, since
+     * an obelisk in the village square is as wrong as one through a roof. That
+     * same bluntness applied to a stronghold or an ancient city would blank
+     * enormous areas of surface, and the only thing preventing it is that their
+     * boxes do not reach the height a surface ruin occupies. So the vertical
+     * span is not a detail of the test, it <em>is</em> the test. Anyone tempted
+     * to drop it and compare footprints will watch ruin density collapse.
+     *
+     * <p>The same fact means this is close to a no-op for trial chambers and
+     * trail ruins, which in 1.21.1 generate at {@code underground_structures}
+     * and sit well below anything built here. That is correct - the surface
+     * above a chamber is not spoken for - but it is not what "declines inside a
+     * trial chamber" sounds like, so it is written down rather than assumed.
+     *
+     * @param floor    the block the build stands on
+     * @param height   how far above {@code floor} it reaches
+     * @return true if nothing is there, and the ruin may have the site
+     */
+    static boolean clearOfStructures(WorldGenLevel level, BlockPos floor,
+                                     int radiusX, int radiusZ, int height) {
+        // Scoped to the region during generation. The unscoped manager reads
+        // through the ServerLevel, and ServerLevel.getChunk from a generation
+        // worker joins a future on the server thread - which is the deadlock,
+        // not a crash. Off the worldgen path there is no region and the level
+        // is the right thing to ask; both callers of that branch, /place and a
+        // gametest, are on the server thread already.
+        //
+        // That branch is not free, and the cost is not obvious from here: the
+        // reads below pass require=true, so against a live level they do not
+        // merely look, they GENERATE any chunk that is missing. Fine for
+        // /place, where the player is standing in loaded terrain. Not fine in a
+        // loop at world load, which is one of the reasons the guaranteed spawn
+        // derelict goes around this entirely - see DerelictFeature.seat.
+        StructureManager structures = level instanceof WorldGenRegion region
+                ? level.getLevel().structureManager().forWorldGenRegion(region)
+                : level.getLevel().structureManager();
+
+        // ONE chunk, the one this is standing in, and the footprint's corners
+        // are deliberately not consulted.
+        //
+        // startsForStructure reads twice: the references held by the chunk
+        // asked about, and then the chunk that owns each start it finds. A
+        // chunk's references are filled from every start within eight chunks,
+        // so asking a chunk one over lets the second read reach nine - and a
+        // WorldGenRegion at FEATURES declares dependencies for distances zero
+        // through eight only. Past that it does not block or return null, it
+        // throws: "Requested chunk unavailable during world generation". A
+        // mineshaft or a stronghold in the wrong place would take the server
+        // down mid-generation, on some seeds and not others, in a path no
+        // gametest can reach.
+        //
+        // This is exactly why vanilla's own applyBiomeDecoration only ever asks
+        // about the chunk it is decorating. What the narrower question misses
+        // is a structure that clips the two- or three-block sliver of footprint
+        // spilling over the border while missing this chunk entirely - which
+        // for anything village-sized is not a case that exists.
+        BoundingBox footprint = BoundingBox.fromCorners(
+                new BlockPos(floor.getX() - radiusX, floor.getY(), floor.getZ() - radiusZ),
+                new BlockPos(floor.getX() + radiusX, floor.getY() + height, floor.getZ() + radiusZ));
+
+        for (StructureStart start : structures.startsForStructure(new ChunkPos(floor), structure -> true)) {
+            if (start.getBoundingBox().intersects(footprint)) {
+                return false;
             }
         }
         return true;
