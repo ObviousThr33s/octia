@@ -41,14 +41,32 @@ The name lives in **exactly four places**: `gradle.properties`,
 `rootProject.name`, `Octia.MOD_ID`, and the directory names. Everything else
 derives. `fabric.mod.json` is generated — never hand-edit it.
 
-> **Never write a namespaced string literal.** Build every `ResourceLocation`
-> with `Octia.id("path")`.
+> **Never write a literal that carries the id.** Build it: `Octia.id("path")`
+> for a `ResourceLocation`, `Octia.tr("crew.aboard")` for a translation key,
+> `Octia.keyBind` / `Octia.keyCategory` for a keybind, `Octia.property` for a
+> system property.
 
 A rename can move directories and rewrite a constant. It cannot find
-`"octia:andesite_frame_panel"` buried mid-string, and a mod with one stale
-literal builds clean and fails at runtime. Rename with
-`tools/rename-mod.ps1`; it greps for survivors afterwards for exactly this
-reason.
+`"octia:andesite_frame_panel"` or `"octia.crew.none"` buried mid-string, and a
+mod with one stale literal builds clean and fails at runtime. The rule used to
+say *namespaced* and stopped at `ResourceLocation`, which left twenty-one
+translation keys, both keybinds, the command root and two system properties
+outside it.
+
+**Three literals are frozen, not forgotten.** `ShipMoorings`,
+`OctiaWorldOption` and `CrewConfig` each name a **file on disk**, not a
+namespace. Those names are a contract with every save already written: rename
+them and the data is silently not found, a fresh empty one is created, and
+nothing anywhere reports it. They carry a comment saying so at the declaration.
+Do not "finish the job".
+
+**Two couplings nothing enforces.** The system-property names span
+`build.gradle.kts`, `Octia.property`, and `tools/new-world.ps1`; that script
+also gates success on log *prose* the rename rewrites, and strips the `(octia)`
+logger tag, which is `getLogger(MOD_ID)` and therefore moves. All of it now
+derives from `gradle.properties`, so it travels together.
+
+Rename with `tools/rename-mod.py`. It fails on survivors rather than warning.
 
 ---
 

@@ -88,7 +88,7 @@ public final class ClericBench {
         // Daemon threads: a crew member left mid-question must never be the
         // reason the JVM will not exit when the world closes.
         this.pool = Executors.newFixedThreadPool(2, runnable -> {
-            Thread t = new Thread(runnable, "octia-cleric");
+            Thread t = new Thread(runnable, Octia.MOD_ID + "-cleric");
             t.setDaemon(true);
             return t;
         });

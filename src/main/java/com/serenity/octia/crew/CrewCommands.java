@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.serenity.octia.Octia;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
@@ -34,7 +35,7 @@ final class CrewCommands {
 
     static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) ->
-                dispatcher.register(Commands.literal("octia")
+                dispatcher.register(Commands.literal(Octia.MOD_ID)
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("crew")
                                 .executes(CrewCommands::status)
@@ -76,12 +77,12 @@ final class CrewCommands {
         source.sendSuccess(() -> benchLine(crew), false);
 
         if (crew.aboard().isEmpty()) {
-            source.sendSuccess(() -> Component.translatable("octia.crew.none")
+            source.sendSuccess(() -> Component.translatable(Octia.tr("crew.none"))
                     .withStyle(ChatFormatting.GRAY), false);
             return 0;
         }
 
-        source.sendSuccess(() -> Component.translatable("octia.crew.aboard",
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.aboard"),
                 crew.aboard().size(), crew.maxCrew()), false);
 
         for (CrewPlayer body : crew.aboard()) {
@@ -101,10 +102,10 @@ final class CrewCommands {
     private static Component benchLine(Crew crew) {
         ClericBench.Reach reach = crew.bench().reach();
         if (reach != null) {
-            return Component.translatable("octia.crew.bench.reached",
+            return Component.translatable(Octia.tr("crew.bench.reached"),
                     Component.literal(reach.describe()).withStyle(ChatFormatting.GREEN));
         }
-        return Component.translatable("octia.crew.bench.silent",
+        return Component.translatable(Octia.tr("crew.bench.silent"),
                 Component.literal(crew.bench().lastError()).withStyle(ChatFormatting.GOLD))
                 .withStyle(ChatFormatting.GRAY);
     }
@@ -126,7 +127,7 @@ final class CrewCommands {
         if (crew == null) {
             return 0;
         }
-        source.sendSuccess(() -> Component.translatable("octia.crew.bench.asking",
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.bench.asking"),
                         String.join(", ", crew.bench().candidates()))
                 .withStyle(ChatFormatting.GRAY), false);
 
@@ -147,18 +148,18 @@ final class CrewCommands {
 
         String name = StringArgumentType.getString(context, "name");
         if (!SeatName.isLegal(name)) {
-            source.sendFailure(Component.translatable("octia.crew.bad_name", name, SeatName.MAX));
+            source.sendFailure(Component.translatable(Octia.tr("crew.bad_name"), name, SeatName.MAX));
             return 0;
         }
         if (crew.aboard().size() >= crew.maxCrew()) {
-            source.sendFailure(Component.translatable("octia.crew.full", crew.maxCrew()));
+            source.sendFailure(Component.translatable(Octia.tr("crew.full"), crew.maxCrew()));
             return 0;
         }
 
         CrewPlayer body = crew.summon(name, model, source.getLevel(),
                 source.getPosition(), source.getRotation().y);
         if (body == null) {
-            source.sendFailure(Component.translatable("octia.crew.taken", name));
+            source.sendFailure(Component.translatable(Octia.tr("crew.taken"), name));
             return 0;
         }
         announceSeat(source.getServer(), body);
@@ -177,7 +178,7 @@ final class CrewCommands {
         List<String> seated = crew.muster(level, where, source.getRotation().y);
 
         if (seated.isEmpty()) {
-            source.sendFailure(Component.translatable("octia.crew.nothing_to_muster"));
+            source.sendFailure(Component.translatable(Octia.tr("crew.nothing_to_muster")));
             return 0;
         }
         for (String name : seated) {
@@ -186,7 +187,7 @@ final class CrewCommands {
                 announceSeat(source.getServer(), body);
             }
         }
-        source.sendSuccess(() -> Component.translatable("octia.crew.mustered", seated.size()), true);
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.mustered"), seated.size()), true);
         return seated.size();
     }
 
@@ -201,7 +202,7 @@ final class CrewCommands {
     private static void announceSeat(MinecraftServer server, CrewPlayer body) {
         String model = body.cleric().model();
         Crew.announce(server, Component.translatable(
-                        model.isEmpty() ? "octia.crew.seated.tender" : "octia.crew.seated.cleric",
+                        model.isEmpty() ? Octia.tr("crew.seated.tender") : Octia.tr("crew.seated.cleric"),
                         body.getDisplayName(),
                         Component.literal(model).withStyle(ChatFormatting.AQUA))
                 .withStyle(ChatFormatting.GRAY));
@@ -218,11 +219,11 @@ final class CrewCommands {
         String name = StringArgumentType.getString(context, "name");
         CrewPlayer body = crew.find(name);
         if (body == null) {
-            source.sendFailure(Component.translatable("octia.crew.unknown", name));
+            source.sendFailure(Component.translatable(Octia.tr("crew.unknown"), name));
             return 0;
         }
         crew.logOff(body, "dismissed");
-        source.sendSuccess(() -> Component.translatable("octia.crew.dismissed", name), true);
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.dismissed"), name), true);
         return 1;
     }
 
@@ -233,7 +234,7 @@ final class CrewCommands {
             return 0;
         }
         int left = crew.dismissAll("dismissed");
-        source.sendSuccess(() -> Component.translatable("octia.crew.dismissed_all", left), true);
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.dismissed_all"), left), true);
         return left;
     }
 
@@ -248,13 +249,13 @@ final class CrewCommands {
         String name = StringArgumentType.getString(context, "name");
         CrewPlayer body = crew.find(name);
         if (body == null) {
-            source.sendFailure(Component.translatable("octia.crew.unknown", name));
+            source.sendFailure(Component.translatable(Octia.tr("crew.unknown"), name));
             return 0;
         }
 
         Order parsed = Order.parse(StringArgumentType.getString(context, "order"));
         body.setOrder(parsed);
-        source.sendSuccess(() -> Component.translatable("octia.crew.ordered", name,
+        source.sendSuccess(() -> Component.translatable(Octia.tr("crew.ordered"), name,
                 Component.literal(parsed.toString()).withStyle(ChatFormatting.YELLOW)), false);
         return 1;
     }
@@ -264,7 +265,7 @@ final class CrewCommands {
     private static Crew crew(CommandSourceStack source) {
         Crew crew = Crew.of(source.getServer());
         if (crew == null) {
-            source.sendFailure(Component.translatable("octia.crew.no_muster"));
+            source.sendFailure(Component.translatable(Octia.tr("crew.no_muster")));
         }
         return crew;
     }

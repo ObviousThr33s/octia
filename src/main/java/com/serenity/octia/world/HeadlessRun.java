@@ -35,10 +35,10 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 public final class HeadlessRun {
 
     /** Set to run headlessly: generate, report, halt. */
-    private static final String EXIT = "octia.worldgen.exit";
+    private static final String EXIT = Octia.property("worldgen.exit");
 
     /** Optional radius in chunks to generate past spawn, for density sampling. */
-    private static final String RADIUS = "octia.worldgen.radius";
+    private static final String RADIUS = Octia.property("worldgen.radius");
 
     /** How often to say something while grinding through a large radius. */
     private static final int PROGRESS_EVERY = 256;

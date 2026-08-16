@@ -78,7 +78,7 @@ if (-not (Test-Path -LiteralPath $eula)) {
         '# Minecraft requires agreement to its EULA before a dedicated server',
         '# will start: https://aka.ms/MinecraftEULA',
         '#',
-        '# Octia will not set this for you. Change false to true yourself if you',
+        "# $modName will not set this for you. Change false to true yourself if you",
         '# agree, and tools/new-world.ps1 will work from then on.',
         'eula=false'
     ) | Set-Content -LiteralPath $eula -Encoding ascii
@@ -172,7 +172,7 @@ $levelType = "minecraft\:$Type"
     'view-distance=10',
     'sync-chunk-writes=true',
     'max-tick-time=-1',
-    'motd=Octia worldgen (local only)'
+    "motd=$modName worldgen (local only)"
 ) | Set-Content -LiteralPath (Join-Path $runDir 'server.properties') -Encoding ascii
 
 $log = Join-Path $runDir 'logs\latest.log'
@@ -187,7 +187,25 @@ Step 'generating  (dedicated server, headless)'
 # the word `stop` twice and left a finished world locked behind a server that
 # had ignored it. A JVM property crosses PowerShell, Gradle and the forked JVM
 # with nothing in the middle to encode it.
-$radiusArg = if ($Chunks -gt 0) { " -PoctiaRadius=$Chunks" } else { '' }
+#
+# The flag names are built from mod_id rather than written out, and so is the
+# log filter further down. This script is the third corner of a coupling with
+# build.gradle.kts and Octia.property(String), and it is the corner a rename
+# script will never find because it is not Java and not JSON. Read the id from
+# the one place that owns it.
+$modId = (Select-String -Path (Join-Path $repo 'gradle.properties') `
+    -Pattern '^\s*mod_id\s*=\s*(.+?)\s*$').Matches[0].Groups[1].Value
+if (-not $modId) { throw "mod_id not found in gradle.properties" }
+
+# The display name too, because the log lines this script gates on are written
+# by Java as prose - "Octia worldgen: done, stopping" - and the rename script
+# rewrites the bare class name wherever it appears, prose included. So the
+# success gate below moves under a rename whether or not anybody remembers it.
+$modName = (Select-String -Path (Join-Path $repo 'gradle.properties') `
+    -Pattern '^\s*mod_name\s*=\s*(.+?)\s*$').Matches[0].Groups[1].Value
+if (-not $modName) { throw "mod_name not found in gradle.properties" }
+
+$radiusArg = if ($Chunks -gt 0) { " -P$($modId)Radius=$Chunks" } else { '' }
 
 # Killing gradle leaves the server it forked running: with --no-daemon gradle is
 # the parent and the JVM is a child that does not die with it. Every failure
@@ -199,7 +217,7 @@ function Stop-Orphans {
 }
 
 $proc = Start-Process -FilePath $gradlew -PassThru -NoNewWindow -WorkingDirectory $repo `
-    -ArgumentList "-p `"$repo`" runWorldgen -PoctiaExit$radiusArg --console=plain --no-daemon"
+    -ArgumentList "-p `"$repo`" runWorldgen -P$($modId)Exit$radiusArg --console=plain --no-daemon"
 
 # Generous: a large radius is genuinely slow, and the server says so as it goes.
 $budget = 600 + ($Chunks * $Chunks * 2)
@@ -210,11 +228,11 @@ if (-not $proc.WaitForExit($budget * 1000)) {
 }
 Stop-Orphans
 
-if (-not (Select-String -LiteralPath $log -Pattern 'Octia worldgen: done, stopping' -Quiet)) {
+if (-not (Select-String -LiteralPath $log -Pattern "$modName worldgen: done, stopping" -Quiet)) {
     throw "the server exited without reporting a finished run; see $log"
 }
-foreach ($line in (Select-String -LiteralPath $log -Pattern 'Octia (worldgen|: beacon|: derelict)')) {
-    Write-Host "  $($line.Line -replace '^\[[^]]*\] \[[^]]*\] \(octia\) ', '')"
+foreach ($line in (Select-String -LiteralPath $log -Pattern "$modName (worldgen|: beacon|: derelict)")) {
+    Write-Host "  $($line.Line -replace "^\[[^]]*\] \[[^]]*\] \($modId\) ", '')"
 }
 
 # ---- Move it where the client can open it ----------------------------------

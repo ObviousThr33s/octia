@@ -61,6 +61,12 @@ final class CrewConfig {
 
     /** Loads the config, writing the defaults first if there is no file yet. */
     static CrewConfig load() {
+        // FROZEN. Do not rename this with the mod. It is a filename in the
+        // player's config directory, and it is the one file here a person edits
+        // by hand - the endpoints, the roster, max_crew. Rename it and the mod
+        // writes a fresh default beside their edited one and reads that
+        // instead, so every setting they chose stops applying and the file
+        // holding them is still sitting there looking correct.
         Path path = FabricLoader.getInstance().getConfigDir().resolve("octia-crew.json");
         if (!Files.exists(path)) {
             CrewConfig fresh = defaults();

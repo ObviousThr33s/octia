@@ -28,7 +28,19 @@ import net.minecraft.world.level.saveddata.SavedData;
  */
 public final class OctiaWorldOption extends SavedData {
 
-    /** Becomes {@code <save>/data/octia_world.dat}. */
+    /**
+     * Becomes {@code <save>/data/octia_world.dat}.
+     *
+     * <p><b>FROZEN. Do not rename this with the mod.</b> It is a filename, not
+     * a namespace, and it is the per-save answer to "does this world want
+     * Octia's terrain". Rename it and {@code computeIfAbsent} finds nothing,
+     * constructs a fresh option at its default, and the switch silently flips -
+     * on a world that already has the terrain standing in it. The player sees a
+     * save that stops generating what it used to, and nothing anywhere says
+     * why.
+     *
+     * <p>{@code tools/world-report.py} reads this filename directly too.
+     */
     private static final String FILE = "octia_world";
 
     private static final String KEY_ENABLED = "enabled";

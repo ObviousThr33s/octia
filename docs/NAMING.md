@@ -33,20 +33,37 @@ Exactly four places. Everything else derives from these.
 3. **`Octia.MOD_ID`** — the one string constant in Java.
 4. **Directory names** — `assets/<id>/`, `data/<id>/`, and the Java package path.
 
-**One exception, and a rename will break it.** Translation keys carry the id on
-both sides: `en_us.json` writes it, and Java writes it back as a literal.
-`rename-mod.ps1` rewrites `.<oldid>.` inside `src/main/resources/*.json`, but in
-Java it rewrites only the package, the class name, and the `MOD_ID` literal — so
-any other id written into a Java string survives untouched. Today that is exactly
-`key.octia.debug` and `key.octia.debug_range`, hardcoded at
-`client/OctiaDebugOverlay.java:81,83`: after a rename the lang file says
-`key.<newid>.debug` while Java still asks for `key.octia.debug`, and the keybind
-screen shows the raw key string. The block keys are safe because Minecraft
-derives those from the `ResourceLocation`. `octia.crew.*`,
-`octia.create_world.*` and `key.categories.octia` are safe only by luck — the
-script's pattern needs a dot on both sides, so it misses them in the JSON exactly
-as it misses them in Java. Fix the two, or route them through a constant, before
-the next rename.
+**This used to be an open hazard. It is closed, and here is what it was.**
+
+Translation keys carry the id on both sides: `en_us.json` writes it, and Java
+used to write it back as a literal. The rename script rewrites only the package,
+the class name and the `MOD_ID` literal in Java — so **every other id-bearing
+Java string survived a rename untouched**. This document previously described
+that as one exception affecting two keybinds, and cited
+`client/OctiaDebugOverlay.java:81,83`. Both parts were wrong. The real inventory
+was **40 literals across 9 files** — 21 translation keys, 6 keybind strings, the
+`/octia` command root, 2 system properties, a thread name — and the keybinds are
+at lines 92 and 94, not 81 and 83.
+
+All of them now route through `Octia.tr`, `Octia.keyBind`, `Octia.keyCategory`
+and `Octia.property`. Block and item keys were never at risk: Minecraft derives
+those from the `ResourceLocation`, which is why the gap went unnoticed for so
+long.
+
+**Three literals must never be renamed**, and they are the reason a blanket
+find-and-replace is the wrong instinct:
+
+| Where | Literal | Becomes |
+|---|---|---|
+| `ship/ShipMoorings.java` | `octia_moorings` | `<save>/data/octia_moorings.dat` |
+| `world/OctiaWorldOption.java` | `octia_world` | `<save>/data/octia_world.dat` |
+| `crew/CrewConfig.java` | `octia-crew.json` | the player's config directory |
+
+These are filenames, not namespaces. Rename one and `computeIfAbsent` finds no
+file, constructs an empty replacement, and returns it — every mooring gone from
+the map, or the per-save worldgen switch silently back at its default, with no
+exception and no log line. Each carries a `FROZEN` comment at its declaration.
+Moving them needs a migration that reads the old file and writes the new one.
 
 ## The rule that makes this work
 

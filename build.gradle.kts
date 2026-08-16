@@ -113,12 +113,22 @@ loom {
 // And the line itself arrived with a byte-order mark on the front, so the
 // server read "<BOM>stop" and kept running. Properties cross the same three
 // process boundaries with nothing to encode. See HeadlessRun.
+//
+// Both names are built from modId rather than written out, because the Java
+// side builds them from MOD_ID too (Octia.property) and the two have to agree
+// across a rename. They did not used to: this block said "octiaExit" and
+// "-Doctia.worldgen.exit" as literals, so renaming the mod would have left
+// Gradle passing a property nobody reads. Nothing fails when that happens -
+// Boolean.getBoolean answers false and the headless server runs forever
+// instead of stopping, which reads as a hang rather than as a broken flag.
 tasks.withType<JavaExec>().matching { it.name == "runWorldgen" }.configureEach {
-    if (project.hasProperty("octiaExit")) {
-        jvmArgs("-Doctia.worldgen.exit=true")
+    val exitFlag = "${modId}Exit"
+    val radiusFlag = "${modId}Radius"
+    if (project.hasProperty(exitFlag)) {
+        jvmArgs("-D$modId.worldgen.exit=true")
     }
-    if (project.hasProperty("octiaRadius")) {
-        jvmArgs("-Doctia.worldgen.radius=${project.property("octiaRadius")}")
+    if (project.hasProperty(radiusFlag)) {
+        jvmArgs("-D$modId.worldgen.radius=${project.property(radiusFlag)}")
     }
 }
 

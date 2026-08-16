@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.serenity.octia.Octia;
 import com.serenity.octia.debug.OctiaDebug;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -89,9 +90,9 @@ public final class OctiaDebugOverlay {
 
     public static void bootstrap() {
         toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "key.octia.debug", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F6, "key.categories.octia"));
+                Octia.keyBind("debug"), InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F6, Octia.keyCategory()));
         rangeKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "key.octia.debug_range", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F7, "key.categories.octia"));
+                Octia.keyBind("debug_range"), InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F7, Octia.keyCategory()));
 
         // The types themselves are not registered here. OctiaDebug.bootstrap()
         // does that from Octia.onInitialize, and Fabric runs every main
@@ -140,7 +141,7 @@ public final class OctiaDebugOverlay {
         panel(graphics, left, top);
 
         if (snapshot == null) {
-            graphics.drawString(client.font, "octia: waiting for server", left + 6, top + 6, COLOUR_DIM, false);
+            graphics.drawString(client.font, Octia.MOD_ID + ": waiting for server", left + 6, top + 6, COLOUR_DIM, false);
             return;
         }
 
@@ -259,10 +260,21 @@ public final class OctiaDebugOverlay {
         mark.draw(graphics, left + mid + (int) Math.round(dx), top + mid + (int) Math.round(dz), colour);
     }
 
+    /**
+     * The heading, and the string the highlight test below matches on.
+     *
+     * <p>One constant rather than two literals because those two were a
+     * coupling with nothing holding it together: the heading was written
+     * {@code "OCTIA DEBUG..."} in one method and matched with
+     * {@code startsWith("OCTIA")} in another, so changing either alone left the
+     * readout rendering in the dim colour with nothing to say it had.
+     */
+    private static final String TITLE = Octia.MOD_ID.toUpperCase(java.util.Locale.ROOT);
+
     /** The indicators, under the box. Facts, not reassurance. */
     private static void readout(GuiGraphics graphics, Minecraft client, int left, int top) {
         List<String> lines = new ArrayList<>();
-        lines.add("OCTIA DEBUG  -  north up  -  " + RANGES[rangeIndex] + "b");
+        lines.add(TITLE + " DEBUG  -  north up  -  " + RANGES[rangeIndex] + "b");
         lines.add("world: " + (snapshot.enabled() ? "ON" : "OFF"));
 
         if (!snapshot.beaconRaised()) {
@@ -295,7 +307,7 @@ public final class OctiaDebugOverlay {
         for (String line : lines) {
             int width = client.font.width(line);
             graphics.drawString(client.font, line,
-                    left + SIZE - width, y, line.startsWith("OCTIA") ? COLOUR_TEXT : COLOUR_DIM, false);
+                    left + SIZE - width, y, line.startsWith(TITLE) ? COLOUR_TEXT : COLOUR_DIM, false);
             y += 10;
         }
     }

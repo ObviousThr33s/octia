@@ -52,10 +52,17 @@ import org.slf4j.LoggerFactory;
  * milestones, and metrics change. Everywhere else it appears it is generated:
  * {@code fabric.mod.json} is templated from {@code gradle.properties}, and the
  * resource trees are moved by {@code tools/rename-mod.ps1}. {@link #MOD_ID}
- * below is the only place the name is written in Java, and {@link #id(String)}
- * is the only sanctioned way to build a {@link ResourceLocation} for this mod.
- * Keep it that way — a hardcoded {@code "octia:something"} string literal is
- * the one thing a rename cannot find.
+ * below is the only place the name is written in Java, and {@link #id(String)},
+ * {@link #tr(String)}, {@link #keyBind(String)}, {@link #keyCategory()} and
+ * {@link #property(String)} are the only sanctioned ways to build a string that
+ * carries it. Keep it that way — a hardcoded {@code "octia:something"} or
+ * {@code "octia.crew.none"} is the one thing a rename cannot find.
+ *
+ * <p><b>Three exceptions, and they are frozen rather than forgotten.</b>
+ * {@code ShipMoorings}, {@code OctiaWorldOption} and {@code CrewConfig} each
+ * name a file on disk. Those names are a contract with every save already
+ * written, so they must <em>not</em> follow a rename; each carries a comment
+ * saying so at its declaration.
  */
 public final class Octia implements ModInitializer {
 
@@ -80,6 +87,52 @@ public final class Octia implements ModInitializer {
      */
     public static ResourceLocation id(String path) {
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    }
+
+    /**
+     * A translation key in this mod's namespace, e.g. {@code tr("crew.aboard")}
+     * for {@code octia.crew.aboard}.
+     *
+     * <p><b>Why this exists, when {@link #id(String)} already did.</b> The rule
+     * above was written about {@code ResourceLocation} and stopped there, which
+     * left every {@code Component.translatable("octia.crew.none")} outside it -
+     * twenty-one of them. The rename script rewrites the package, the class
+     * name and the {@link #MOD_ID} literal, and nothing else in Java, so all
+     * twenty-one would survive a rename while {@code en_us.json} moved on
+     * without them. The mod builds, loads, and shows the player a raw key.
+     *
+     * <p>Block and item names do not need this - Minecraft derives those from
+     * the {@link ResourceLocation}, which is why the rename has never broken
+     * them and why the gap went unnoticed.
+     */
+    public static String tr(String path) {
+        return MOD_ID + "." + path;
+    }
+
+    /** A keybind translation key: {@code keyBind("debug")} is {@code key.octia.debug}. */
+    public static String keyBind(String path) {
+        return "key." + MOD_ID + "." + path;
+    }
+
+    /** This mod's keybind category, {@code key.categories.octia}. */
+    public static String keyCategory() {
+        return "key.categories." + MOD_ID;
+    }
+
+    /**
+     * A system property name in this mod's namespace.
+     *
+     * <p><b>Half of a coupling that nothing enforces.</b> The other half is in
+     * {@code build.gradle.kts}, which passes {@code -Doctia.worldgen.exit} and
+     * {@code -Doctia.worldgen.radius} to the headless worldgen run, and
+     * {@code tools/new-world.ps1}, which passes the Gradle properties that turn
+     * those on. Change the name on one side only and nothing fails: the
+     * property is simply never set, {@code Boolean.getBoolean} answers false,
+     * and the headless server runs forever instead of stopping. Move all three
+     * together.
+     */
+    public static String property(String path) {
+        return MOD_ID + "." + path;
     }
 
     @Override

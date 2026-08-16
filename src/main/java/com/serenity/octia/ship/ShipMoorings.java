@@ -29,6 +29,20 @@ import net.minecraft.world.level.saveddata.SavedData;
 public final class ShipMoorings extends SavedData {
 
     /** Becomes {@code <save>/data/octia_moorings.dat}. */
+    /**
+     * <b>FROZEN. Do not rename this with the mod.</b>
+     *
+     * <p>This is not a namespace, it is a filename: it becomes
+     * {@code <save>/data/octia_moorings.dat}. Every save ever written by this
+     * mod has one. Change the string and {@code computeIfAbsent} finds no file,
+     * calls the no-arg constructor, and hands back an empty store - so every
+     * mooring a player made disappears from the F6 map, with no exception, no
+     * log line, and nothing in the save actually deleted. It looks exactly like
+     * a world that was never moored.
+     *
+     * <p>The mod's name may move. This may not, until somebody writes the
+     * migration that reads the old file and writes the new one.
+     */
     private static final String FILE = "octia_moorings";
 
     private static final String KEY = "moorings";

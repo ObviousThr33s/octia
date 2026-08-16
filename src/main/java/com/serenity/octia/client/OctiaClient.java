@@ -113,7 +113,7 @@ public final class OctiaClient implements ClientModInitializer {
             });
 
             button.setTooltip(Tooltip.create(
-                    Component.translatable("octia.create_world.toggle.tooltip")));
+                    Component.translatable(Octia.tr("create_world.toggle.tooltip"))));
 
             buttons.add(button);
         });
@@ -156,8 +156,8 @@ public final class OctiaClient implements ClientModInitializer {
 
     private static Component label() {
         return Component.translatable(OctiaWorldOption.pending()
-                ? "octia.create_world.toggle.on"
-                : "octia.create_world.toggle.off");
+                ? Octia.tr("create_world.toggle.on")
+                : Octia.tr("create_world.toggle.off"));
     }
 
     /**
