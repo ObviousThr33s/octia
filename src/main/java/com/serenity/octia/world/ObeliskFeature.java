@@ -177,6 +177,16 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
+        // The same reason the arch declines a node inside a village, and the
+        // obelisk needs it more: it is rolled once per 180 chunks anywhere in
+        // the world rather than once per cell, so it gets far more chances to
+        // land in somebody else's build. Refusing the site rather than moving
+        // it, like every other answer this file gives to ground it does not
+        // like.
+        if (!RuinGround.clearOfStructures(level, base, radiusX, radiusZ, height)) {
+            return false;
+        }
+
         plinth(level, base, radiusX, radiusZ);
         prism(level, base, alongX, height, broken);
         if (!broken) {

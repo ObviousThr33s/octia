@@ -314,6 +314,43 @@ public class ArchGameTest implements FabricGameTest {
         helper.succeed();
     }
 
+    /**
+     * Empty ground is not somebody else's build.
+     *
+     * <p><b>What this cannot test, and what it can.</b> The check exists to keep
+     * an arch out of a village, and a test plot will never contain one - there
+     * is no way to ask the framework for a vanilla structure start. So the
+     * rejection itself is unproven here and is marked as such in ROADMAP.
+     *
+     * <p>What is proven is the half that would take the whole feature out of
+     * every world at once: that asking the question does not throw, and that
+     * ground nobody has touched answers yes. A structure query that came back
+     * no everywhere - wrong scoping, an empty region, a manager bound to the
+     * wrong level - would leave no arches anywhere and no error to find it by,
+     * because declining a site is what this feature does 1,023 times out of
+     * 1,024 anyway. That failure is silent by construction, which is exactly
+     * why it gets a test.
+     *
+     * <p>This drives the {@code ServerLevel} path rather than the
+     * {@code WorldGenRegion} one, because a gametest has no region. That is the
+     * same path {@code /place feature octia:arch} takes - and it means the
+     * region path's own failure mode, a chunk read walking outside the region's
+     * declared radius, is unreachable from here by construction. A plot holds no
+     * structure references, so the loop this drives finds nothing and stops. It
+     * proves the call is well-formed, not that the region arithmetic is right.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void bareGroundIsAClearSite(GameTestHelper helper) {
+        floor(helper, GROUND);
+        OctiaWorldgen.setActive(true);
+
+        if (!ArchFeature.siteIsClear(helper.getLevel(), helper.absolutePos(GROUND))) {
+            throw new AssertionError(
+                    "the structure check refused empty ground - every node in the world would go bare");
+        }
+        helper.succeed();
+    }
+
     /** The switch reaches this one too. */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void aDisabledWorldGeneratesNoArch(GameTestHelper helper) {

@@ -100,6 +100,14 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
+        // A wreck in a village square reads as somebody's yard ornament rather
+        // than as a ship that came and failed. The cube is 3x3x3 sunk to two
+        // thirds, so one block either side of the core and three courses up
+        // covers everything this places except the scattered debris.
+        if (!RuinGround.clearOfStructures(level, core.below(1), 1, 1, 3)) {
+            return false;
+        }
+
         cube(level, random, core);
         debris(level, random, core);
         int digs = RuinGround.dig(level, random, core, DIG_MIN, DIG_MAX, 3 + random.nextInt(4));
