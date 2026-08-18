@@ -42,6 +42,27 @@ jobs:
       - name: Game tests
         run: ./gradlew runGametest --console=plain
 
+      # The exit code is not the whole story, and tools/verify.ps1 has known it
+      # for longer than this file has. Two green-looking failures it already
+      # refuses and CI did not: a run that writes no report at all, because the
+      # server died before the listener ever went off, and a report carrying
+      # zero <testcase> nodes. No tests ran is a failure, not a pass.
+      - name: Check the report says something
+        if: success()
+        run: |
+          report=build/test-results/gametest/report.xml
+          if [ ! -f "$report" ]; then
+            echo "No report at $report."
+            echo "The server exited before writing one - scroll up for the cause."
+            exit 1
+          fi
+          cases=$(grep -o '<testcase' "$report" | wc -l)
+          echo "$cases testcase(s) in the report."
+          if [ "$cases" -eq 0 ]; then
+            echo "No tests ran. That is a failure, not a pass."
+            exit 1
+          fi
+
       # Uploaded on failure too — a red run is exactly when the report matters.
       - name: Upload test report
         if: always()

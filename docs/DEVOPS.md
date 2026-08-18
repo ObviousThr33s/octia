@@ -81,6 +81,19 @@ the checked-in Gradle wrapper rather than a preinstalled Gradle, so the CI box
 and your machine resolve identical versions — the thing that makes "works on my
 machine" stop being a sentence anyone says.
 
+Two things had to be true before that sentence was:
+
+- **`gradlew` is committed executable (mode `100755`).** It was `100644`, which
+  is what git records for a file created on Windows, and `./gradlew` on
+  `ubuntu-latest` answers that with `Permission denied` before Gradle is ever
+  reached. The fix is in the index, not in the workflow: a `chmod +x` step in CI
+  would have hidden the fact that a fresh clone on any Linux machine had the
+  same problem.
+- **The report is read, not assumed.** `runGametest` returning 0 is not proof
+  that anything ran. `tools/verify.ps1` has refused a missing report and a
+  report with zero `<testcase>` nodes since it learned the difference; CI now
+  refuses both too, for the same reason and in the same words.
+
 ## What is deliberately not here
 
 - **No datagen yet.** With two blocks, hand-written JSON is shorter than the
