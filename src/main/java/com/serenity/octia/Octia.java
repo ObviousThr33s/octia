@@ -3,6 +3,7 @@ package com.serenity.octia;
 import com.serenity.octia.crew.Crew;
 import com.serenity.octia.crew.Wayfarer;
 import com.serenity.octia.debug.OctiaDebug;
+import com.serenity.octia.life.KeepInventory;
 import com.serenity.octia.world.EraEcho;
 import com.serenity.octia.world.HeadlessRun;
 import com.serenity.octia.world.OctiaBeacon;
@@ -143,6 +144,14 @@ public final class Octia implements ModInitializer {
         // cannot inherit the first one's answer. Without this the switch leaks
         // between saves, which is the exact failure the switch exists to prevent.
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> OctiaWorldgen.setActive(false));
+
+        // Keep-inventory, held on rather than set once. Registered here beside
+        // the other per-save decisions because that is what it is: a property of
+        // an Octia save, gated on the same create-screen switch as the beacon.
+        // It hangs off its own LOAD and tick hooks rather than borrowing the
+        // ones above, so that deleting this one line disables the mechanic
+        // completely and leaves nothing behind in the world.
+        KeepInventory.bootstrap();
 
         // The crew. Registered here rather than lazily on first command because
         // the muster hangs off server start and stop, and a hook installed after

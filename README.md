@@ -137,6 +137,7 @@ octia/
 │  │  ├─ ship/                          the core, its status, the moorings
 │  │  ├─ world/                         beacon, derelict, obelisk, the switch
 │  │  ├─ crew/                          seats, orders, the gangway
+│  │  ├─ life/                          keep-inventory, held on: death costs a life
 │  │  ├─ client/                        client entrypoint and the F6 map
 │  │  ├─ debug/                         the payload that map rides on
 │  │  ├─ codex/                         the KEG notation, as types
