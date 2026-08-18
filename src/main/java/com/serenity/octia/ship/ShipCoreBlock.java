@@ -184,7 +184,14 @@ public class ShipCoreBlock extends Block {
 
         ShipMoorings moorings = ShipMoorings.get(level.getServer());
         if (status.isMoored()) {
-            moorings.moor(pos);
+            // moor() answers whether this position was new. That answer was
+            // computed and discarded here for as long as this method has
+            // existed; FirstLight is the thing that finally listens to it, and
+            // it is the whole of the "a hull just completed" signal. See its
+            // javadoc for why no separate latch is needed.
+            if (moorings.moor(pos)) {
+                FirstLight.moored(level, pos);
+            }
         } else {
             moorings.unmoor(pos);
         }

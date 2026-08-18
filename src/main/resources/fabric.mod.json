@@ -27,7 +27,8 @@
       "${mod_package}.gametest.EraEchoGameTest",
       "${mod_package}.gametest.WayfarerGameTest",
       "${mod_package}.gametest.RuinRegistryGameTest",
-      "${mod_package}.gametest.KeepInventoryGameTest"
+      "${mod_package}.gametest.KeepInventoryGameTest",
+      "${mod_package}.gametest.FirstLightGameTest"
     ]
   },
   "depends": {
