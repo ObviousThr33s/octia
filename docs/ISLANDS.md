@@ -46,9 +46,13 @@ and arrival rather than about terrain:
 - **Derelicts are already the reward for reaching somewhere.** A wreck on an island
   is a stronger find than a wreck in a field, because getting to it cost something.
 - **Obelisks are already meant to be seen from far off** (`ROADMAP.md` §V). An
-  island is the best plinth one could have, and it answers the sightline complaint
-  in the same stroke: an island reads at distance in a way a half-buried cube never
-  will.
+  island is the best plinth one could have: it reads at distance in a way a
+  half-buried cube never will.
+
+**Correction, same day.** The bullet above originally said an island "answers the
+sightline complaint." It does not, because **sightlines were answered while this file
+was being written** — see §VIII. An island would give an obelisk a better plinth; it
+would not give the world its bearings, because the world now has them.
 
 ---
 
@@ -149,5 +153,72 @@ things are safe" needs no explanation at all.
    it has never been tested, and finding out is a one-line gametest.
 3. **What is scarce?** Unanswered, and it is the whole of shape A. Ex Nihilo's
    answer was matter. Octia's should probably be *anchorage*.
+
+---
+
+## VIII. What already exists — read this before building any of the above
+
+**Added 2026-08-17, ~22:15, after finally fetching `origin/main`.** Everything above was
+written against a local `main` that was eleven commits stale, so parts of it argue for
+things that are already built. Recorded here rather than silently edited, because the
+mistake is instructive: *the tree was never asked.*
+
+**Sightlines are built.** `world/Sightlines.java` — a seeded lattice, one node per
+512-block cell jittered up to 96, each node joined to a neighbour one cardinal step away,
+with a 32-block corridor either side of the leg. Pure Java, no Minecraft imports, because
+features run on chunk-generation workers and must consult a *function*, not a lookup. It is
+covered by `SightlinesTest` (11 cases) and documented at length in `docs/SIGHTLINES.md`.
+
+Its thesis is the answer to the density complaint this file leans on:
+
+> nothing in a vanilla world points at anything else.
+
+**Obelisks are no longer columns.** They are solid 3×5 prisms, 9–13 tall, laid along the
+leg beneath them, with a slot bored the full length at eye height — the sightline you
+actually look through.
+
+**The arch is built.** `world/ArchFeature.java`: keystone plus four, squared across the leg
+so you walk through it facing the way the thread runs, built entirely from existing frame
+panels — no new blocks. It has **no rarity filter on purpose**; every chunk is offered and
+`place()` rejects the ones whose cell node is elsewhere, because a rarity filter "would
+throw away the one chunk that matters."
+
+**And a real measurement worth respecting:** a 200-seed sweep over 2,040,200 cells corrected
+two of that design's own claims — a standing obelisk is only ~20% likely to be on a thread
+against a 12.66% base rate ("a real signal and a weak one"), and a quarter of all legs
+double back. That is the standard of evidence this file has not met and should.
+
+### Still unclaimed as of this writing
+
+Per-player records, inhabitation, and floating islands appear nowhere on `origin/main`, and
+there is still no UUID-keyed storage anywhere in the mod. `docs/LIVES.md` and the shapes
+above remain open ground.
+
+### The merge is not done, and here is exactly why
+
+`main` and `origin/main` have genuinely diverged — 13 local commits against 11 remote off
+`cc5f777`. A merge was attempted and **deliberately aborted**; safety refs
+`backup/main-pre-rebase-20260817` and `backup/lai-pre-rebase-20260817` hold the pre-merge
+state. Four of five conflicts resolved cleanly and are reproducible: `RuinGround` keeps both
+new methods (`isDry` and `clearOfStructures`), `OctiaWorldgen` keeps both features with
+`ARCH` scheduled through the existing `scheduleInOverworld` helper.
+
+**One block needs a decision, not a resolution.** In `OctiaWorldgen.placeNearSpawn`:
+
+- *ours* calls `derelict.place(...)` and then **searches downward** for the core it placed.
+- *theirs* calls `DerelictFeature.seat(...)` directly, so the guaranteed wreck is exempt
+  from the new structure check — deliberate, and argued in `seat`'s javadoc: between "the
+  first wreck is guaranteed" and "no wreck shares ground with a village", the guarantee wins.
+
+They cannot simply be combined. Theirs calls `DerelictFeature.sink()` with no arguments; the
+merged file has only `private static int sink(RuinAge age)`, and the age is rolled *inside*
+`place()`. Meanwhile `searchDepth()`'s javadoc states the core position **"cannot be
+calculated any more"** — the wreck walks down through air and water, then sinks by its age.
+
+The likely answer is a small `DerelictFeature` method that mirrors `place()` minus the
+structure check and returns the core it seated. It was not written tonight because
+`ROADMAP.md` VII records that **the near-spawn derelict has no gametest**, so a wrong guess
+here breaks "the promise that a player meets a derelict at all" silently, and `verify.ps1`
+would still report green.
 
 `[2026-08-17]`
