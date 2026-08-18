@@ -137,6 +137,31 @@ A milestone made by hand in the web UI is adopted rather than duplicated, as
 long as its title matches and it carries no trailer of its own — creating a
 second one with that title would fail the uniqueness constraint anyway.
 
+### The sync fires when the file *lands*, not when you are ready
+
+Paid for on 2026-08-18, within four minutes of the workflow first existing.
+
+The trigger is a push to `main` touching `.github/milestones.json`, and adding
+the file is a push touching it. So the pull request that introduced the sync
+also ran it — against the placeholder list it happened to carry, which named a
+different project's milestones. Six of them were created before anyone had
+decided they were the right six. The follow-up that replaced the list then
+created six more beside them, correctly: new ids, no trailer to match, so the
+only honest answer was to create.
+
+Nothing malfunctioned. The workflow did what it says, twice, and both runs are
+green. What was wrong was the order, and the belief — written down in the pull
+request, which made it worse — that there was a safe window in which the file
+existed but had not been synced. **There is no such window.**
+
+So: land `.github/milestones.json` with the content you actually want, in the
+same change that adds it. If you need the workflow in place before the list is
+settled, land the workflow first and the file second.
+
+The wreckage is cheap only because the repo had no issues yet, so the six
+strays had nothing attached to detach. That will not be true next time, and it
+is the reason the sync refuses to delete anything on its own.
+
 ## What is deliberately not here
 
 - **No datagen yet.** With two blocks, hand-written JSON is shorter than the
