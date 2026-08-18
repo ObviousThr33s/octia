@@ -81,6 +81,62 @@ the checked-in Gradle wrapper rather than a preinstalled Gradle, so the CI box
 and your machine resolve identical versions — the thing that makes "works on my
 machine" stop being a sentence anyone says.
 
+Two more workflows sit beside it, and neither is a second gate.
+
+**`release.yml`** fires on a `v*` tag. It runs *both* gates before it publishes
+anything — build, then the in-world tests — because standing order 1 in
+[../OCTIA.md](../OCTIA.md) is that the local gate and the CI gate are one gate,
+and a release path that only compiled would be a third and weaker one attached
+to the jar people actually download. It also refuses a tag that disagrees with
+`mod_version` in `gradle.properties`: the tag names the release and
+`gradle.properties` names the jar inside it, so `v0.2.0` cut against
+`mod_version=0.1.0` would otherwise publish a release whose contents quietly
+carry the wrong number. A prerelease tag therefore needs `mod_version` to say
+so too — `v0.1.0-rc1` wants `mod_version=0.1.0-rc1`.
+
+**`milestones.yml`** syncs `.github/milestones.json` onto the repo's milestones,
+and is the one place here where the interesting decision is not about Gradle.
+
+## Why milestones sync by id and not by title
+
+A milestone is a bag of issues wearing a name. Deleting one detaches every
+issue on it, with no undo and no record of what was attached — so a sync that
+reconciles by title cannot survive a rename: it sees a title it does not
+recognise, creates a second milestone, and leaves the issues on the first.
+
+So the title is display text and the **id** is the identity. Each entry in
+`milestones.json` carries an id, and the workflow writes it into the milestone
+description as a trailer line:
+
+```
+Hull built. Ten doors placed. Skipped eras sealed.
+
+octia-id: m3-doors
+```
+
+That trailer — not the title — is what the next run matches on. Rename
+`Ten Doors and Hull` to `The Hull` and the run issues a title `PATCH` against
+the same milestone number. Nothing is created and nothing is detached.
+
+`octia-id`, not `octioid-id`: `ObviousThr33s/Octioid` is a different project
+sharing no history with this one, and the two were nearly confused once already.
+
+Three consequences worth knowing before editing the file:
+
+- **Deletion is deliberately absent.** Dropping an entry leaves the milestone
+  alone; close it by hand. Automating that trade is trading an undoable loss
+  for a tidier list.
+- **A duplicate id is rejected before anything is written.** It is the one
+  input that would break the design silently — both entries match the same
+  milestone and the second overwrites the first.
+- **The trailer is read back off the server after every write.** The whole
+  scheme rests on the id surviving the round trip, so the run fails loudly if
+  it ever does not, rather than leaving the next rename to orphan the issues.
+
+A milestone made by hand in the web UI is adopted rather than duplicated, as
+long as its title matches and it carries no trailer of its own — creating a
+second one with that title would fail the uniqueness constraint anyway.
+
 ## What is deliberately not here
 
 - **No datagen yet.** With two blocks, hand-written JSON is shorter than the
@@ -90,3 +146,22 @@ machine" stop being a sentence anyone says.
 - **No auto-accepted EULA.** `play.ps1 -Server` detects an unaccepted EULA and
   tells you where to accept it. Agreeing to Mojang's terms is yours to do, and
   a script that clicks through a licence on your behalf is not a convenience.
+- **No separate `build.yml`.** A compile-only workflow would be a second gate
+  that goes green while the in-world tests are red, which is the thing standing
+  order 1 exists to prevent. `verify.yml` already builds, and then does more.
+  The one thing such a workflow would add is coverage of a push to a branch
+  with no pull request open — `verify.yml` triggers on `push` to `main` and on
+  `pull_request`, so that case runs nothing today. Close it by widening the
+  existing trigger to `branches: ['**']` rather than by adding a second
+  workflow, and note that doing so doubles CI on any branch that also has a PR
+  open, since `push` and `pull_request` both fire.
+- **No `chmod +x gradlew` step, in any workflow.** The bit is in the index
+  already. See the note in [ROADMAP.md](ROADMAP.md) for why putting one back is
+  worse than it looks.
+- **No `docs.yml` yet.** A workflow enforcing a per-feature README shape wants
+  a `features/` directory to enforce it against, and there is not one — a path
+  filter that can never match is config that reads as coverage and is not. Two
+  things to get right when it does arrive: `for dir in features/*/` reports a
+  nonexistent `features/*//README.md` when the glob fails to expand, and
+  `ls .../*.png | wc -l` under `set -o pipefail` fails the whole script rather
+  than counting zero.

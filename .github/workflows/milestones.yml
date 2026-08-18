@@ -1,0 +1,146 @@
+name: Sync milestones
+
+# The milestone list lives in .github/milestones.json and is synced by stable
+# id, never by title. The id is written into the milestone description as a
+# trailer line, and is the only thing this workflow matches on, so renaming a
+# milestone issues a title PATCH rather than a delete-and-recreate. Every issue
+# already attached to it survives the rename.
+#
+# The trailer reads `octia-id`, not `octioid-id`. See the name section of
+# OCTIA.md: ObviousThr33s/Octioid is a different project sharing no history
+# with this one, and the two were nearly confused once already.
+
+on:
+  push:
+    # main only, deliberately. A path filter on its own fires for a push to any
+    # branch, so a feature branch experimenting with the JSON would rewrite the
+    # live milestones of the repo before anyone had reviewed the diff.
+    branches: [main]
+    paths: ['.github/milestones.json']
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+# Two runs at once would read the same `existing.json` and both decide to
+# create the same milestone. The second loses to the title uniqueness check.
+concurrency:
+  group: milestones
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upsert milestones
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: .github/milestones.json
+        run: |
+          set -euo pipefail
+
+          # ---- the trailer, read as a line rather than matched as a regex ----
+          # An id is author-supplied text. As a regex, a `.` or a `+` in one
+          # would quietly widen the match onto the wrong milestone; compared as
+          # a whole line it cannot.
+          TRAILER_JQ=$(cat <<'JQ'
+          def octia_id:
+            (.description // "")
+            | split("\n")
+            | map(sub("\r$"; ""))
+            | map(select(startswith("octia-id: ")))
+            | last
+            | if . == null then "" else ltrimstr("octia-id: ") end;
+          JQ
+          )
+
+          # ---- validate the source before touching anything -----------------
+          # A duplicate id is the one input that breaks this design silently:
+          # both entries match the same milestone and the second overwrites the
+          # first. A duplicate title only 422s, but it says so here instead of
+          # halfway through the loop with three milestones already written.
+          jq -e 'type == "array" and length > 0' "$SOURCE" > /dev/null
+          jq -e 'all(.[]; (.id    | type == "string" and test("^[A-Za-z0-9._-]+$"))
+                      and (.title | type == "string" and length > 0))' "$SOURCE" > /dev/null \
+            || { echo "::error::every entry needs a non-empty title and an id matching [A-Za-z0-9._-]+"; exit 1; }
+
+          for field in id title; do
+            dupes=$(jq -r --arg f "$field" \
+              '[.[][$f]] | group_by(.) | map(select(length > 1) | .[0]) | join(", ")' "$SOURCE")
+            [ -z "$dupes" ] || { echo "::error::duplicate $field in $SOURCE: $dupes"; exit 1; }
+          done
+
+          # ---- the milestones that exist now --------------------------------
+          # --paginate rather than a bare per_page=100. The cap is not a limit
+          # anyone would notice crossing; matching would just start missing.
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+            --jq '.[]' | jq -s '.' > existing.json
+
+          fail=0
+
+          # Process substitution, not a pipe: `while read` on the right of a
+          # pipe runs in a subshell, and a $fail set inside it is discarded at
+          # the end of the loop - the job would go green on a failed PATCH.
+          while read -r entry; do
+            id=$(jq -r '.id'                  <<<"$entry")
+            title=$(jq -r '.title'            <<<"$entry")
+            body=$(jq -r '.description // ""' <<<"$entry")
+            desc=$(printf '%s\n\noctia-id: %s' "$body" "$id")
+
+            number=$(jq -r --arg id "$id" "$TRAILER_JQ"'
+              first(.[] | select(octia_id == $id) | .number) // ""' existing.json)
+
+            # No trailer match. Adopt a milestone carrying this exact title and
+            # no trailer at all - that is one made by hand in the web UI, and
+            # creating a second with the same title would 422 on the uniqueness
+            # constraint. One already carrying a *different* id is never
+            # adopted; it belongs to another entry.
+            if [ -z "$number" ]; then
+              number=$(jq -r --arg t "$title" "$TRAILER_JQ"'
+                first(.[] | select(.title == $t and octia_id == "") | .number) // ""' existing.json)
+              [ -z "$number" ] || echo "adopt  $id -> #$number (made by hand, no trailer)"
+            fi
+
+            if [ -n "$number" ]; then
+              # Skip the write when nothing moved, so a dispatch against an
+              # unchanged file reads as six no-ops rather than six PATCHes of
+              # byte-identical content.
+              if jq -e --argjson n "$number" --arg t "$title" --arg d "$desc" \
+                   'any(.[]; .number == $n and .title == $t and (.description // "") == $d)' \
+                   existing.json > /dev/null; then
+                echo "same   $id -> #$number"
+                continue
+              fi
+              echo "patch  $id -> #$number  $title"
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/milestones/$number" \
+                -f title="$title" -f description="$desc" > /dev/null \
+                || { echo "::error::PATCH failed for $id ($title)"; fail=1; continue; }
+            else
+              echo "create $id -> $title"
+              number=$(gh api -X POST "repos/$GITHUB_REPOSITORY/milestones" \
+                -f title="$title" -f description="$desc" --jq '.number') \
+                || { echo "::error::POST failed for $id ($title)"; fail=1; continue; }
+            fi
+
+            # Read the trailer back off the server. The whole design rests on
+            # the id surviving the round trip; if the API ever truncates or
+            # rewrites a description, this is the line that says so - rather
+            # than the next rename silently orphaning every attached issue.
+            landed=$(gh api "repos/$GITHUB_REPOSITORY/milestones/$number" \
+              | jq -r "$TRAILER_JQ"' octia_id')
+            if [ "$landed" != "$id" ]; then
+              echo "::error::#$number did not keep its trailer: wanted '$id', read back '$landed'"
+              fail=1
+            fi
+          done < <(jq -c '.[]' "$SOURCE")
+
+          # Deletion is deliberately absent. Dropping an entry from the JSON
+          # leaves the milestone alone - close it by hand. An automated delete
+          # detaches every issue on it, with no undo and no record of what was
+          # attached.
+          exit "$fail"

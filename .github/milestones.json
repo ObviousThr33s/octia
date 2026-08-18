@@ -1,0 +1,25 @@
+[
+  { "id": "m1-frame",
+    "title": "Andesite Frame Block",
+    "description": "First shippable block. Registry, model, recipe." },
+
+  { "id": "m2-era",
+    "title": "Custom Era Dimension",
+    "description": "One dimension registered and enterable." },
+
+  { "id": "m3-doors",
+    "title": "Ten Doors and Hull",
+    "description": "Hull built. Ten doors placed. Skipped eras sealed." },
+
+  { "id": "m4-story",
+    "title": "Deterministic Story Computer",
+    "description": "Seed strings in, story-temperature per door out." },
+
+  { "id": "m5-trophies",
+    "title": "Trophies via Data Components",
+    "description": "Trophies carry their seed. Async multiplayer." },
+
+  { "id": "m6-phrasebook",
+    "title": "Phrasebook Mechanic",
+    "description": "Held-item cross-era signalling." }
+]

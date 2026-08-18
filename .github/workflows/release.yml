@@ -1,0 +1,78 @@
+name: Release
+
+# A tag publishes the jar. It runs the same two gates verify.yml runs first,
+# because standing order 1 in OCTIA.md is that the local gate and the CI gate
+# are one gate - a release path that only compiled would be a third, weaker
+# gate, and the one whose output people actually download.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tag names the release; gradle.properties names the jar inside it.
+      # Nothing keeps the two honest, so tagging v0.2.0 against mod_version
+      # 0.1.0 would publish "v0.2.0" containing octia-0.1.0.jar, silently.
+      - name: Tag must agree with mod_version
+        run: |
+          set -euo pipefail
+          declared=$(sed -n 's/^mod_version=[[:space:]]*//p' gradle.properties | head -n1)
+          tagged="${GITHUB_REF_NAME#v}"
+          if [ "$declared" != "$tagged" ]; then
+            echo "::error::tag $GITHUB_REF_NAME says $tagged, gradle.properties says $declared"
+            exit 1
+          fi
+          echo "$GITHUB_REF_NAME matches mod_version=$declared"
+
+      # Matches java_version in gradle.properties, as in verify.yml.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # No `chmod +x gradlew` step here, deliberately. The bit is in the index
+      # (mode 100755) since `git update-index --chmod=+x`; a chmod step would
+      # hide it going missing again and leave every fresh clone broken. See the
+      # note in docs/ROADMAP.md.
+      - name: Build
+        run: ./gradlew build --console=plain
+
+      # Bounded, and dumps stacks instead of hanging to the job timeout. Same
+      # wrapper verify.yml uses, for the same reason - see the script header.
+      - name: Game tests
+        run: bash tools/gametest-ci.sh
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gametest-report
+          path: build/test-results/gametest/
+          if-no-files-found: warn
+
+      # build/libs holds the remapped jar and the sources jar that
+      # withSourcesJar() produces; Loom's un-remapped dev jar goes to
+      # build/devlibs and is correctly not picked up here.
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          generate_release_notes: true
+          fail_on_unmatched_files: true

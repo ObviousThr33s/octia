@@ -115,7 +115,12 @@ octia/
 ├─ build.gradle.kts                     loom, deps, fabric.mod.json templating
 ├─ AGENTS.md                            the rules, each one already paid for
 ├─ OCTIA.md                             what this repo is, and what it is not
-├─ .github/workflows/verify.yml         CI: the same two gates on every push
+├─ .github/
+│  ├─ milestones.json                   the milestone list, synced by stable id
+│  └─ workflows/
+│     ├─ verify.yml                     CI: the same two gates on every push
+│     ├─ release.yml                    a v* tag: both gates, then publish the jar
+│     └─ milestones.yml                 milestones.json -> the repo's milestones
 ├─ docs/
 │  ├─ NAMING.md                         conventions + rename procedure
 │  ├─ DEVOPS.md                         why GameTest, and how it stays open
