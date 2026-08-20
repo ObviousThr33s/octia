@@ -101,7 +101,19 @@ public final class TowerPlan {
          * rather than a sculpture - it is where the hull is, so it is where
          * arrival happens.
          */
-        CORE('O');
+        CORE('O'),
+
+        /** Standing water. Feeds the beds around it. */
+        WATER('~'),
+
+        /** A tilled bed. Wants water near it and light over it. */
+        SOIL('='),
+
+        /** What is growing. Sits directly on a bed, never on its own. */
+        CROP('"'),
+
+        /** Straw over the top course. The one part of a tower that is not stone. */
+        THATCH('^');
 
         private final char glyph;
 
@@ -324,6 +336,143 @@ public final class TowerPlan {
     /** Whether the drawing sits on the five-column measure with nothing left over. */
     public boolean inRhythm() {
         return width % BAY == 0;
+    }
+
+    // ---- Agronomy ------------------------------------------------------
+    //
+    // A tower whose industry is farming has to obey rules the game already
+    // owns, and getting them from memory is how a building gets drawn that can
+    // never grow anything. Every constant below was read out of the 1.21.1 jar
+    // with javap rather than recalled, because AGENTS.md rule V says to verify
+    // against the jar and this is exactly the case it was written for.
+
+    /**
+     * Light a crop needs to <em>grow</em>.
+     *
+     * <p>{@code CropBlock.randomTick} calls {@code getRawBrightness(pos, 0)} and
+     * compares {@code bipush 9 / if_icmplt}, so growth needs 9 or better.
+     */
+    public static final int GROWTH_LIGHT = 9;
+
+    /**
+     * Light a crop needs merely to <em>stay planted</em>.
+     *
+     * <p>{@code CropBlock.hasSufficientLight} compares against {@code bipush 8}.
+     * Between 8 and 9 a crop sits there alive and never advances, which is the
+     * most confusing failure available and is why both numbers are named.
+     */
+    public static final int SURVIVAL_LIGHT = 8;
+
+    /**
+     * How far water reaches a bed, in columns.
+     *
+     * <p>{@code FarmBlock.isNearWater} walks a box from {@code offset(-4, 0, -4)}
+     * to {@code offset(4, 1, 4)}. So four out horizontally, and the water may sit
+     * level with the bed or one course above it - never below.
+     */
+    public static final int HYDRATION_RADIUS = 4;
+
+    /**
+     * How far a beacon can carry growing light, in blocks.
+     *
+     * <p>Block light falls one level per step, so a source of 15 is down to
+     * {@link #GROWTH_LIGHT} after six. A {@code LAMP} is light 7 and therefore
+     * cannot grow anything at any distance at all - it is already below
+     * {@link #SURVIVAL_LIGHT} where it stands. That is the single most likely
+     * mistake an author will make, and the reason this check exists.
+     */
+    public static final int BEACON_REACH = 6;
+
+    /** What is wrong with a drawing agronomically. Advisory, never a refusal. */
+    public record Finding(int column, int rowFromTop, String what) {
+    }
+
+    /**
+     * Everything about this drawing that will not grow, and why.
+     *
+     * <p><b>Advisory on purpose.</b> {@link #parse} refuses drawings that are not
+     * towers; this reports drawings that are towers and bad farms. Refusing a
+     * building over its agronomy would be the parser ruling on the author's
+     * intent, and somebody may well want a dead farm - a ruin of one is a better
+     * story than a working one.
+     *
+     * <p><b>What the light check can and cannot say.</b> It measures the
+     * shortest path in the drawing, in columns and rows, and does not know that
+     * block light is a three-dimensional flood fill that opaque blocks stop
+     * dead. A tower is mostly frame panels, which are opaque, so the real light
+     * at a crop is <em>never better</em> than this says and is usually worse.
+     * That makes this a necessary condition and not a sufficient one: it can
+     * prove a crop is too far from any beacon to grow, and it cannot prove one
+     * is lit. Stated plainly rather than left for somebody to discover, because
+     * a checker that quietly overpromises is worse than none.
+     */
+    public List<Finding> agronomy() {
+        List<Finding> found = new ArrayList<>();
+        for (int r = 0; r < height; r++) {
+            for (int c = 0; c < width; c++) {
+                Cell cell = at(c, r);
+
+                if (cell == Cell.CROP) {
+                    // Rows count from the top, so the cell below is r + 1.
+                    if (at(c, r + 1) != Cell.SOIL) {
+                        found.add(new Finding(c, r, "a crop with no bed under it"));
+                    }
+                    if (!litEnough(c, r)) {
+                        found.add(new Finding(c, r,
+                                "no beacon within " + BEACON_REACH
+                                        + "; a lamp is light 7 and cannot grow anything"));
+                    }
+                }
+
+                if (cell == Cell.SOIL && !watered(c, r)) {
+                    found.add(new Finding(c, r,
+                            "no water within " + HYDRATION_RADIUS + " columns, level or one above"));
+                }
+            }
+        }
+        return Collections.unmodifiableList(found);
+    }
+
+    /** Whether a bed has water in reach, on the rule FarmBlock actually applies. */
+    private boolean watered(int column, int rowFromTop) {
+        for (int c = column - HYDRATION_RADIUS; c <= column + HYDRATION_RADIUS; c++) {
+            // Level with the bed, or one course above it. Rows count downward,
+            // so "one above" is rowFromTop - 1.
+            for (int r = rowFromTop - 1; r <= rowFromTop; r++) {
+                if (at(c, r) == Cell.WATER) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Whether any beacon is near enough to still be at growing light. */
+    private boolean litEnough(int column, int rowFromTop) {
+        for (int r = rowFromTop - BEACON_REACH; r <= rowFromTop + BEACON_REACH; r++) {
+            for (int c = column - BEACON_REACH; c <= column + BEACON_REACH; c++) {
+                if (at(c, r) != Cell.BEACON) {
+                    continue;
+                }
+                if (Math.abs(c - column) + Math.abs(r - rowFromTop) <= BEACON_REACH) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Whether the drawing has anything agricultural in it at all. */
+    public boolean isFarm() {
+        for (int r = 0; r < height; r++) {
+            for (int c = 0; c < width; c++) {
+                Cell cell = at(c, r);
+                if (cell == Cell.SOIL || cell == Cell.CROP || cell == Cell.WATER) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

@@ -180,6 +180,93 @@ class TowerPlanTest {
                 TowerPlan.parse(String.join("\n", BAY)).placements(2));
     }
 
+    /** A bay that will actually grow: beacon over the crop, bed under it, water two along. */
+    private static final List<String> FARM = List.of(
+            "..*..",
+            "..\"..",
+            "~.=.~",
+            "##O##");
+
+    @Test
+    @DisplayName("a farm that obeys the game's rules reports nothing")
+    void aGoodFarmIsQuiet() {
+        TowerPlan plan = TowerPlan.parse(FARM);
+        assertTrue(plan.isFarm());
+        assertTrue(plan.agronomy().isEmpty(), plan.agronomy().toString());
+    }
+
+    /**
+     * <b>The mistake this whole check exists for.</b> A lamp is
+     * {@code PanelLight.GENERIC}, light 7. Block light falls one per step, so a
+     * crop beside one sees 6 - below {@code SURVIVAL_LIGHT} where it stands, let
+     * alone {@code GROWTH_LIGHT}. A tower lit entirely by lamps grows nothing at
+     * any distance, and looks perfectly reasonable while doing it.
+     */
+    @Test
+    @DisplayName("a farm lit by lamps is flagged, because seven never grows anything")
+    void lampsCannotGrowCrops() {
+        List<TowerPlan.Finding> found = TowerPlan.parse(List.of(
+                "..+..",
+                "..\"..",
+                "~.=.~",
+                "##O##")).agronomy();
+        assertEquals(1, found.size(), found.toString());
+        assertTrue(found.get(0).what().contains("beacon"), found.get(0).what());
+    }
+
+    @Test
+    @DisplayName("a bed with no water in reach is flagged")
+    void bedsNeedWater() {
+        List<TowerPlan.Finding> found = TowerPlan.parse(List.of(
+                "..*..",
+                "..\"..",
+                "..=..",
+                "##O##")).agronomy();
+        assertEquals(1, found.size(), found.toString());
+        assertTrue(found.get(0).what().contains("water"));
+    }
+
+    @Test
+    @DisplayName("a crop with nothing under it is flagged")
+    void cropsNeedABed() {
+        List<TowerPlan.Finding> found = TowerPlan.parse(List.of(
+                "..*..",
+                "..\"..",
+                ".....",
+                "##O##")).agronomy();
+        assertEquals(1, found.size(), found.toString());
+        assertTrue(found.get(0).what().contains("bed"));
+    }
+
+    /**
+     * The exact numbers {@code FarmBlock.isNearWater} applies, read out of the
+     * 1.21.1 jar: a box from {@code offset(-4, 0, -4)} to {@code offset(4, 1, 4)}.
+     * Four reaches, five does not, and the vertical span is asymmetric - level or
+     * one above, never below. Pinned because an off-by-one here builds farms that
+     * look watered and are not.
+     */
+    @Test
+    @DisplayName("hydration reaches exactly four columns, level or one above")
+    void hydrationMatchesTheJar() {
+        assertTrue(TowerPlan.parse(List.of("....*....", "~...=....", "####O####"))
+                .agronomy().isEmpty(), "four columns should reach");
+        assertEquals(1, TowerPlan.parse(List.of(".....*....", "~....=....", "#####O####"))
+                .agronomy().size(), "five columns should not");
+
+        assertTrue(TowerPlan.parse(List.of("..*..", "~....", "..=..", "##O##"))
+                .agronomy().isEmpty(), "water one course above should reach");
+        assertEquals(1, TowerPlan.parse(List.of("..*..", "..=..", "~....", "##O##"))
+                .agronomy().size(), "water one course below should not");
+    }
+
+    @Test
+    @DisplayName("a tower with no agriculture in it is not a farm and is not judged as one")
+    void plainTowersAreNotFarms() {
+        TowerPlan plain = TowerPlan.parse(List.of("..*..", ".###.", "##O##"));
+        assertFalse(plain.isFarm());
+        assertTrue(plain.agronomy().isEmpty());
+    }
+
     /**
      * Five to a bay is the measure {@code ArchFeature} already builds in -
      * keystone plus four. It is reported rather than enforced: a parser that
