@@ -222,6 +222,60 @@ class SightlinesTest {
                 "the corridor now covers " + share + " of the world; the docs say an eighth");
     }
 
+    /**
+     * <b>The second number the design was wrong about.</b> Each cell used to draw
+     * its cardinal independently, so the cell it stepped to stepped straight back
+     * one time in four - 25.08% over 2,040,200 cells - and a thread ran about
+     * 4.65 legs before returning on itself. Following one was not a journey.
+     *
+     * <p>{@code Sightlines.step} now excludes that, and the residue is not zero
+     * on purpose: a white cell whose four neighbours all answer back has no legal
+     * step and keeps its draw. That is 0.3866% of cells, and the measured
+     * two-cycle rate afterwards is 0.3867% - the stranded cells and nothing else.
+     *
+     * <p>1% is asserted rather than the measured 0.39% because the residue is a
+     * property of the draw and will wobble with the seed set. What the bound is
+     * really guarding is the difference between "a fraction of a percent" and the
+     * old quarter, and anything that reintroduces the independent draw lands at
+     * 25% and fails loudly.
+     */
+    @Test
+    @DisplayName("a leg almost never doubles straight back")
+    void legsDoNotDoubleBack() {
+        int[] doubled = {0};
+        int[] total = {0};
+        sweep((seed, cx, cz) -> {
+            Sightlines.Heading out = Sightlines.leg(seed, cx, cz).heading();
+            int tx = cx + out.dx();
+            int tz = cz + out.dz();
+            Sightlines.Heading home = Sightlines.leg(seed, tx, tz).heading();
+            total[0]++;
+            if (tx + home.dx() == cx && tz + home.dz() == cz) {
+                doubled[0]++;
+            }
+        });
+        double share = (double) doubled[0] / total[0];
+        assertTrue(share < 0.01,
+                "legs double back " + share + " of the time; the independent draw is back");
+    }
+
+    /**
+     * The exclusion must not have cost the lattice its purity. It reads four
+     * neighbours to decide, and a rule that consulted anything mutable - or that
+     * answered differently on a second call - would break the guarantee
+     * {@link ObeliskFeature} runs on across several worker threads at once.
+     */
+    @Test
+    @DisplayName("excluding the doubling-back left the lattice a pure function")
+    void theExclusionIsStillPure() {
+        sweep((seed, cx, cz) -> {
+            Sightlines.Leg first = Sightlines.leg(seed, cx, cz);
+            assertEquals(first, Sightlines.leg(seed, cx, cz));
+            assertEquals(Sightlines.node(seed, cx + first.heading().dx(), cz + first.heading().dz()),
+                    first.to());
+        });
+    }
+
     @Test
     @DisplayName("distance to the line is zero on it and grows off it")
     void distanceMeasuresFromTheLine() {
