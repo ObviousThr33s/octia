@@ -342,6 +342,46 @@ silent (a blanket no takes every arch in the world out and looks exactly like th
 by reading, not by running.** Walk a seed with a village on a node before
 believing it.
 
+**CLOSED 2026-08-21: the corridor is half the world, because KEG widened it.**
+The entry below is kept as written, because the measuring is what made the
+choice possible and the old numbers are the only way to read what the new ones
+cost.
+
+`CORRIDOR` moved from 32 to **128** - the first of the three doors this entry
+offered. Re-measured by the same tool at the same constants:
+
+| | `CORRIDOR` 32 | `CORRIDOR` 128 |
+|---|---|---|
+| ground inside the corridor | 12.66% | **50.47%** |
+| obelisks broken | 45.25% | **31.07%** |
+| a standing obelisk is on a thread | 20.24% | **64.07%** |
+| lift over chance | 1.60x | **1.27x** |
+
+**Read the last two rows together or not at all.** A player now meets the route:
+two thirds of standing obelisks are genuinely on a thread instead of one fifth,
+and far more of them survive to be seen. But each one says less - a corridor
+covering half the world is a weaker claim about any given block inside it. This
+entry warned that widening "stops the corridor being a corridor", and 1.60x
+falling to 1.27x is exactly that sentence with a number on it. It was paid
+deliberately.
+
+**There is no next knee to aim for.** The sweep's histogram is flat at about
+3.16% of the world per 8-block bucket all the way out to 136, so width buys
+share linearly at roughly 0.395% per block of half-width. Any further move is
+taste, not discovery.
+
+**Also closed, in `76a967f`: the legs no longer double back.** The parity rule
+took two-cycles from **24.998% to 0.392%**, and the residue is not slack - it is
+the 0.3866% of cells whose four neighbours all answer back, where no legal step
+exists. Threads run 11.15 legs and 5,709 blocks, up from 4.65 and 2,380. This
+entry said the doubling-back was worth doing "only once the corridor question is
+settled"; both are settled now, and in that order.
+
+---
+
+*What follows is the entry as it stood before either closed, kept because it is
+the record of how the numbers were arrived at.*
+
 **The corridor is an eighth of the world, and the prose said half.** Measured,
 not guessed: `tools/sightline-map/Sweep.java` over 200 seeds and sixteen million
 sampled points puts the ground within 32 blocks of its own cell's leg at

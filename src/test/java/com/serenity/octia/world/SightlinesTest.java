@@ -180,13 +180,22 @@ class SightlinesTest {
     }
 
     /**
-     * <b>The number the design was wrong about.</b> The corridor was described
-     * as though it divided the world roughly in half. It does not: a leg is a
-     * line through a cell 512 blocks across, so a 32-block corridor covers about
-     * an eighth of the ground, and the rest of the world is "off thread". The
-     * full sweep measured <b>12.66%</b> over sixteen million points, which makes
-     * the expected share of broken obelisks 45%, not the quarter the prose
-     * implied.
+     * <b>The number the design chose, after two goes at getting it right.</b>
+     * The corridor was once described as though it divided the world roughly in
+     * half. At {@code CORRIDOR = 32} it did not - a leg is a line through a cell
+     * 512 blocks across, so the ribbon covered <b>12.66%</b> of the ground over
+     * sixteen million sampled points, and 45% of obelisks broke.
+     *
+     * <p><b>[2026-08-21] It divides the world in half now, because KEG widened
+     * it to 128 rather than let the prose keep lying.</b> Measured at this
+     * class's own constants: <b>50.45%</b>, and 50.47% over the full sweep. The
+     * old prose is finally true, by moving the constant to meet it rather than
+     * the other way round.
+     *
+     * <p>This test is the reason that could not happen quietly. It failed the
+     * moment {@code CORRIDOR} moved and went on failing until the docs, the
+     * {@link ObeliskFeature} javadoc and ROADMAP XII all agreed with the new
+     * number - which is exactly the job asked of it.
      *
      * <p>Pinned here so the number cannot move without somebody noticing, since
      * it is the one constant that decides how much of the world reads as route.
@@ -196,7 +205,7 @@ class SightlinesTest {
      * leg anywhere would give a kinder number that nothing in the game uses.
      */
     @Test
-    @DisplayName("the corridor covers about an eighth of the world, not half of it")
+    @DisplayName("the corridor covers about half the world, which is now the point")
     void theCorridorIsAThinRibbon() {
         Random dice = new Random(20260815L);
         int inside = 0;
@@ -218,8 +227,8 @@ class SightlinesTest {
             }
         }
         double share = (double) inside / points;
-        assertTrue(share > 0.11 && share < 0.145,
-                "the corridor now covers " + share + " of the world; the docs say an eighth");
+        assertTrue(share > 0.48 && share < 0.53,
+                "the corridor now covers " + share + " of the world; the docs say about half");
     }
 
     /**

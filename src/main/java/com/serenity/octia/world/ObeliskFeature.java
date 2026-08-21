@@ -47,17 +47,28 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * {@value #ODDS} beyond it.
  *
  * <p><b>How strong that signal actually is, measured rather than asserted.</b>
- * A leg is a line through a cell 512 blocks across, so the corridor is a thin
- * ribbon: {@code Sweep} puts it at <b>12.66% of the ground</b> over sixteen
+ * {@code Sweep} puts the corridor at <b>50.47% of the ground</b> over sixteen
  * million sampled points. Run the odds through that and a standing obelisk is
- * only about <b>20% likely to be on a thread</b> - better than the 12.66% base
- * rate, and nowhere near proof. Roughly <b>45% of all obelisks are broken</b>.
+ * about <b>64% likely to be on a thread</b>, against a 50.47% base rate, with
+ * roughly <b>31% of all obelisks broken</b>.
  *
- * <p>So "the lit ones trace the route" is a tendency and not an inference, and
- * this javadoc used to claim more than the arithmetic supports. What a player
- * can actually do is read a <em>run</em> of them - several standing obelisks
- * lying along one bearing is strong, any single one is weak. Whether that is the
- * design or whether the corridor wants widening is open; see ROADMAP.
+ * <p><b>[2026-08-21] Those numbers are the widening, and the old ones are worth
+ * keeping beside them.</b> At {@code CORRIDOR = 32} the ribbon was 12.66% of the
+ * ground, a standing obelisk was 20% likely to be on a thread, and 45% of them
+ * broke. KEG widened it to 128, which is the first of ROADMAP XII's three doors.
+ *
+ * <p>Read the two together and the trade is plain. A player now <em>meets</em>
+ * the route: two thirds of standing obelisks are genuinely on a thread instead
+ * of one fifth, and far more survive to be seen at all. But each one says less -
+ * the lift over chance drops from <b>1.60x to 1.27x</b>, because a corridor
+ * covering half the world is a weaker claim about any given block in it. XII
+ * called this "stops the corridor being a corridor"; that is the price, it was
+ * paid deliberately, and it should not be discovered later as a surprise.
+ *
+ * <p>So "the lit ones trace the route" is a tendency and not an inference. What
+ * a player can actually do is read a <em>run</em> of them - several standing
+ * obelisks lying along one bearing is strong, any single one is weak. That was
+ * true at 12.66% and it is still true at 50.47%.
  *
  * <p>It is deliberately not a filter on placement: an obelisk that could only
  * generate inside a corridor would make {@code /place feature octia:obelisk}

@@ -188,46 +188,74 @@ java -cp /tmp/sl Sweep 200 50 8
 | worst bend off the cardinal | **30.007°** (bound is 30.96°, one leg past 30 in two million) |
 | heading balance | 24.93% – 25.03%, all four |
 | leg length | min 320, mean 518, max 725 |
-| two-cycles (A→B→A) | **25.0%** |
-| ground inside the corridor | **12.66%** |
+| two-cycles (A→B→A) | 25.0% → **0.392%** |
+| ground inside the corridor | 12.66% → **50.47%** |
 
-**Two of these corrected the design, and both had been asserted rather than
-checked.**
+**Two of these corrected the design, both had been asserted rather than checked,
+and both have since been acted on.** The right-hand column is where they stand
+now; the readings below are what they were when first measured, and why each was
+changed.
 
-**The corridor is a thin ribbon, not half the world.** A leg is a line through a
-cell 512 blocks across, so 32 blocks either side of it is about an eighth of the
-ground. Run the break odds through that and roughly **45% of all obelisks are
-broken**, and — the number that actually matters — a standing obelisk is only
-about **20% likely to be on a thread**, against a 12.66% base rate. That is a
-real signal and a weak one. The prose here and in `ObeliskFeature` said the lit
-spires *trace the route*; they lean that way, which is not the same claim. What
-holds up is the plural: several standing obelisks along one bearing means
-something, any single one means very little.
+**The corridor was a thin ribbon. It is half the world now.** A leg is a line
+through a cell 512 blocks across, so 32 blocks either side of it was about an
+eighth of the ground: roughly **45% of all obelisks broken**, and a standing
+obelisk only about **20% likely to be on a thread** against a 12.66% base rate.
+A real signal and a weak one.
 
-**A quarter of all legs double back.** Each node picks its step independently
-from four cardinals, so the chance the neighbour steps straight back is exactly
-1 in 4 — and it is, to three decimal places. A thread therefore runs about four
-legs, two kilometres, before it returns on itself. "A chain across the world" was
-the wrong picture; it is closer to a loose weave of short routes and facing
-pairs. Not necessarily wrong — two arches facing each other across half a
-kilometre is a good object — but it was not a decision, it was a consequence
-nobody had looked at.
+On **2026-08-21** KEG widened `CORRIDOR` to **128** — the first of the three
+doors [ROADMAP](ROADMAP.md) XII offered. Re-measured at the same constants:
+
+| | before | after |
+|---|---|---|
+| ground inside the corridor | 12.66% | **50.47%** |
+| obelisks broken | 45.25% | **31.07%** |
+| a standing obelisk is on a thread | 20.24% | **64.07%** |
+| lift over chance | 1.60× | **1.27×** |
+
+**Both halves of that are true at once.** A player meets the route now — two
+thirds of standing obelisks are genuinely on a thread rather than one fifth, and
+many more survive to be seen at all. But each one *says* less: a corridor
+covering half the world is a weaker claim about any block inside it. ROADMAP XII
+predicted this as "stops the corridor being a corridor"; 1.60× falling to 1.27×
+is that sentence with a number attached. The plural still holds and always did —
+several standing obelisks along one bearing means more than any single one.
+
+**A quarter of all legs used to double back.** Each node picked its step
+independently from four cardinals, so the chance the neighbour stepped straight
+back was exactly 1 in 4 — and it was, to three decimal places. A thread ran about
+four legs, two kilometres, before returning on itself. "A chain across the world"
+was the wrong picture; it was closer to a loose weave of short routes and facing
+pairs. That was never a decision, it was a consequence nobody had looked at.
+
+Closed in `76a967f` by a parity rule: a cardinal step always flips the parity of
+`cellX + cellZ`, so the lattice is a checkerboard, black cells keep their draw
+and white cells adjust against neighbours that are already final. One pass, no
+recursion. Two-cycles fell to **0.392%**, and that residue is exactly the 0.3866%
+of cells whose four neighbours all answer back and where no legal step exists.
+Threads now run **11.15 legs, 5,709 blocks** — 2.4× further.
 
 ---
 
 ## V. How the thread becomes visible
 
 Distance to the leg decides **how likely an obelisk is to have stayed up**, and
-nothing else: 1 in 8 broken within 32 blocks of the line, 4 in 8 beyond it. The
-lit spires trace the route and the stumps lie off it, so the route is something
-you notice rather than something you are told.
+nothing else: 1 in 8 broken within **128** blocks of the line, 4 in 8 beyond it.
+The lit spires trace the route and the stumps lie off it, so the route is
+something you notice rather than something you are told.
 
 **It is deliberately not a filter on placement.** An obelisk that could only
-generate inside a corridor would refuse seven sites in eight — the measurement
-above — so `/place feature octia:obelisk` would fail almost every time — the command is how both ruins are judged, per
-[WORLDS.md](WORLDS.md) — and it would silently re-tune the rarity in
+generate inside a corridor would refuse about half of all sites at the current
+width — and refused seven in eight at the old one — so `/place feature
+octia:obelisk` would fail often, and that command is how both ruins are judged,
+per [WORLDS.md](WORLDS.md). It would also silently re-tune the rarity in
 `placed_feature/obelisk.json` by a factor nobody wrote down. The corridor
 changes the odds of a break. It does not change what exists.
+
+That the refusal rate would have moved from seven-in-eight to one-in-two when
+`CORRIDOR` widened is the argument for never having built it as a filter: a
+placement rule would have quietly re-tuned obelisk density estate-wide the
+moment the constant moved. The break-odds design absorbs the same change without
+touching how many obelisks the world contains.
 
 ---
 

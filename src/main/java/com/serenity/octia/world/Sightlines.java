@@ -71,8 +71,29 @@ public final class Sightlines {
      * Half-width of the corridor either side of a leg. Not a filter on where an
      * obelisk may stand - see {@link ObeliskFeature}, which uses it to decide how
      * likely one is to have stayed up, not whether it exists.
+     *
+     * <p><b>[2026-08-21] Widened from 32 to 128, which is KEG's ruling on the
+     * first of the three doors ROADMAP XII left open.</b> At 32 the corridor was
+     * 12.66% of the ground and the route was a thin ribbon almost nobody would
+     * meet; at 128 it is <b>50.45%</b>, measured by {@code Sweep} at this test's
+     * own constants and 50.47% over sixteen million points.
+     *
+     * <p>What the widening buys and what it costs, since both are real. A
+     * standing obelisk goes from <b>20% to 64%</b> likely to actually be on a
+     * thread, and the share of obelisks left standing rises from 55% to 69% - so
+     * the route becomes something a player meets and can follow. But its
+     * <em>lift over chance</em> falls from <b>1.60x to 1.27x</b>: at 12.66% a
+     * standing obelisk was weak evidence of a strong kind, and at 50.45% it is
+     * stronger evidence of a weaker kind. XII called this "stops the corridor
+     * being a corridor", and that is the trade in one number.
+     *
+     * <p>The width is now half the cell, since {@code 2 * 128} is
+     * {@link #SPACING} / 2. There is no natural stopping point past this:
+     * {@code Sweep}'s histogram is flat at about 3.16% of the world per 8-block
+     * bucket out to 136, so width buys share linearly at roughly 0.395% per
+     * block. Any future move is a matter of taste, not of finding a knee.
      */
-    public static final int CORRIDOR = 32;
+    public static final int CORRIDOR = 128;
 
     /** Keeps each draw off the world seed's other consumers, and off each other. */
     private static final long NODE_SALT = 0x51_6117_11E5L;
