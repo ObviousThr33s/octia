@@ -50,7 +50,7 @@ $ErrorActionPreference = 'Stop'
 function Write-Pulse([hashtable]$line) {
     try {
         $desk = $env:HELIOS_DESK
-        if (-not $desk) { $desk = 'C:\Users\kfman\Desktop\all_projects\work_projects\Ultraviolet Systems LLC\Ultra Violet System Domains\helios_system_developer_ops' }
+        if (-not $desk) { $desk = 'C:\Users\kfman\Desktop\all_projects\work_projects\Neptune Computer Systems\Neptune Computer System Domains\helios_system_developer_ops' }
         $ledger = Join-Path $desk 'ledger\pulse.jsonl'
         if (Test-Path -LiteralPath $ledger -PathType Leaf) {
             $o = [ordered]@{ t = (Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz') }
