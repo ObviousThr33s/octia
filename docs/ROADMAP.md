@@ -116,11 +116,28 @@ is not density as experienced on foot, and the explored areas in
 one per 1400 chunks in these saves, ocean ruins about one per 700. A landmark
 should sit nearer those than to mineshafts at one per 185.
 
-**Where it sits now.** Deliberately dense while the shapes are being judged:
-`derelict` at 260, `obelisk` at 180. You cannot tune a silhouette you never
-meet. This is the wrong number for shipping and the right one for looking, and
-the two should not be confused - pull both up once the shapes are settled, and
-judge the result from a walked world rather than a flown one.
+**Closed, with numbers.** Measured rather than guessed, over 5041 generated
+chunks of seed 4242 via `new-world.ps1 -Chunks 24` and `world-report.py --ruins`:
+
+| | before | after |
+|---|---|---|
+| `derelict` / `obelisk` / `waystation` | 260 / 180 / 320 | **800 / 520 / 900** |
+| hull-bearing ruins | 1 per 240 chunks | 1 per 840 |
+| nearest-neighbour spacing | min 36b, median **97b** | min 58b, median **122b**, max 272b |
+
+One per 240 chunks is mineshaft density - vanilla runs about one per 185 in
+these saves - and a median of 97 blocks between wrecks means one is nearly
+always in view, which is the definition of litter. One per 840 sits just past
+vanilla's ocean ruins at one per 700, which is a find.
+
+The counts include the two guaranteed at spawn, so the wild density is slightly
+lower than the figures above. Obelisks carry no core and are not counted at all;
+their number was moved by the same factor on the same reasoning.
+
+**What would change it again.** These are numbers from a *generated* area, not a
+walked one. Density as experienced on foot depends on sightlines, and an obelisk
+is meant to be seen from much further than a half-buried cube. If obelisks start
+feeling sparse before wrecks do, move obelisks alone.
 
 **The obelisk's 180 has stopped being a rate.** Its footprint grew from a 3x3
 plinth to a 7x5 one and its footing check now asks for headroom over the whole
@@ -152,9 +169,31 @@ over water gets its guaranteed derelict on the floor of it - bare, because
 `RuinGround.surfaceNear` needs an air block and neither digs nor debris can find
 one. The walk-down this entry asks for is owed to the placed-feature path only.
 
-**Closing it.** Give the feature the beacon's walk-down: drop through fluid to
-the floor, then decide. A wreck on the seabed is arguably the *most* in-fiction
-place for one - a ship that was called and never arrived.
+**One half of this was a bug, and is fixed.** `placeNearSpawn` asked
+`OCEAN_FLOOR`, which answers with the seabed, so the guaranteed derelict was
+handed solid rock beneath it and accepted - it generated underwater in seagrass,
+thirteen blocks below the spawn it is meant to be a short walk from. The wild
+ones refused water the whole time. Two paths through one feature, disagreeing
+about what counts as ground. It now asks `MOTION_BLOCKING_NO_LEAVES`, and
+`RuinGround.isDry` checks the volume a ruin will occupy rather than only the
+plane it stands on.
+
+**And now they do.** Taken on purpose: a ship that was called and never arrived
+is most at home under water. `RuinGround.descend` is the beacon's walk-down,
+written against block reads so a feature can use it during generation, and a
+derelict now drops through air and fluid to whatever is holding the world up.
+
+What it still refuses is the **waterline**. A hull with its floor in the sea and
+its lid in the air is neither a shipwreck nor a ruin, so the water has to still
+be water two courses above the cube. Digs go in the seabed the way vanilla's
+ocean ruins bury suspicious sand.
+
+**Left undone deliberately.** A submerged wreck is not dressed at all. Every prop
+in `Habitation` is a thing somebody left in a room - a lit campfire, a made bed,
+a path worn into dirt - and none of them mean anything on a seabed. World 0's
+palette has the marine half already (sea lantern, sea pickle, prismarine,
+seagrass); a submerged dressing built from those would be better than nothing.
+Nothing is better than a bed underwater.
 
 ---
 
@@ -221,6 +260,31 @@ a small per-save record of which names have been met and where, and have the
 second meeting open by naming the *place* rather than you. That is the entire
 feature; everything else is staging.
 
+**Landed.** `Wayfarer` drives one at a time: arrives at night under open sky,
+more than 64 blocks from spawn, on a cooldown; holds a 6-block band; asks its
+cleric every ten seconds; leaves once nobody has been within 30 blocks for
+twenty. `WayfarerLedger` is the memory, and `Situation.wayfarerBriefing` is the
+reserve — a paragraph, not a state machine, which is why it still works with the
+bench switched off.
+
+**They are chaos, and the design is built for that rather than against it.**
+Three things make a strange answer harmless, and only the third is about the
+model at all:
+
+- **No hands.** A `CrewPlayer` has no client sending block-break or item-use
+  packets, so a wayfarer physically cannot mine, build, steal or attack.
+- **A narrower vocabulary.** `Wayfarer.permit` drops FOLLOW and JUMP even when a
+  model produces them. A stranger that trails you home is not reserved.
+- **The band is not the model's to decide.** `Wayfarer.band` overrides whatever
+  the cleric said. Reserve that depends on a language model remembering to be
+  reserved is not reserve.
+
+**Still open.** They arrive anywhere outdoors at night rather than near an
+obelisk, because obelisk positions are not recorded anywhere — a ruin registry
+would fix that and would also serve the minimap integration. And nothing yet
+puts a wayfarer at a ruin *they* are also visiting, which is the encounter the
+fiction most wants.
+
 **Note against entry IV and VIII.** Ruins stay empty - always. Strangers are met
 on the road, never found living in a wreck. The emptiness is what makes an
 encounter land.
@@ -242,6 +306,23 @@ should be something: a low hum, a faint particle column, the core's light
 bleeding through from a world away. No new state, no new store, no new packet -
 the answer is already in the save. It is the cheapest wonderment in the codebase
 and the closest thing the mod has to a thesis statement.
+
+**Landed.** `EraEcho` wakes every forty ticks, checks each player against the
+moorings store, and draws a shaft of end-rod motes with an occasional low tone
+where the store says a ship is and this level has no core. Standing beside your
+own ship is a ship, not an echo of one.
+
+**The thing it taught.** The era stack does not share a vertical range - the
+Overworld begins at -64, the Nether at 0 - so a ship moored at y=-58 has a Y
+that does not exist one layer over. The first version gated on whether the
+mooring's exact position was loaded, which switched the whole feature off across
+the Overworld-to-Nether boundary: the one crossing it was written for, failing
+silently. What travels between eras is the **column**, never the point.
+
+**Still open.** Nothing carries the echo the other way - a player in the
+Overworld gets no hint that something is moored beneath them in an era below,
+because there is only one era stack layer implemented. When there are more, the
+question of whether an echo should be directional is a real one.
 
 ---
 
@@ -460,13 +541,47 @@ The suspicion that cost the first round trip - that a gametest with twenty
 iterations in it was too slow - is disproved by the 5.122: whatever this is, it
 happens *after* every test has passed. `MinecraftServer.stopServer` in 1.21.1
 spins `while (chunkMap.hasWork())` immediately after logging `Saving worlds`,
-and that loop logs nothing at all, which fits the shape of the silence. It is a
-fit, not a finding, and it is not written down here as one.
+and that loop logs nothing at all, which fits the shape of the silence.
 
-What is written down is the response: `tools/gametest-ci.sh` bounds the run and
+**[2026-08-21] It is a finding now, and it was not this branch that found it.**
+The sentence above used to end "it is a fit, not a finding, and it is not written
+down here as one." The `lives-and-islands` branch had been chasing the same hang
+from the other side and had the thing this side lacked - a thread dump of a stuck
+JVM, which puts the server thread exactly where the guess said it would be:
+
+```
+MinecraftServer.stopServer -> ServerChunkCache.tick
+  -> ChunkMap.tick -> ChunkMap.processUnloads
+```
+
+That is vanilla's shutdown drain, ticking the chunk cache until every chunk has
+unloaded and spinning at full CPU while it does. Two things the dump adds that
+the guess could not. It is **intermittent** - the same suite hung once and
+completed the next run - and it **got easier to hit as the suite grew past thirty
+tests**, because gametests are laid out across enormous coordinates and each one
+leaves chunks behind. So it worsens as the mod grows, which a one-off timeout
+would hide rather than fix.
+
+Also from that side, and load-bearing for anyone reading a hung run's output: the
+report is written *before* shutdown, so **a hung run's results are complete and
+trustworthy**. The tests really did pass.
+
+Two independent investigations, a hypothesis on one branch and its confirmation
+on the other, and neither knew about the other until the merge. Written down at
+length because the next hand should not have to do either half again.
+
+What is written down as the response: `tools/gametest-ci.sh` bounds the run and
 `jstack`s every JVM on the box before killing it. **Do not replace it with
 `timeout(1)`** - that kills the process and takes the stacks with it, which is
 the only thing worth having.
+
+The islands branch proposed a watchdog in `verify.ps1` and declined to build one,
+on the grounds that a watchdog would also hide a hang in our own code and that
+trade wanted deciding on purpose. That was the right worry and it is already
+answered: `gametest-ci.sh` takes the stacks *first* and kills *after*, so a hang
+in our own code arrives with its evidence attached rather than being swallowed.
+The local `verify.ps1` still bounds nothing, which is the remaining half of the
+job and is listed under the gate work.
 
 **A structure query may only ever ask about its own chunk.** `startsForStructure`
 reads twice - the references held by the chunk you name, and then the chunk that
@@ -483,6 +598,15 @@ nothing else, which is what vanilla's own `applyBiomeDecoration` does. **Do not
 overhanging a border. The bug it would buy is seed-dependent, needs a mineshaft
 or a stronghold in range, and no gametest can reach it - a test plot holds no
 structure references at all, so the whole path is dead code under `verify.ps1`.
+**Worlds made before 2026-08-10 have their beacon in the wrong place, forever.**
+The beacon and the spawn derelict were placed on `ServerWorldEvents.LOAD`, which
+fires before Minecraft chooses the world spawn, so `getSharedSpawnPos()` answered
+`(0, y, 0)`. On seeds that spawn near the origin - which is most of them, and all
+three of the early dev saves - it made no difference. On seed 1, spawn is
+`(112, 67, 176)` and the beacon went up 209 blocks away. Fixed by moving
+placement to `SERVER_STARTED`, but `claimBeacon()` fires once per save, so every
+world made before the fix keeps the beacon it got. `[0.2.1]` and `[0.2.2]` are
+both wrong; `[0.2.3]` is the first correct one.
 
 **Commit titles must be exactly 29 characters.** A `commit-msg` hook enforces it
 and rejects anything else. It lives in `.git/hooks`, which is not tracked, so it

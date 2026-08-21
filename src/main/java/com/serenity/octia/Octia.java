@@ -1,16 +1,21 @@
 package com.serenity.octia;
 
 import com.serenity.octia.crew.Crew;
+import com.serenity.octia.crew.Wayfarer;
 import com.serenity.octia.debug.OctiaDebug;
+import com.serenity.octia.life.KeepInventory;
+import com.serenity.octia.world.EraEcho;
 import com.serenity.octia.world.HeadlessRun;
 import com.serenity.octia.world.OctiaBeacon;
 import com.serenity.octia.world.OctiaWorldOption;
 import com.serenity.octia.world.OctiaWorldgen;
+import com.serenity.octia.world.RuinRegistry;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,38 +96,62 @@ public final class Octia implements ModInitializer {
 
         // The world-create switch, read at the one moment it can be read: the
         // first time a save's Overworld loads. Asking earlier means asking
-        // before the save directory exists; asking later means the player is
-        // already standing in a world that should have looked different.
+        // before the save directory exists.
+        //
+        // Only the FLAG is read here, and it has to be. What it publishes is
+        // what the chunk-generation workers consult, and chunks begin
+        // generating inside prepareLevels - before the server has started.
         ServerWorldEvents.LOAD.register((server, level) -> {
             if (level != server.overworld()) {
                 return;
             }
             OctiaWorldOption option = OctiaWorldOption.get(server);
-
-            // Published here, on the server thread, before a single chunk can
-            // generate - this is the only read of the save's flag that the
-            // worldgen workers are allowed to depend on. See OctiaWorldgen.
             OctiaWorldgen.setActive(option.enabled());
 
             if (!option.enabled()) {
                 LOGGER.info("Octia: disabled for this world. Spawn left as vanilla found it.");
+            }
+        });
+
+        // Placement waits for SERVER_STARTED, and the wait is the whole point.
+        //
+        // Both of these are placed relative to the world spawn, and at LOAD the
+        // world spawn does not exist yet: Minecraft chooses it in prepareLevels,
+        // which runs after every level is created. getSharedSpawnPos() answers
+        // (0, y, 0) until then. On the seeds this was first built against that
+        // was invisible, because their spawn genuinely is near the origin - but
+        // on seed 1, spawn is (112, 67, 176), and the beacon went up 209 blocks
+        // away from the player while the log cheerfully reported a derelict "48
+        // blocks from spawn" that was 170 blocks from where anyone arrives.
+        //
+        // SERVER_STARTED is the first moment the answer is real.
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            OctiaWorldOption option = OctiaWorldOption.get(server);
+            if (!option.enabled() || !option.claimBeacon()) {
                 return;
             }
-            if (option.claimBeacon()) {
-                OctiaBeacon.raise(level);
+            ServerLevel overworld = server.overworld();
+            OctiaBeacon.raise(overworld);
 
-                // The same claim covers both: this is the one moment a save is
-                // new, and the guaranteed derelict is as much a first-load fact
-                // as the beacon is. A rarity filter cannot promise a player will
-                // ever meet one, so the first is placed rather than rolled.
-                OctiaWorldgen.placeNearSpawn(level);
-            }
+            // The same claim covers both: this is the one moment a save is new,
+            // and the guaranteed derelict is as much a first-start fact as the
+            // beacon. A rarity filter cannot promise a player will ever meet
+            // one, so the first is placed rather than rolled.
+            OctiaWorldgen.placeNearSpawn(overworld);
         });
 
         // Cleared on the way out so a second world opened in the same launch
         // cannot inherit the first one's answer. Without this the switch leaks
         // between saves, which is the exact failure the switch exists to prevent.
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> OctiaWorldgen.setActive(false));
+
+        // Keep-inventory, held on rather than set once. Registered here beside
+        // the other per-save decisions because that is what it is: a property of
+        // an Octia save, gated on the same create-screen switch as the beacon.
+        // It hangs off its own LOAD and tick hooks rather than borrowing the
+        // ones above, so that deleting this one line disables the mechanic
+        // completely and leaves nothing behind in the world.
+        KeepInventory.bootstrap();
 
         // The crew. Registered here rather than lazily on first command because
         // the muster hangs off server start and stop, and a hook installed after
@@ -134,6 +163,12 @@ public final class Octia implements ModInitializer {
         // stopping, end-of-tick, chat, and the command tree.
         Crew.bootstrap();
 
+        // Strangers on the road. Built on the crew's machinery rather than
+        // beside it - a wayfarer is a crew member nobody mustered, told
+        // something different, and left alone. The ruins stay empty; these are
+        // the only people you meet, which is what makes meeting one land.
+        Wayfarer.bootstrap();
+
         // The debug view's payload types. Common, not client: a type known to
         // one side only is a disconnect on the first packet, and a dedicated
         // server has to know the C2S type to receive a request at all.
@@ -143,6 +178,16 @@ public final class Octia implements ModInitializer {
         // has to be; whether it actually places anything is decided per save,
         // inside the feature. See OctiaWorldgen for why it has to be that way.
         OctiaWorldgen.bootstrap();
+
+        // The landmark registry's drain. Features report from generation
+        // workers and this is what moves those reports onto the server thread,
+        // so it has to be running before any chunk generates.
+        RuinRegistry.bootstrap();
+
+        // The one thing that makes the dimension-agnostic moorings store
+        // perceptible. Registered here rather than with the worldgen because it
+        // is not terrain - it reads the store the ships already write.
+        EraEcho.bootstrap();
 
         // Dev tooling, inert unless -Doctia.worldgen.exit=true is on the command
         // line. tools/new-world.ps1 is the only thing that sets it.

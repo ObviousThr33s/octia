@@ -1,9 +1,9 @@
 {
-  "feature": "octia:derelict",
+  "feature": "octia:waystation",
   "placement": [
     {
       "type": "minecraft:rarity_filter",
-      "chance": 800
+      "chance": 900
     },
     {
       "type": "minecraft:in_square"

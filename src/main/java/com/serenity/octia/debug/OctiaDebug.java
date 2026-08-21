@@ -6,6 +6,8 @@ import java.util.List;
 import com.serenity.octia.Octia;
 import com.serenity.octia.ship.ShipMoorings;
 import com.serenity.octia.world.OctiaWorldOption;
+import com.serenity.octia.world.OctiaWorldgen;
+import com.serenity.octia.world.RuinRegistry;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -20,20 +22,28 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * What the debug map is looking at.
  *
- * <p><b>Read the honest scope first.</b> This mod does not generate anything
- * during chunk generation yet — {@code OctiaBeacon}'s own note says so: the
- * beacon is placed at first load, and real worldgen would mean a configured
- * feature, a placed feature, and a biome modification. So "where the generations
- * are" today means exactly two things, and the overlay must not imply a third:
+ * <p><b>Read the honest scope first.</b> Three things, and the overlay must not
+ * imply a fourth:
  *
  * <ul>
  *   <li>the <b>beacon</b> — one per save, at spawn, if the world was created
  *       with Octia switched on;</li>
  *   <li>every <b>mooring</b> in {@link ShipMoorings} — the beacon's own core
- *       among them, plus every hull a player has completed since.</li>
+ *       among them, plus every hull a player has completed since;</li>
+ *   <li>nearby <b>obelisks</b> from {@link RuinRegistry} — landmarks worldgen
+ *       raised, which the mod could not point at until the registry existed
+ *       because a feature leaves no record of itself.</li>
  * </ul>
  *
- * <p>Moorings are the interesting set because the store is deliberately
+ * <p><b>The three are not the same kind of claim, and the readout says so.</b>
+ * The moorings are every mooring in the save. The obelisks are the ones near
+ * enough to be worth sending and no more than a capped count of those - the
+ * registry grows with exploration and a well-travelled world holds thousands, so
+ * shipping all of them twice a second would be a large packet and an unreadable
+ * box. Derelicts and waystations are recorded too and are deliberately not drawn:
+ * a debug map that plots everything is a texture.
+ *
+ * <p>Moorings remain the interesting set because that store is deliberately
  * dimension-agnostic: one file for the whole save, keyed by position and nothing
  * else. The overlay therefore plots positions that may belong to another
  * dimension entirely, and says so rather than pretending they are all here.
@@ -44,6 +54,24 @@ import net.minecraft.server.level.ServerPlayer;
  * is authoritative — it is a view, and a stale one between refreshes.
  */
 public final class OctiaDebug {
+
+    /**
+     * The widest the debug map can be zoomed out, in blocks from the middle to
+     * an edge. Must not be smaller than the last entry of
+     * {@code OctiaDebugOverlay.RANGES}, or the map would show empty space it
+     * could have filled.
+     */
+    public static final int OBELISK_REACH = 1024;
+
+    /**
+     * Most obelisks worth sending. Past this the box is a smear, not a map.
+     *
+     * <p>Public alongside the reach because the overlay's readout has to say
+     * which of the two it is showing - "12 within 1024b" and "64+, capped" are
+     * different claims, and a readout that presented a truncated list as a total
+     * would be the kind of quiet lie the rest of this overlay exists to avoid.
+     */
+    public static final int OBELISK_LIMIT = 64;
 
     /** How the client asks for a fresh snapshot. Carries nothing. */
     public record Request() implements CustomPacketPayload {
@@ -70,18 +98,28 @@ public final class OctiaDebug {
      *                     is not the same as there being no beacon
      * @param beaconAt     packed beacon position, meaningless unless beaconKnown
      * @param moorings     every moored position in the save, packed, unordered
+     * @param obelisks     obelisks near the asking player, packed - NOT all of
+     *                     them; see {@link #send} for why this one is bounded
+     *                     when the moorings are not
      */
     public record Snapshot(boolean enabled, boolean beaconRaised, boolean beaconKnown,
-                           long beaconAt, List<Long> moorings) implements CustomPacketPayload {
+                           long beaconAt, List<Long> moorings, List<Long> obelisks)
+            implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<Snapshot> TYPE =
                 new CustomPacketPayload.Type<>(Octia.id("debug_snapshot"));
 
         /**
-         * Five fields rather than an Optional for the beacon, because the pair
-         * of primitives needs only codecs that certainly exist, and because a
-         * sentinel would have to pick a "impossible" packed position — and 0,
+         * A pair of primitives rather than an Optional for the beacon, because
+         * the pair needs only codecs that certainly exist, and because a
+         * sentinel would have to pick an "impossible" packed position — and 0,
          * the obvious choice, is the block at world origin.
+         *
+         * <p><b>Six fields is the ceiling.</b> {@code StreamCodec.composite}
+         * stops at six in 1.21.1, checked against the jar, so this record is
+         * full. A seventh thing worth drawing means either folding the beacon's
+         * two fields into one codec or nesting a sub-record - not adding a
+         * parameter and hoping.
          */
         public static final StreamCodec<RegistryFriendlyByteBuf, Snapshot> CODEC =
                 StreamCodec.composite(
@@ -90,6 +128,7 @@ public final class OctiaDebug {
                         ByteBufCodecs.BOOL, Snapshot::beaconKnown,
                         ByteBufCodecs.VAR_LONG, Snapshot::beaconAt,
                         ByteBufCodecs.VAR_LONG.apply(ByteBufCodecs.list()), Snapshot::moorings,
+                        ByteBufCodecs.VAR_LONG.apply(ByteBufCodecs.list()), Snapshot::obelisks,
                         Snapshot::new);
 
         @Override
@@ -153,6 +192,41 @@ public final class OctiaDebug {
                 option.beaconRaised(),
                 beacon != null,
                 beacon == null ? 0L : beacon.asLong(),
-                moorings));
+                moorings,
+                obelisksNear(player)));
+    }
+
+    /**
+     * Obelisks worth drawing for this player, and only those.
+     *
+     * <p><b>Bounded, where the moorings are not, and the difference is not an
+     * inconsistency.</b> Moorings are ships players built, so a save holds a
+     * handful and sending all of them costs nothing. {@link RuinRegistry} is
+     * filled by worldgen and grows with exploration - a well-travelled world
+     * holds thousands - so the same treatment would put a packet of that size on
+     * the wire twice a second for as long as the map is open.
+     *
+     * <p>So it is cut twice: to the widest range the map can show, because
+     * anything further can never be drawn, and then to a count, because a
+     * thousand obelisks inside that range would be an unreadable box as well as
+     * a large packet. {@code OBELISK_LIMIT} marks are already more than the eye
+     * can separate at this scale.
+     */
+    private static List<Long> obelisksNear(ServerPlayer player) {
+        List<Long> out = new ArrayList<>();
+        BlockPos at = player.blockPosition();
+
+        for (BlockPos obelisk : RuinRegistry.get(player.server).of(OctiaWorldgen.OBELISK)) {
+            double dx = obelisk.getX() - at.getX();
+            double dz = obelisk.getZ() - at.getZ();
+            if (dx * dx + dz * dz > (double) OBELISK_REACH * OBELISK_REACH) {
+                continue;
+            }
+            out.add(obelisk.asLong());
+            if (out.size() >= OBELISK_LIMIT) {
+                break;
+            }
+        }
+        return out;
     }
 }

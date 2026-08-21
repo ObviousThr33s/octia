@@ -2,8 +2,10 @@ package com.serenity.octia.world;
 
 import com.serenity.octia.Octia;
 
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -43,6 +45,18 @@ public final class HeadlessRun {
     /** How often to say something while grinding through a large radius. */
     private static final int PROGRESS_EVERY = 256;
 
+    /**
+     * A phase ordered after everything else on SERVER_STARTED.
+     *
+     * <p>The beacon and the spawn derelict are placed on that same event, and
+     * this one halts the server. Getting the order wrong means halting before
+     * the world has anything in it, and the run would look like a success -
+     * a generated world, a clean exit, and no ruins. Registration order alone
+     * would give the right answer today and silently stop doing so the moment
+     * somebody reorders two lines in the entrypoint, so it is stated instead.
+     */
+    private static final ResourceLocation LAST = Octia.id("headless_last");
+
     private HeadlessRun() {
     }
 
@@ -51,7 +65,8 @@ public final class HeadlessRun {
             return;
         }
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+        ServerLifecycleEvents.SERVER_STARTED.addPhaseOrdering(Event.DEFAULT_PHASE, LAST);
+        ServerLifecycleEvents.SERVER_STARTED.register(LAST, server -> {
             int radius = Integer.getInteger(RADIUS, 0);
             Octia.LOGGER.info("Octia worldgen: headless run, radius {} chunk(s).", radius);
 

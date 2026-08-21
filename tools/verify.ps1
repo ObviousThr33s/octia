@@ -47,6 +47,12 @@ function Step($text) {
 
 if (-not (Test-Path $gradlew)) { throw "no gradlew.bat at $gradlew" }
 
+# Which checkout this is. $repo comes from $PSScriptRoot so it cannot be the
+# wrong one, but a green run is only reassuring if you can see what it was green
+# about - and there is more than one octia tree on this machine.
+Write-Host ""
+Write-Host "  repo: $repo" -ForegroundColor Green
+
 # A stale report would be read as a pass if the run itself died early.
 if (Test-Path $report) { Remove-Item $report -Force }
 
@@ -63,6 +69,27 @@ if (-not $SkipBuild) {
         Write-Host "`nBUILD FAILED - gametests not attempted." -ForegroundColor Red
         exit 1
     }
+}
+
+# A gametest server from an earlier run can still be alive, because Minecraft's
+# shutdown occasionally spins forever draining chunks - see docs/ROADMAP.md. It
+# holds build/gametest/session.lock while it does, and the next run then dies at
+# startup with "another process has locked a portion of the file", which looks
+# like a mod failure and is not one. Sweep first.
+#
+# STALE means old, and the age test is not decoration. A first version killed
+# every runGametest process it could see, which murdered a concurrent run the
+# moment two verifies overlapped - and then reported "No report", which reads
+# like the suite failed rather than like it was shot. A whole run is about a
+# minute; anything still alive after five is not working.
+$cutoff = (Get-Date).AddMinutes(-5)
+$stale = @(Get-CimInstance Win32_Process -Filter "Name='java.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like '*runGametest*' } |
+    Where-Object { $_.CreationDate -lt $cutoff })
+if ($stale.Count -gt 0) {
+    Write-Host "  clearing $($stale.Count) stale gametest server(s) holding the world lock" -ForegroundColor Yellow
+    $stale | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 2
 }
 
 Step "gametest  (headless dedicated server, real game)"

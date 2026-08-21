@@ -4,6 +4,7 @@ import com.serenity.octia.OctiaBlocks;
 import com.serenity.octia.ship.ShipCoreBlock;
 import com.serenity.octia.ship.ShipMoorings;
 import com.serenity.octia.ship.ShipStatus;
+import com.serenity.octia.world.DerelictFeature;
 import com.serenity.octia.world.OctiaWorldgen;
 
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -250,6 +251,96 @@ public class DerelictGameTest implements FabricGameTest {
                             + core.offset(dx, -1, dz));
                 }
             }
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A wreck settles on a seabed, and refuses the waterline.
+     *
+     * <p>Derelicts used to refuse water outright, which kept them off the one
+     * place a ship that was called and never arrived most belongs. They walk
+     * down through it now. What they still refuse is straddling the surface: a
+     * hull with its floor in the sea and its lid in the air is neither a
+     * shipwreck nor a ruin.
+     *
+     * <p>Two columns of water over a solid bed is the deep case; one is the
+     * shallow one, where the cube would break the surface.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void aWreckSettlesOnASeabedButNotAtTheWaterline(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+
+        // Deep: bed at y-1, water for six courses above it.
+        floor(helper, GROUND);
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                for (int dy = 0; dy <= 5; dy++) {
+                    helper.setBlock(GROUND.offset(dx, dy, dz), Blocks.WATER);
+                }
+            }
+        }
+
+        OctiaWorldgen.setActive(true);
+        BlockPos top = helper.absolutePos(GROUND.above(5));
+        boolean deep = OctiaWorldgen.derelict().place(new FeaturePlaceContext<>(
+                Optional.empty(), level, level.getChunkSource().getGenerator(),
+                RandomSource.create(31L), top, NoneFeatureConfiguration.INSTANCE));
+
+        if (!deep) {
+            throw new AssertionError("a derelict refused a seabed under six courses of water - "
+                    + "the walk-down is not reaching the floor, or the submerged check is too strict");
+        }
+
+        BlockPos core = null;
+        for (int dy = 2; dy >= -8; dy--) {
+            BlockPos p = top.offset(0, dy, 0);
+            if (level.getBlockState(p).getBlock() instanceof ShipCoreBlock) {
+                core = p;
+                break;
+            }
+        }
+        if (core == null) {
+            throw new AssertionError("the submerged derelict placed no core");
+        }
+        if (!ShipCoreBlock.hullIntact(level, core, null)) {
+            throw new AssertionError("the submerged hull at " + core + " is not intact");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A wreck stamped from a marker is a ship, ring and all.
+     *
+     * <p>{@code stamp} is the path a template's core marker takes and the same
+     * one age-stripping runs through. An ancient derelict loses its whole top
+     * course and sinks a further block, so what survives is the ring and the
+     * floor - a hull worn down to precisely the part that still makes it one.
+     * That is a good object and a dangerous one: it sits one careless edit away
+     * from {@code hullIntact} failing, and widening the strip from {@code dy > 0}
+     * to {@code dy >= 0} would turn every ancient wreck into masonry with no
+     * error raised anywhere.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void aStampedHullIsAlwaysAShip(GameTestHelper helper) {
+        floor(helper, GROUND);
+        ServerLevel level = helper.getLevel();
+        BlockPos core = helper.absolutePos(GROUND);
+
+        DerelictFeature.stamp(level, RandomSource.create(9L), core, true);
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                if (!level.getBlockState(core.offset(dx, 0, dz)).is(OctiaBlocks.ANDESITE_FRAME_PANEL)) {
+                    throw new AssertionError("the ring is incomplete at " + core.offset(dx, 0, dz));
+                }
+            }
+        }
+        if (!ShipCoreBlock.hullIntact(level, core, null)) {
+            throw new AssertionError("a stamped hull at " + core + " is not intact");
         }
         helper.succeed();
     }

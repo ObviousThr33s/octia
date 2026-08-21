@@ -20,7 +20,15 @@
       "${mod_package}.gametest.OctiaWorldGameTest",
       "${mod_package}.gametest.CrewGameTest",
       "${mod_package}.gametest.DerelictGameTest",
-      "${mod_package}.gametest.ObeliskGameTest"
+      "${mod_package}.gametest.ObeliskGameTest",
+      "${mod_package}.gametest.TemplateRuinGameTest",
+      "${mod_package}.gametest.HabitationGameTest",
+      "${mod_package}.gametest.LootGameTest",
+      "${mod_package}.gametest.EraEchoGameTest",
+      "${mod_package}.gametest.WayfarerGameTest",
+      "${mod_package}.gametest.RuinRegistryGameTest",
+      "${mod_package}.gametest.KeepInventoryGameTest",
+      "${mod_package}.gametest.FirstLightGameTest"
     ]
   },
   "depends": {

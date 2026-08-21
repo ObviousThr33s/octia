@@ -1,0 +1,7 @@
+{
+  "type": "octia:template_ruin",
+  "config": {
+    "template": "octia:waystation",
+    "integrity": 0.82
+  }
+}

@@ -129,6 +129,7 @@ octia/
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
+│  ├─ MINUTES.md                        the sittings, and what each resolved
 │  ├─ FRONT_DOOR.md                     the desktop window onto the repo
 │  ├─ LSP.md                            shared Java language server setup
 │  └─ NUMERIC_MODEL.md                  which design quantities are measurable
@@ -151,6 +152,7 @@ octia/
 │  │  ├─ ship/                          the core, its status, the moorings
 │  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice
 │  │  ├─ crew/                          seats, orders, the gangway
+│  │  ├─ life/                          keep-inventory, held on: death costs a life
 │  │  ├─ client/                        client entrypoint and the F6 map
 │  │  ├─ debug/                         the payload that map rides on
 │  │  ├─ codex/                         the KEG notation, as types

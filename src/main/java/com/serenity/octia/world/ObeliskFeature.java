@@ -6,6 +6,7 @@ import com.serenity.octia.block.AndesiteFramePanelBlock;
 import com.serenity.octia.block.PanelLight;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -187,6 +188,13 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         if (!RuinGround.hasFooting(level, base.below(1), radiusX, radiusZ, height + 1)) {
             return false;
         }
+        // A half-submerged obelisk is a worse object than no obelisk. Checked
+        // over the plinth and the first courses rather than the whole shaft:
+        // the top of a tall one is free to stand in open air over water, which
+        // is a fine silhouette, but its foot is not.
+        if (!RuinGround.isDry(level, base, PLINTH, 0, MIN_HEIGHT)) {
+            return false;
+        }
 
         // The same reason the arch declines a node inside a village, and the
         // obelisk needs it more: it is rolled once per 180 chunks anywhere in
@@ -205,6 +213,35 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
+        // Rolled here because the dressing below needs it. The height and the
+        // break were already settled above, before the footing check, for the
+        // reason written there.
+        //
+        // OPEN, AND KEG'S TO DECIDE - see ROADMAP XII. The islands branch tied
+        // the break to the age as well as to the thread:
+        //
+        //     boolean broken = age == RuinAge.ANCIENT
+        //             || random.nextInt(4) < BROKEN_IN_FOUR;
+        //
+        // with the argument, which is a good one, that "an ancient one has
+        // always come down - tying the break to the age means the silhouette and
+        // the dressing tell the same story instead of two." An ANCIENT obelisk
+        // that is still standing does read oddly against Habitation.dress.
+        //
+        // It is not applied, and the reason is arithmetic rather than taste.
+        // RuinAge.roll is ANCIENT one time in four, so an age-tied break puts
+        // the total at 0.25 + 0.75 * 0.3107 = 48.3% of all obelisks broken. The
+        // corridor was widened to 128 on 2026-08-21 specifically to bring that
+        // number DOWN, 45.25% to 31.07%, and 48.3% is worse than the figure the
+        // widening was undoing. The two changes were decided on different
+        // branches and they pull against each other.
+        //
+        // So the thread keeps sole ownership of the break until somebody rules
+        // otherwise, and the age owns the dressing. If the age-tie is wanted,
+        // BROKEN_IN_NEAR and BROKEN_IN_FAR want re-deriving with it in the model
+        // rather than bolted on top, and the sweep number moves again.
+        RuinAge age = RuinAge.roll(random);
+
         plinth(level, base, radiusX, radiusZ);
         prism(level, base, alongX, height, broken);
         if (!broken) {
@@ -220,6 +257,13 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
         if (broken) {
             fallen(level, random, base);
         }
+        Habitation.dress(level, random, base, age);
+
+        // Recorded so something can be told where the obelisks are. This one
+        // matters most: an obelisk is a landmark by design - the lit crown
+        // exists to be seen across a valley and walked toward - and until now
+        // nothing but a player's eyes could find one.
+        RuinRegistry.report(level.getLevel(), OctiaWorldgen.OBELISK, base);
         return true;
     }
 
@@ -241,6 +285,24 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
      * A broken one gets neither, and that asymmetry is the whole contract: a lit
      * mass on the horizon is a promise that something is still standing, and a
      * stump must not be able to make it.
+     *
+     * <p><b>WANTED, and it came out of the merge: a broken one should lean.</b>
+     * This shape replaced a 1x1 {@code column} that the lives-and-islands branch
+     * went on developing in its own direction, and that branch made the prism
+     * look worse in one specific way. Its broken shafts stepped sideways above
+     * the break and carried on - "in a world made of cubes that is what a topple
+     * looks like: the stone did not fall over, it slid" - against the observation
+     * that "a perfectly vertical stump reads as unfinished rather than as ruined,
+     * and every broken obelisk looking identical was the same complaint the mast
+     * had before it became a hexahedron."
+     *
+     * <p>That complaint lands on this method as written: every broken prism here
+     * is a flat-topped vertical stub, and they are all the same. The lean cannot
+     * simply be copied across - it was written for a one-block shaft and this is
+     * 3x5 with a sighting slot bored down it, so a sideways step would shear the
+     * slot and the thing the obelisk exists to point with. Recorded rather than
+     * attempted, because it is a shape decision and shapes here get decided with
+     * eyes in the world.
      */
     private static void prism(WorldGenLevel level, BlockPos base, boolean alongX,
                               int height, boolean broken) {
@@ -259,7 +321,7 @@ public class ObeliskFeature extends Feature<NoneFeatureConfiguration> {
                                     .setValue(AndesiteFramePanelBlock.LIGHT, light));
                 }
             }
-        }
+       }
     }
 
     /**

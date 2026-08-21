@@ -50,6 +50,22 @@ public final class OctiaDebugOverlay {
     /** Ranges the map cycles through, in blocks from the centre to an edge. */
     private static final int[] RANGES = {64, 128, 256, 512, 1024};
 
+    /**
+     * How far in from the box edge a mark at maximum range lands.
+     *
+     * <p>The widest mark's reach plus the border: BEACON draws a 7x7 ring, so
+     * three pixels either side of centre, over a one-pixel edge. A mark exactly
+     * {@code range} blocks out therefore rests its outer pixels on the border
+     * rather than half outside it.
+     *
+     * <p>One constant, used by both {@code marks} and {@code plot}. It was
+     * written as a bare 3 in each of them, with a comment warning that changing
+     * one and not the other would clamp marks at a radius the scale never sends
+     * them to - and then the beacon grew from five wide to seven and both were
+     * left at 3, which is exactly the drift the comment predicted.
+     */
+    private static final int INSET = 4;
+
     /** Ticks between refreshes while the overlay is open. Twenty is one second. */
     private static final int REFRESH_TICKS = 40;
 
@@ -60,6 +76,14 @@ public final class OctiaDebugOverlay {
     private static final int COLOUR_DIM = 0xFF8A8A8A;
     private static final int COLOUR_BEACON = 0xFFFFD24A;
     private static final int COLOUR_MOORING = 0xFF7FDBCA;
+
+    /**
+     * Obelisks. Violet, because the other three marks already hold the warm end
+     * and the teal, and a landmark should not be mistaken for a hull at a
+     * glance - which is the whole reason the marks are shapes rather than dots.
+     */
+    private static final int COLOUR_OBELISK = 0xFFA98CD9;
+
     private static final int COLOUR_FAR = 0xFF3E6E66;
     private static final int COLOUR_PLAYER = 0xFFFFFFFF;
     private static final int COLOUR_OFF = 0xFFE06C4E;
@@ -161,20 +185,20 @@ public final class OctiaDebugOverlay {
         graphics.fill(left + 1, top + mid, left + SIZE - 1, top + mid + 1, COLOUR_GRID);
     }
 
-    /** Every mooring, the beacon, and the player, plotted north-up. */
+    /** Every obelisk and mooring, the beacon, and the player, plotted north-up. */
     private static void marks(GuiGraphics graphics, Player player, int left, int top) {
         int range = RANGES[rangeIndex];
         double centreX = player.getX();
         double centreZ = player.getZ();
         int mid = SIZE / 2;
-        // The 3 is the inset, and it is written twice: here, and as `limit` in
-        // plot. It is the widest mark's reach plus the border - BEACON draws a
-        // 5x5 ring, so two pixels either side of centre, over a one-pixel edge.
-        // A mooring exactly `range` blocks out therefore lands with its outer
-        // pixels on the border rather than half outside it. Change one of the
-        // two and marks near the rim clamp at a radius the scale never sends
-        // them to.
-        double scale = (double) (mid - 3) / range;
+        double scale = (double) (mid - INSET) / range;
+
+        // Obelisks first, so a ship drawn at the same coordinates sits on top of
+        // one. A landmark is context; a hull is the thing being debugged.
+        for (long packed : snapshot.obelisks()) {
+            plot(graphics, left, top, mid, scale, BlockPos.of(packed), centreX, centreZ,
+                    COLOUR_OBELISK, Mark.OBELISK);
+        }
 
         BlockPos beacon = snapshot.beacon();
         for (long packed : snapshot.moorings()) {
@@ -216,14 +240,39 @@ public final class OctiaDebugOverlay {
             }
         },
 
-        /** A hollow 5x5 ring. Bigger and outlined, so it wins at a glance. */
+        /**
+         * A standing stone: one pixel wide, five tall.
+         *
+         * <p>The only mark that is not symmetric about both axes, and that is
+         * what makes it findable. A hull is a block, a beacon is a ring, you are
+         * a cross - none of them are a line, so an obelisk reads as an obelisk
+         * from the corner of the eye without anybody having to check a colour.
+         */
+        OBELISK {
+            @Override
+            void draw(GuiGraphics graphics, int x, int y, int colour) {
+                graphics.fill(x, y - 2, x + 1, y + 3, colour);
+            }
+        },
+
+        /**
+         * A hollow 7x7 ring. Bigger and outlined, so it wins at a glance.
+         *
+         * <p>Seven rather than five because the beacon now stands at spawn -
+         * it used to be placed at the world origin, which on most seeds was
+         * somewhere else entirely. A five-wide ring put its edge on exactly the
+         * pixels the player's cross reaches, so standing at your own beacon
+         * drew the two marks through each other and the overlap changed as the
+         * rounding shifted by a block. At seven the cross sits cleanly inside
+         * the ring and the pair reads as one thing: you, at the beacon.
+         */
         BEACON {
             @Override
             void draw(GuiGraphics graphics, int x, int y, int colour) {
-                graphics.fill(x - 2, y - 2, x + 3, y - 1, colour);
-                graphics.fill(x - 2, y + 2, x + 3, y + 3, colour);
-                graphics.fill(x - 2, y - 1, x - 1, y + 2, colour);
-                graphics.fill(x + 2, y - 1, x + 3, y + 2, colour);
+                graphics.fill(x - 3, y - 3, x + 4, y - 2, colour);
+                graphics.fill(x - 3, y + 3, x + 4, y + 4, colour);
+                graphics.fill(x - 3, y - 2, x - 2, y + 3, colour);
+                graphics.fill(x + 3, y - 2, x + 4, y + 3, colour);
             }
         },
 
@@ -247,7 +296,7 @@ public final class OctiaDebugOverlay {
         double dx = (pos.getX() + 0.5 - centreX) * scale;
         double dz = (pos.getZ() + 0.5 - centreZ) * scale;
 
-        int limit = mid - 3;
+        int limit = mid - INSET;
         boolean outside = Math.abs(dx) > limit || Math.abs(dz) > limit;
         if (outside) {
             double worst = Math.max(Math.abs(dx), Math.abs(dz));
@@ -278,6 +327,15 @@ public final class OctiaDebugOverlay {
         }
 
         lines.add("moorings: " + snapshot.moorings().size() + "  (whole save, all dimensions)");
+
+        // Said differently from the moorings line, because it IS different. The
+        // moorings are every one in the save; the obelisks are the ones near
+        // enough to be worth sending, capped - see OctiaDebug.obelisksNear. A
+        // readout that presented both as totals would be lying about one.
+        int obelisks = snapshot.obelisks().size();
+        lines.add("obelisks: " + obelisks + (obelisks >= OctiaDebug.OBELISK_LIMIT
+                ? "+  (capped, nearest first)"
+                : "  (within " + OctiaDebug.OBELISK_REACH + "b of you)"));
 
         BlockPos nearest = nearest(client.player);
         if (nearest != null) {

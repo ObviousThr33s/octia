@@ -239,19 +239,66 @@ Because that one is placed into a live level it moors on placement, so it is on
 the F6 map from the moment the world opens. The wild ones are not — see below.
 
 Rarity for the wild ones lives in one field per `placed_feature` JSON —
-`derelict` at `260`, `obelisk` at `180`, meaning a one-in-N roll per chunk.
-**For the obelisk that number is now a bound rather than a rate**: the prism
-needs a flat 7×5 with headroom for its whole height where the column needed a
-3×3 with eight blocks above it, and a candidate that fails the footing check is
-refused rather than levelled. Strictly fewer sites pass than did. It has not
-been re-tuned, because tuning it from arithmetic rather than from a walked world
-is how the last number got written down wrong.
-Denser than vanilla trial chambers (about one per 1400 chunks in these saves)
-and than ocean ruins (about one per 700), which is deliberate while the shapes
-are still being judged: you cannot tune what you never meet. Pull both numbers
-up once the silhouettes are settled.
+`derelict` at `800`, `obelisk` at `520`, `waystation` at `900`, meaning a
+one-in-N roll per chunk.
 
-Either can be placed on demand rather than walked to:
+These used to read `260` / `180`, deliberately dense while the silhouettes were
+being judged, with the note *"you cannot tune what you never meet — pull both
+numbers up once the silhouettes are settled."* They are settled and the numbers
+were pulled up, which is what the measurement below records. The instruction and
+the act arrived on different branches and met in the merge.
+
+**For the obelisk the number is a bound rather than a rate**, and that has not
+changed with the retune: the prism needs a flat 7×5 with headroom for its whole
+height where the column needed a 3×3 with eight blocks above it, and a candidate
+that fails the footing check is refused rather than levelled. Strictly fewer
+sites pass than the roll offers. So `520` is a ceiling on obelisk density and
+not a statement of it, and the walked-world figure is the one to trust.
+
+Those numbers were **measured, not guessed**: 5041 generated chunks of seed 4242
+put hull-bearing ruins at one per 840, with a median of 122 blocks between them.
+That sits just past vanilla's ocean ruins (about one per 700 in these saves) and
+well clear of mineshafts (one per 185). The previous settings gave one per 240
+and a 97-block median — one nearly always in view, which is litter. Re-measure
+any time with:
+
+```bash
+python tools\world-report.py --ruins "run\saves\<world>"
+```
+
+**The waystation** — the first ruin that is not written in Java. It is an
+`.nbt` under `data/octia/structure/`, placed by `TemplateRuinFeature` with a
+random rotation and mirror, and eroded by a `BlockRotProcessor` at the integrity
+its configured feature names.
+
+### Authoring a ruin in the world
+
+This is the point of the pipeline: build ruins with blocks, not with code.
+
+1. Build it in world 0, or anywhere.
+2. Place a **Structure Block**, set it to SAVE, name it `octia:waystation`, and
+   size the box around your build.
+3. Add one **Structure Block in DATA mode** with metadata `core` wherever a ship
+   core belongs. Leave it out entirely if the ruin is masonry rather than a ship.
+4. Save. The file lands in
+   `run/saves/<world>/generated/octia/structures/waystation.nbt`.
+5. Copy it to `src/main/resources/data/octia/structure/waystation.nbt`.
+
+A new ruin type needs its two JSONs (`worldgen/configured_feature/` and
+`worldgen/placed_feature/`) and its name added to `TEMPLATE_RUINS` in
+`OctiaWorldgen`. That one string is the only Java involved.
+
+**Never put a ship core in a template.** Erosion deletes blocks at random, and
+`hullIntact` needs all eight of the core's neighbours — one unlucky roll and the
+ruin stops being a ship with nothing to show for it. The DATA marker exists so
+the hexahedron can be stamped in code afterwards, out of the processor's reach.
+`TemplateRuinGameTest.erosionCannotEatTheMarker` places one at integrity 0.05 and
+still demands an intact hull.
+
+The `waystation.nbt` in the repo today was emitted by `tools/make-template.py`
+as scaffolding. It is meant to be replaced by something built by hand.
+
+Either coded ruin can be placed on demand rather than walked to:
 
 ```bash
 /place feature octia:derelict

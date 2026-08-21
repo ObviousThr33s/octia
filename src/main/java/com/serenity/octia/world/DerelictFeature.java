@@ -55,9 +55,18 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
      *
      * <p>One, so the cube spans surface-2 to surface and its top course stands
      * clear. Two buries the whole thing and leaves a flush andesite tile nobody
-     * would look at twice.
+     * would look at twice - which is exactly what an ancient one should be, so
+     * {@link #sink(RuinAge)} adds a course at that end.
      */
     private static final int SINK = 1;
+
+    /** How far down to look for real ground, dropping through air and water. */
+    private static final int DESCEND_MAX = 24;
+
+    /** How deep the wreck sits, by how long it has been there. */
+    private static int sink(RuinAge age) {
+        return age == RuinAge.ANCIENT ? SINK + 1 : SINK;
+    }
 
     /** Digs ring the wreck outside the cube and inside the call radius. */
     private static final int DIG_MIN = 2;
@@ -73,9 +82,16 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         super(codec);
     }
 
-    /** Exposed so a caller that placed one can work out where the core went. */
-    public static int sink() {
-        return SINK;
+    /**
+     * How far below a surface a core could possibly have ended up.
+     *
+     * <p>For callers that need to find the core they just placed. It cannot be
+     * calculated any more - the wreck walks down through air and water to real
+     * ground and then sinks by its age - so the honest answer is a search
+     * bound rather than an offset.
+     */
+    public static int searchDepth() {
+        return DESCEND_MAX + SINK + 2;
     }
 
     @Override
@@ -90,11 +106,10 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
 
-        // The origin is already the surface: the placed feature runs a heightmap
-        // modifier before this is called. Asking a heightmap again here is not
-        // merely redundant, it is wrong outside natural generation - see
-        // RuinGround.
-        BlockPos core = context.origin().below(SINK);
+        Seat seat = survey(level, random, context.origin());
+        if (seat == null) {
+            return false;
+        }
 
         // A wreck in a village square reads as somebody's yard ornament rather
         // than as a ship that came and failed.
@@ -105,11 +120,73 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         // so a site cleared on the hull's footprint alone would pass, build
         // clear of the village, and then put suspicious gravel in somebody's
         // wheat. The radius checked has to be the radius written to.
-        if (!RuinGround.clearOfStructures(level, core.below(1), DIG_MAX, DIG_MAX, 3)) {
+        if (!RuinGround.clearOfStructures(level, seat.core().below(1), DIG_MAX, DIG_MAX, 3)) {
             return false;
         }
 
-        return seat(level, random, core);
+        return build(level, random, seat);
+    }
+
+    /**
+     * Where a wreck's core lands for a given column: walk down to real ground,
+     * then sink by however old this one is. No question asked about who else
+     * claimed the site - that is {@link #clearOfStructures}' job in {@link #place},
+     * and deliberately not this method's.
+     *
+     * <p><b>Extracted in the lives-and-islands merge, and the extraction is the
+     * resolution.</b> The two branches disagreed about how the guaranteed spawn
+     * wreck should be placed, and each was protecting something real. This side
+     * went straight to {@link #seat} so the guarantee could not be refused by a
+     * village near spawn. The islands side went through {@link #place} to gain
+     * the walk-down and the age-based sink, which "surface minus a constant"
+     * stopped being able to express the moment either landed - and then had to
+     * hunt down the column for a {@code ShipCoreBlock} afterwards, because
+     * routing through {@code place} hides where the core ended up.
+     *
+     * <p>Both wanted things that fit together. This method is {@code place}
+     * without the structure check: the caller that must not be refused calls
+     * this and then {@link #seat}, and gets the descent and the sink without the
+     * veto. It also gives that caller the core position outright, so the
+     * downward scan for a placed core is not needed - the islands side's
+     * insistence that the position be found rather than assumed is kept, by
+     * returning the found position instead of searching for it.
+     *
+     * <p>{@code place} calls this too, so the walk-down and the sink have one
+     * definition rather than two. The age is rolled before the descent, matching
+     * the order {@code place} consumed the {@link RandomSource} in before this
+     * was pulled out - reordering those two draws would hand every existing seed
+     * a different world.
+     *
+     * @param column where the placement modifier or the ring search wants a wreck
+     * @return the core's position, or null if nothing down there holds a world up
+     */
+    public static Seat survey(WorldGenLevel level, RandomSource random, BlockPos column) {
+        RuinAge age = RuinAge.roll(random);
+
+        // The column is the surface something else chose, which over water is
+        // the top of the water. Walk down from it, through air and through
+        // fluid, to whatever is actually holding the world up - the same idea
+        // that puts the beacon on a seabed instead of afloat.
+        BlockPos floor = RuinGround.descend(level, column, DESCEND_MAX);
+        if (floor == null) {
+            return null;
+        }
+
+        return new Seat(floor.below(sink(age)), age, RuinGround.submerged(level, floor));
+    }
+
+    /**
+     * What a column turns into: where the core lands, how old the wreck is, and
+     * whether it is under water.
+     *
+     * <p>The three travel together because they are decided together and every
+     * one of them is needed at the far end - the age dresses the hull and picks
+     * the erosion, the wetness decides between kelp and a made bed, and the core
+     * is where it all goes. Passing only the core, which is what the shape of
+     * this file was before the merge, is what forced the wetness and the age to
+     * be recomputed downstream from a position that had already moved.
+     */
+    public record Seat(BlockPos core, RuinAge age, boolean wet) {
     }
 
     /**
@@ -131,14 +208,54 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
      * so on a live level it <em>generates</em> what is missing. Forty candidate
      * columns of that during {@code SERVER_STARTED} is a stall nobody asked for.
      */
-    public static boolean seat(WorldGenLevel level, RandomSource random, BlockPos core) {
+    public static boolean seat(WorldGenLevel level, RandomSource random, BlockPos column) {
+        Seat seat = survey(level, random, column);
+        return seat != null && build(level, random, seat);
+    }
+
+    /**
+     * Builds the wreck on a site that has already been surveyed.
+     *
+     * <p><b>This split is the merge's doing, and the alternative was a silent
+     * bug.</b> Both callers need the same construction and they disagree about
+     * exactly one thing: {@link #place} asks {@link RuinGround#clearOfStructures}
+     * and {@link #seat} deliberately does not. That single difference is the only
+     * reason two entry points exist.
+     *
+     * <p>What made it dangerous is that a wreck now walks down to real ground and
+     * then sinks by its age, and both happen in {@link #survey}. Wire either
+     * caller so that the descent runs twice - by handing an already-surveyed core
+     * back into something that surveys again - and every wreck in the world sits
+     * about two courses too deep. It compiles, it generates, and nothing says a
+     * word. So the descent happens in exactly one place, its result travels as a
+     * {@link Seat}, and no path takes a core back to the top of the pipeline.
+     */
+    private static boolean build(WorldGenLevel level, RandomSource random, Seat seat) {
+        BlockPos core = seat.core();
+        RuinAge age = seat.age();
+        boolean wet = seat.wet();
+
         if (!RuinGround.hasFooting(level, core.below(2), 1)) {
             return false;
         }
 
-        cube(level, random, core);
+        if (wet) {
+            // Under the sea is allowed; the surface of it is not. A wreck that
+            // straddles the waterline is neither a shipwreck nor a ruin, it is
+            // a bug with its roof in the air - so require the water to still be
+            // water two courses above the cube.
+            if (!RuinGround.submerged(level, core.above(3))) {
+                return false;
+            }
+        } else if (!RuinGround.isDry(level, core, 1, 1, 1)) {
+            // The cube's own volume, not just the ground under it. A footing
+            // check passes on a lake shore that rises over the top course.
+            return false;
+        }
+
+        cube(level, random, core, age);
         debris(level, random, core);
-        int digs = RuinGround.dig(level, random, core, DIG_MIN, DIG_MAX, 3 + random.nextInt(4));
+        int digs = RuinGround.dig(level, random, core, DIG_MIN, DIG_MAX, 3 + random.nextInt(4), wet);
 
         // The core goes in LAST, and the order is load-bearing.
         //
@@ -149,7 +266,46 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         // ground. Building the evidence first makes the survey and the literal
         // agree, whichever path got here.
         RuinGround.put(level, core, coreState(digs > 0 ? ShipStatus.CALLED : ShipStatus.MOORED));
+
+        // Dressed last, and it has to be. Habitation refuses any position in a
+        // hull ring, and it can only see the ring once the core is standing.
+        //
+        // Not underwater, though. Every prop in that pass is a thing somebody
+        // left in a room - a lit campfire, a made bed, a path worn into dirt -
+        // and none of them mean anything on a seabed. A submerged wreck is
+        // dressed by the ocean, which puts kelp and sea pickles on it for free.
+        // A proper submerged palette from world 0's marine blocks would be
+        // better than nothing here; nothing is better than a bed.
+        if (!wet) {
+            Habitation.dress(level, random, core, age);
+        }
+
+        // Say where this went. A feature leaves no record of itself anywhere, so
+        // without this the mod cannot answer "where are the wrecks" about its
+        // own world. Queued rather than written - see RuinRegistry.
+        RuinRegistry.report(level.getLevel(), OctiaWorldgen.DERELICT, core);
         return true;
+    }
+
+    /**
+     * The hexahedron and its core, written at a position someone else chose.
+     *
+     * <p>Exists for {@link TemplateRuinFeature}. A template cannot contain a
+     * core, because erosion would eventually take a panel out of the ring and
+     * the ruin would stop being a ship without anybody noticing; it carries a
+     * marker instead and the hull is stamped here, afterwards, out of reach of
+     * the rot processor.
+     *
+     * @param called whether a dig is already in the ground nearby, which is the
+     *               difference between a wreck that was summoned and one that
+     *               merely floated
+     */
+    public static void stamp(WorldGenLevel level, RandomSource random, BlockPos core, boolean called) {
+        // Never ANCIENT here. A template ruin decides its own age for dressing,
+        // but the hull it was told to carry should be a whole one - the marker
+        // said a ship was here, not that its lid was gone.
+        cube(level, random, core, RuinAge.WEATHERED);
+        RuinGround.put(level, core, coreState(called ? ShipStatus.CALLED : ShipStatus.MOORED));
     }
 
     /**
@@ -159,11 +315,18 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
      * {@link ShipCoreBlock#hullIntact} reads, so erosion is not allowed near it.
      * Everything above may go.
      */
-    private static void cube(WorldGenLevel level, RandomSource random, BlockPos core) {
+    private static void cube(WorldGenLevel level, RandomSource random, BlockPos core, RuinAge age) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     if (dx == 0 && dy == 0 && dz == 0) {
+                        continue;
+                    }
+                    // An ancient wreck has lost its lid entirely rather than
+                    // lost some of it. Combined with sinking a course deeper,
+                    // what is left is the ring and the floor - a hull worn down
+                    // to precisely the part that still makes it a ship.
+                    if (dy > 0 && age == RuinAge.ANCIENT) {
                         continue;
                     }
                     if (dy > 0 && random.nextInt(8) < EROSION_IN_EIGHT) {

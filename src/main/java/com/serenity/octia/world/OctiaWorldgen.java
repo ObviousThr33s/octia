@@ -9,6 +9,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import com.serenity.octia.ship.ShipCoreBlock;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.GenerationStep;
@@ -49,9 +51,39 @@ public final class OctiaWorldgen {
      * Registry path for both the feature type and the two worldgen JSON files
      * that configure and place it. They must agree; this constant is why they do.
      */
-    private static final String DERELICT = "derelict";
-    private static final String OBELISK = "obelisk";
+    /**
+     * Registry paths, and also the kinds a ruin is recorded under.
+     *
+     * <p>Public because {@link RuinRegistry} keys on exactly these strings and a
+     * second spelling of "obelisk" somewhere else would be a landmark nobody can
+     * look up. One name, one place.
+     */
+    public static final String DERELICT = "derelict";
+    public static final String OBELISK = "obelisk";
+
+    /**
+     * The arch. A landmark, but not yet a recorded one.
+     *
+     * <p>Private where the two above are public, and the asymmetry is a decision
+     * rather than something a merge left behind. {@link ArchFeature} never calls
+     * {@link RuinRegistry#report}, so no kind string "arch" ever reaches the
+     * store and nothing outside this class has anything to look one up with -
+     * making it public would advertise a key that answers with an empty list.
+     * The day the arch reports itself, which it has every reason to (it is a
+     * sightline anchor and the F6 map wants it), this line joins the two above
+     * and that is the whole change.
+     */
     private static final String ARCH = "arch";
+
+    /**
+     * The feature type that places authored .nbt ruins. Its registry path is
+     * the TYPE, not a ruin - many placed features share it, one per template,
+     * each naming its own file in the configured feature JSON.
+     */
+    private static final String TEMPLATE_RUIN = "template_ruin";
+
+    /** Placed features backed by a template. One entry per authored ruin. */
+    private static final String[] TEMPLATE_RUINS = {"waystation"};
 
     /**
      * How far out to look for somewhere to seat the spawn derelict, nearest
@@ -85,6 +117,7 @@ public final class OctiaWorldgen {
     private static DerelictFeature derelict;
     private static ObeliskFeature obelisk;
     private static ArchFeature arch;
+    private static TemplateRuinFeature templateRuin;
 
     private OctiaWorldgen() {
     }
@@ -97,17 +130,37 @@ public final class OctiaWorldgen {
                 new ObeliskFeature(NoneFeatureConfiguration.CODEC));
         arch = Registry.register(BuiltInRegistries.FEATURE, Octia.id(ARCH),
                 new ArchFeature(NoneFeatureConfiguration.CODEC));
+        templateRuin = Registry.register(BuiltInRegistries.FEATURE, Octia.id(TEMPLATE_RUIN),
+                new TemplateRuinFeature(TemplateRuinFeature.Config.CODEC));
 
         // SURFACE_STRUCTURES rather than a later step: these sit on the ground
         // and want to be there before grass, flowers and trees decorate over
         // them, so a ruin looks weathered into the landscape rather than
         // dropped on top of it.
+        // The code-driven features first, then everything backed by a template.
+        // Same decoration step either way, so this is also the order they run in
+        // a chunk. Nothing depends on that today; the two lists are kept apart
+        // because only the second one is meant to grow without touching Java.
         for (String path : new String[] {DERELICT, OBELISK, ARCH}) {
-            BiomeModifications.addFeature(
-                    BiomeSelectors.foundInOverworld(),
-                    GenerationStep.Decoration.SURFACE_STRUCTURES,
-                    ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(path)));
+            scheduleInOverworld(path);
         }
+        for (String path : TEMPLATE_RUINS) {
+            scheduleInOverworld(path);
+        }
+    }
+
+    /**
+     * Schedules one placed feature into every Overworld biome.
+     *
+     * <p>Adding a template ruin is meant to be this small: author the .nbt,
+     * write its configured and placed feature JSON, and add its name to
+     * {@link #TEMPLATE_RUINS}. No Java beyond the one string.
+     */
+    private static void scheduleInOverworld(String path) {
+        BiomeModifications.addFeature(
+                BiomeSelectors.foundInOverworld(),
+                GenerationStep.Decoration.SURFACE_STRUCTURES,
+                ResourceKey.create(Registries.PLACED_FEATURE, Octia.id(path)));
     }
 
     /**
@@ -134,6 +187,10 @@ public final class OctiaWorldgen {
 
     public static ArchFeature arch() {
         return arch;
+    }
+
+    public static TemplateRuinFeature templateRuin() {
+        return templateRuin;
     }
 
     /**
@@ -212,22 +269,52 @@ public final class OctiaWorldgen {
         // trap OctiaBeacon documents at the top of raise().
         level.getChunk(column);
 
-        // OCEAN_FLOOR, not the _WG twin: this is a finished chunk on a live
-        // level, where the worldgen heightmaps are not maintained and answer
-        // bottom-of-world. That mistake cost five gametests once already.
+        // Not a _WG twin: this is a finished chunk on a live level, where the
+        // worldgen heightmaps are not maintained and answer bottom-of-world.
+        // That mistake cost five gametests once already.
         //
-        // OCEAN_FLOOR is also the seabed rather than the water surface, so this
-        // path seats a derelict under water where the wild ones - dropped at
-        // WORLD_SURFACE_WG, whose footing check then lands in fluid - are
-        // refused. It lands bare: RuinGround.surfaceNear needs an air block, so
-        // an underwater wreck gets no digs and no debris, and reads MOORED.
-        BlockPos surface = level.getHeightmapPos(Heightmap.Types.OCEAN_FLOOR, column);
+        // MOTION_BLOCKING_NO_LEAVES, and the choice is a correction. This asked
+        // OCEAN_FLOOR, which answers with the seabed - so over water the feature
+        // was handed a floor with solid rock beneath it and accepted, and the
+        // guaranteed derelict generated underwater in seagrass, thirteen blocks
+        // below the spawn it is supposed to be a short walk from. The wild ones
+        // are dropped at WORLD_SURFACE_WG and their footing check lands in fluid,
+        // so they refuse water outright. Two paths through one feature,
+        // disagreeing about what counts as ground.
+        //
+        // Fluid counts as surface here, so the ring search rejects the sea and
+        // keeps looking. Leaves do not, or a forest spawn seats the wreck in a
+        // canopy. A wreck on a seabed is arguably the most in-fiction place for
+        // one, but that is ROADMAP VI and wants the beacon's walk-down, not an
+        // accident of which heightmap this line happened to name.
+        BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
 
         // Straight to seat() rather than through the feature's place(), so the
         // guaranteed wreck is exempt from the structure check. See the javadoc
         // on DerelictFeature.seat for why the guarantee outranks it, and for
         // what the check would cost on the server thread if it ran here.
-        BlockPos core = surface.below(DerelictFeature.sink());
-        return DerelictFeature.seat(level, random, core) ? core : null;
+        //
+        // What is handed over is the surface, as an ORIGIN, and not a core
+        // position worked out here - because there is no longer a core position
+        // that can be worked out here. The wreck walks down through air and
+        // water to real ground and then sinks by an age it rolls for itself,
+        // both of which happen inside seat(). The old "surface minus a constant"
+        // would now aim one block under the top of a lake, since the heightmap
+        // chosen above counts fluid as surface.
+        if (!DerelictFeature.seat(level, random, surface)) {
+            return null;
+        }
+
+        // Found rather than calculated. The wreck sinks by its age and walks
+        // down to real ground before it settles, so "surface minus a constant"
+        // stopped being where the core is the moment either of those landed -
+        // and this position is what gets logged and reported as the answer.
+        for (int dy = 2; dy >= -DerelictFeature.searchDepth(); dy--) {
+            BlockPos candidate = surface.offset(0, dy, 0);
+            if (level.getBlockState(candidate).getBlock() instanceof ShipCoreBlock) {
+                return candidate;
+            }
+        }
+        return surface;
     }
 }

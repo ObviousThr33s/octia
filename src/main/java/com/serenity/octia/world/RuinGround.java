@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 
 /**
  * The ground-handling every Octia ruin needs, in one place.
@@ -178,6 +177,104 @@ final class RuinGround {
         return true;
     }
 
+    /**
+     * Whether the box a ruin is about to occupy is free of fluid.
+     *
+     * <p>{@link #hasFooting} only ever looked at the plane a ruin stands on,
+     * which is not the same question. A wreck on a dry seabed shelf, or on the
+     * shore of a lake that rises over its top course, passes a floor check and
+     * still ends up underwater. This asks about the volume that is going to be
+     * built in, which is the thing that actually has to be dry.
+     *
+     * <p><b>Three questions stand over a ruin's site now, and they are separate
+     * on purpose.</b> {@link #hasFooting} asks whether the ground holds the
+     * build up, this asks whether the build ends up under water, and
+     * {@link #clearOfStructures} asks whether somebody already built here. A dry
+     * seabed shelf answers yes to the first and no to the second; a village
+     * square answers yes to the first two and no to the third. They are
+     * deliberately not folded into one call, so a feature asks only the ones it
+     * has a reason to care about - the obelisk asks all three, the arch asks the
+     * footing and the structures and never the water.
+     *
+     * <p>The waystation asks the footing and the water and <em>not</em> the
+     * structures, and that one is a gap rather than a decision:
+     * {@link TemplateRuinFeature} arrived on a branch where
+     * {@code clearOfStructures} did not exist, so it was never offered the
+     * question. Nothing has measured how often an authored ruin lands in a
+     * village. Written down rather than quietly fixed, because changing what a
+     * feature refuses changes where it generates, and that wants a walked world
+     * behind it.
+     */
+    static boolean isDry(WorldGenLevel level, BlockPos centre, int radius, int below, int above) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                for (int dy = -below; dy <= above; dy++) {
+                    if (!level.getFluidState(centre.offset(dx, dy, dz)).is(Fluids.EMPTY)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Walks down from a position to the first free space above solid ground,
+     * dropping through air <em>and</em> fluid on the way.
+     *
+     * <p>This is {@code OctiaBeacon.groundAt}'s idea, which is why an ocean
+     * spawn gets a mast standing on the seabed rather than a column of panels
+     * bobbing at the surface. Written here against block reads only - no
+     * heightmap - because a feature runs during generation where the non-{@code _WG}
+     * heightmaps are not maintained, and that lesson has been paid for once.
+     *
+     * @param drop how far down to look before giving up
+     * @return the floor position, or null if nothing solid is within reach
+     */
+    static BlockPos descend(WorldGenLevel level, BlockPos from, int drop) {
+        BlockPos p = from;
+        for (int i = 0; i < drop; i++) {
+            if (level.isOutsideBuildHeight(p.below())) {
+                return null;
+            }
+            BlockState below = level.getBlockState(p.below());
+            if (!below.isAir() && level.getFluidState(p.below()).is(Fluids.EMPTY)) {
+                return p;
+            }
+            p = p.below();
+        }
+        return null;
+    }
+
+    /** Whether this position is standing in fluid. */
+    static boolean submerged(WorldGenLevel level, BlockPos pos) {
+        return !level.getFluidState(pos).is(Fluids.EMPTY);
+    }
+
+    /**
+     * A free position around a centre, allowing fluid.
+     *
+     * <p>The dry {@link #scatter} refuses anything wet, which is right on land
+     * and wrong on a seabed - vanilla's own ocean ruins bury suspicious sand
+     * under water, and a wreck on the floor of the sea should be diggable for
+     * the same reason.
+     */
+    static BlockPos scatterWet(WorldGenLevel level, RandomSource random, BlockPos centre,
+                               int min, int max) {
+        for (int tries = 0; tries < SCATTER_TRIES; tries++) {
+            int dx = random.nextInt(max * 2 + 1) - max;
+            int dz = random.nextInt(max * 2 + 1) - max;
+            if (Math.abs(dx) < min && Math.abs(dz) < min) {
+                continue;
+            }
+            BlockPos floor = descend(level, centre.offset(dx, 2, dz), 8);
+            if (floor != null) {
+                return floor;
+            }
+        }
+        return null;
+    }
+
     /** The first free space over solid ground in one column, or null. */
     static BlockPos surfaceNear(WorldGenLevel level, BlockPos column) {
         return surfaceNear(level, column, SURFACE_UP, SURFACE_DOWN);
@@ -237,9 +334,17 @@ final class RuinGround {
      */
     static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
                    int min, int max, int attempts) {
+        return dig(level, random, centre, min, max, attempts, false);
+    }
+
+    /** As above, but a wet site digs on the seabed instead of refusing it. */
+    static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
+                   int min, int max, int attempts, boolean wet) {
         int placed = 0;
         for (int i = 0; i < attempts; i++) {
-            BlockPos spot = scatter(level, random, centre, min, max);
+            BlockPos spot = wet
+                    ? scatterWet(level, random, centre, min, max)
+                    : scatter(level, random, centre, min, max);
             if (spot == null) {
                 continue;
             }
@@ -253,7 +358,7 @@ final class RuinGround {
             put(level, spot, brushable);
 
             if (level.getBlockEntity(spot) instanceof BrushableBlockEntity brush) {
-                brush.setLootTable(BuiltInLootTables.TRAIL_RUINS_ARCHAEOLOGY_COMMON, random.nextLong());
+                brush.setLootTable(OctiaLoot.RUIN_DIG, random.nextLong());
             }
             placed++;
         }
