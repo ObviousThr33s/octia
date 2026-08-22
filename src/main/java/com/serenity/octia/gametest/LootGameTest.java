@@ -3,6 +3,9 @@ package com.serenity.octia.gametest;
 import java.util.List;
 
 import com.serenity.octia.OctiaBlocks;
+import com.serenity.octia.OctiaItems;
+import com.serenity.octia.item.Bindle;
+import com.serenity.octia.item.BindleItem;
 import com.serenity.octia.world.OctiaLoot;
 
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -105,6 +108,61 @@ public class LootGameTest implements FabricGameTest {
         if (brush.getItem().isEmpty()) {
             throw new AssertionError("a dig carrying " + OctiaLoot.RUIN_DIG.location()
                     + " unpacked to nothing");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A bindle out of a ruin's store is somebody's, not an empty bag.
+     *
+     * <p>The whole reason the item exists. An empty bindle in a barrel is
+     * packaging; one with bread and a torch and a piece of hull in it is a
+     * person who left. That difference is a {@code set_contents} function on one
+     * loot entry, and a malformed one does not crash - the table resolves to
+     * {@code LootTable.EMPTY}, every ruin in the world goes quiet, and the only
+     * sign is a line in a log. Which is what {@code everyTableLoads} above
+     * catches, and this catches the narrower version: the table loads, the
+     * bindle drops, and the bindle is empty.
+     *
+     * <p>Also checks the capacity, because nothing in a loot table knows about
+     * {@link Bindle#SLOTS}. The entry list is written to stay inside four; if it
+     * ever grows past that, a found bindle would hold more than a crafted one
+     * can, and the overflow would only appear when somebody tried to take
+     * something out.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void aFoundBindleIsPacked(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        LootParams params = new LootParams.Builder(level)
+                .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(helper.absolutePos(SPOT)))
+                .create(LootContextParamSets.CHEST);
+
+        int found = 0;
+        for (ResourceKey<LootTable> key : List.of(OctiaLoot.RUIN_STORE, OctiaLoot.RUIN_STORE_OLD)) {
+            LootTable store = resolve(helper, key);
+            for (int attempt = 0; attempt < 200; attempt++) {
+                for (ItemStack stack : store.getRandomItems(params)) {
+                    if (!stack.is(OctiaItems.BINDLE)) {
+                        continue;
+                    }
+                    found++;
+                    int slots = BindleItem.slotsUsed(stack);
+                    if (slots == 0) {
+                        throw new AssertionError("a bindle out of " + key.location()
+                                + " came up empty - set_contents is not reaching the item");
+                    }
+                    if (slots > Bindle.SLOTS) {
+                        throw new AssertionError("a bindle out of " + key.location() + " held "
+                                + slots + " stacks, which is more than a bindle can hold");
+                    }
+                }
+            }
+        }
+
+        // Two hundred rolls a table, three to six items a roll, and a bindle is
+        // weight 3 of 62. Seeing none is not bad luck, it is the entry gone.
+        if (found == 0) {
+            throw new AssertionError("400 rolls of the two stores yielded no bindle at all");
         }
         helper.succeed();
     }

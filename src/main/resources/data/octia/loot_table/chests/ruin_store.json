@@ -139,7 +139,72 @@
         {
           "type": "minecraft:item",
           "name": "octia:bindle",
-          "weight": 3
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_contents",
+              "component": "minecraft:container",
+              "entries": [
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:bread",
+                  "functions": [
+                    {
+                      "function": "minecraft:set_count",
+                      "count": {
+                        "type": "minecraft:uniform",
+                        "min": 1.0,
+                        "max": 3.0
+                      },
+                      "add": false
+                    }
+                  ]
+                },
+                {
+                  "type": "minecraft:item",
+                  "name": "minecraft:torch",
+                  "conditions": [
+                    {
+                      "condition": "minecraft:random_chance",
+                      "chance": 0.7
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "function": "minecraft:set_count",
+                      "count": {
+                        "type": "minecraft:uniform",
+                        "min": 2.0,
+                        "max": 5.0
+                      },
+                      "add": false
+                    }
+                  ]
+                },
+                {
+                  "type": "minecraft:item",
+                  "name": "octia:andesite_frame_panel",
+                  "conditions": [
+                    {
+                      "condition": "minecraft:random_chance",
+                      "chance": 0.5
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "function": "minecraft:set_count",
+                      "count": {
+                        "type": "minecraft:uniform",
+                        "min": 1.0,
+                        "max": 2.0
+                      },
+                      "add": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }

@@ -16,19 +16,21 @@ whatever is inside it was chosen by whoever tied it.
 
 The ruins are empty on purpose — `Habitation` places the things people left and
 never the people — and the strangers hold a six-block band they will not cross.
-Between those two rules the mod has very little way of saying anything directly,
-so nearly everything it says it says through objects.
+Between those two rules the mod has very little way of saying anything
+directly, so nearly everything it says it says through objects.
 
-A bindle is the smallest object that says something. An empty chest is furniture
-and a full one is a reward, but a bag with three things in it is a decision
-somebody made: bread because the road is long, a torch because it gets dark, one
-piece of andesite because they had been at a dig. Read what is inside and you
-know something about who tied it, which is more than any ruin currently manages.
+A bindle is the smallest object that says something. An empty chest is
+furniture and a full one is a reward, but a bag with three things in it is a
+decision somebody made: bread because the road is long, a torch because it gets
+dark, one piece of andesite because they had been at a dig. Read what is inside
+and you know something about who tied it, which is more than any ruin currently
+manages.
 
 It is also the first item in this mod that is not a block item, which is why
-`OctiaItems` exists beside `OctiaBlocks` rather than inside it. The funnel there
-makes exactly one plain `BlockItem` per block, and its own note says the first
-item that does not fit is the one that needs a second path. This is that item.
+`OctiaItems` exists beside `OctiaBlocks` rather than inside it. The funnel
+there makes exactly one plain `BlockItem` per block, and its own note says the
+first item that does not fit is the one that needs a second path. This is that
+item.
 
 ## II. What it is, in the code
 
@@ -72,27 +74,36 @@ ends up holding a save file's worth of items.
   and it stays there. `Wayfarer.leaveBindle`.
 
 The dropped one keeps an unlimited lifetime, and that is not a detail. A
-wayfarer leaves once nobody has had eyes on them for twenty seconds, so a bindle
-on the normal five-minute despawn would rot on an empty road every single time:
-the one player who might come back for it is by definition not there when it
-lands. It is also the only thing a wayfarer ever gives you, and it is given by
-being put down rather than handed over — a stranger who will not close past six
-blocks cannot pass you anything, and one that traded would be a wandering trader
-with a better prompt.
+wayfarer leaves once nobody has had eyes on them for twenty seconds, so a
+bindle on the normal five-minute despawn would rot on an empty road every
+single time: the one player who might come back for it is by definition not
+there when it lands. It is also the only thing a wayfarer ever gives you, and
+it is given by being put down rather than handed over — a stranger who will not
+close past six blocks cannot pass you anything, and one that traded would be a
+wandering trader with a better prompt.
 
-**The found ones are empty, and that is the one thing here left half-done.**
-A bindle in a wreck holding a dead person's belongings is the better version of
-this feature, and the loot function that would do it — `minecraft:set_contents`
-against the container component — was not written, because a malformed loot
-function does not crash: the table resolves to `LootTable.EMPTY`, every ruin in
-the world goes quiet, and the only trace is one line in a log. That is precisely
-the failure `LootGameTest` exists to catch, and it cannot be checked from a
-machine that cannot reach `maven.fabricmc.net` to build the game. Write it, then
-run `tools/verify.ps1`, and only then commit it.
+**The found ones are packed, and the reason it took a second pass is worth
+keeping.** A bindle in a wreck holds bread, a torch and a piece of hull -
+`minecraft:set_contents` against the container component, on the one loot entry.
+It was deliberately left out of the first pass because a malformed loot function
+does not crash: the table resolves to `LootTable.EMPTY`, every ruin in the world
+goes quiet, and the only trace is one line in a log. That is precisely the
+failure `LootGameTest` exists to catch, and it could not be checked from a
+machine that cannot reach `maven.fabricmc.net` to build the game. Once CI could
+run the gates, it was written, and `LootGameTest.aFoundBindleIsPacked` now rolls
+both stores four hundred times and fails if a bindle comes up empty - or if it
+comes up holding more stacks than a bindle can hold, because nothing in a loot
+table knows about `Bindle.SLOTS`.
+
+The old store's bindle has no bread in it. That table is the same barrel some
+seasons later, and nothing fresh survives that long.
 
 ## IV. Still open
 
-1. **Packed loot.** The above.
+1. **A found bindle says nothing about who packed it.** Bread, torch, hull is
+   the same three things every time. A second or third mix - a miner's, a
+   cook's, somebody who was only passing - would make the contents a character
+   rather than a table.
 2. **A wayfarer's bindle should say who tied it.** `WayfarerLedger` already
    remembers names and places; a bindle that arrived with a custom name — *Fen's
    bindle* — would make the second meeting land harder than the first.
@@ -100,4 +111,5 @@ run `tools/verify.ps1`, and only then commit it.
    Vanilla's bundle draws its contents as a grid of sprites, and doing the same
    is a client-side screen overlay, not a menu — the same category of work as
    the F6 map, and the same file to put it in.
-4. **A bindle is not a ruin's voice yet.** Entry 1 makes it one.
+4. **A bindle is not a ruin's voice yet.** It carries somebody's things now,
+   which is the first half. The second half is entry 1: which somebody.
