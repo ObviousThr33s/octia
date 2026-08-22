@@ -2,6 +2,7 @@ package com.serenity.octia.ship;
 
 import com.mojang.serialization.MapCodec;
 import com.serenity.octia.OctiaBlocks;
+import com.serenity.octia.block.Luminaries;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -18,6 +19,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
@@ -72,6 +74,15 @@ public class ShipCoreBlock extends Block {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(STATUS);
+    }
+
+    /**
+     * The halo, when the core is lit - which is to say when it is moored or
+     * called, since an adrift core emits nothing. See {@link Luminaries}.
+     */
+    @Override
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        Luminaries.halo(state, level, pos, random);
     }
 
     /**

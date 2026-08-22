@@ -294,12 +294,17 @@ public final class Sightlines {
     /**
      * Splitmix64's finaliser over the cell, salted and folded with the seed.
      *
+     * <p>Package-private rather than private so that {@link Beamline} can draw
+     * from the same mixer under its own salt. One hash in one place: a second
+     * implementation beside it would be a second lattice the day one of them
+     * was tuned.
+     *
      * <p>The two multipliers on the cell are Minecraft's own large-feature
      * constants, kept because they are known to spread adjacent chunk
      * coordinates well; the mixing after them is what stops the low bits of a
      * cell index showing through into a heading.
      */
-    private static long hash(long seed, int cellX, int cellZ, long salt) {
+    static long hash(long seed, int cellX, int cellZ, long salt) {
         return mix(seed ^ mix(cellX * 341873128712L + cellZ * 132897987541L + salt));
     }
 

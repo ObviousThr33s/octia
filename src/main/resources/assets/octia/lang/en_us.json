@@ -1,6 +1,11 @@
 {
   "block.octia.andesite_frame_panel": "Andesite Frame Panel",
   "block.octia.ship_core": "Ship Core",
+
+  "item.octia.bindle": "Bindle",
+  "item.octia.bindle.empty": "Empty",
+  "item.octia.bindle.line": "%s \u00d7 %s",
+
   "octia.create_world.toggle.on": "Octia: On",
   "octia.create_world.toggle.off": "Octia: Off",
   "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, a lit mast stands at spawn the moment the world opens, a derelict lies within a short walk of it, and andesite ruins are scattered out through the world for you to find.",

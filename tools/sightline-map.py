@@ -40,11 +40,17 @@ MASK = (1 << 64) - 1
 
 SPACING = 512
 JITTER = 96
-CORRIDOR = 32
+CORRIDOR = 128
 SPREAD = 2 * JITTER + 1
 
 NODE_SALT = 0x51_6117_11E5
 STEP_SALT = 0x7_47EAD_5
+REPICK_SALT = 0x2C_0107_3ED
+STATION_SALT = 0x5_7A7_10_5
+
+# Beamlines, transposed from Beamline.java.
+DRIFT_MIN = 160
+DRIFT_MAX = 384
 
 # Order matters: the Java indexes Heading.values() by the hash modulo four.
 HEADINGS = [("NORTH", 0, -1), ("EAST", 1, 0), ("SOUTH", 0, 1), ("WEST", -1, 0)]
@@ -79,8 +85,42 @@ def node(seed, cell_x, cell_z):
     return [cell_x * SPACING + SPACING // 2 + dx, cell_z * SPACING + SPACING // 2 + dz]
 
 
-def step(seed, cell_x, cell_z):
+def raw_step(seed, cell_x, cell_z):
     return HEADINGS[signed(hash_cell(seed, cell_x, cell_z, STEP_SALT)) % 4]
+
+
+def black(cell_x, cell_z):
+    """A cardinal step always flips this parity, so the lattice is a board."""
+    return (cell_x + cell_z) & 1 == 0
+
+
+def points_back(seed, cell_x, cell_z, heading):
+    _, dx, dz = heading
+    tx, tz = cell_x + dx, cell_z + dz
+    _, bx, bz = raw_step(seed, tx, tz)
+    return tx + bx == cell_x and tz + bz == cell_z
+
+
+def step(seed, cell_x, cell_z):
+    """
+    The step out of a cell, with the immediate doubling-back excluded.
+
+    Black cells keep their draw; only white cells look at their neighbours, and
+    every neighbour of a white cell is black and therefore already final. That
+    asymmetry is what makes the rule terminate in one pass - see the long note
+    on Sightlines.step, which is the authority this transposes.
+
+    This was missing here until 2026-08-22 and the map drew a different lattice
+    than the game generated for 12.7% of cells. --probe now sweeps a grid rather
+    than four cells, which is what would have caught it.
+    """
+    raw = raw_step(seed, cell_x, cell_z)
+    if black(cell_x, cell_z) or not points_back(seed, cell_x, cell_z, raw):
+        return raw
+    legal = [h for h in HEADINGS if not points_back(seed, cell_x, cell_z, h)]
+    if not legal:
+        return raw
+    return legal[signed(hash_cell(seed, cell_x, cell_z, REPICK_SALT)) % len(legal)]
 
 
 def legs(seed, reach):
@@ -94,6 +134,41 @@ def legs(seed, reach):
                 "b": node(seed, cell_x + dx, cell_z + dz),
                 "h": name,
             })
+    return out
+
+
+def stations(seed, reach):
+    """
+    The tangents, transposed from Beamline.java.
+
+    A node whose incoming leg arrives on one heading and whose outgoing leg
+    leaves on another is a bend, and a bend throws light straight on: the leg's
+    own direction carried past the node, not the cardinal nearest to it.
+    """
+    out = []
+    for cell_x in range(-reach, reach + 1):
+        for cell_z in range(-reach, reach + 1):
+            leaving = step(seed, cell_x, cell_z)
+            here = node(seed, cell_x, cell_z)
+            for arriving in HEADINGS:
+                name, dx, dz = arriving
+                fx, fz = cell_x - dx, cell_z - dz
+                if step(seed, fx, fz)[0] != name or name == leaving[0]:
+                    continue
+                salt = STATION_SALT + HEADINGS.index(arriving)
+                drift = DRIFT_MIN + signed(hash_cell(seed, cell_x, cell_z, salt)) % (
+                    DRIFT_MAX - DRIFT_MIN + 1)
+                came = node(seed, fx, fz)
+                ax, az = here[0] - came[0], here[1] - came[1]
+                length = (ax * ax + az * az) ** 0.5 or 1.0
+                out.append({
+                    "c": [cell_x, cell_z],
+                    "n": here,
+                    "s": [here[0] + round(ax / length * drift),
+                          here[1] + round(az / length * drift)],
+                    "h": name,
+                    "d": drift,
+                })
     return out
 
 
@@ -171,6 +246,7 @@ def build(save, reach):
         "chunks": save["chunks"],
         "extent": [save["min_x"], save["max_x"], save["min_z"], save["max_z"]],
         "legs": legs(save["seed"], reach),
+        "stations": stations(save["seed"], reach),
         "structures": structures,
         "proof": proof(structures),
         "mirror": mirrored(structures),
@@ -192,13 +268,34 @@ def render(data):
 
 
 def probe(seed):
-    """The handful of cells to diff against the Java. Keep both in step."""
+    """
+    What to diff against the Java. Keep both in step.
+
+    Four named cells, then a sweep. The four alone are not enough and that is
+    not a hypothetical: three white cells in four are happy with their raw
+    draw, so a missing re-pick rule hid behind four cells for weeks while the
+    map drew a lattice the game does not have. The digest below is over 41x41
+    cells and would have failed on the first run.
+    """
     for cell_x, cell_z in [(0, 0), (-6, -6), (3, -2), (-1, 4)]:
         n = node(seed, cell_x, cell_z)
         name, dx, dz = step(seed, cell_x, cell_z)
         to = node(seed, cell_x + dx, cell_z + dz)
         print("%d,%d node=%d,%d step=%s to=%d,%d"
               % (cell_x, cell_z, n[0], n[1], name, to[0], to[1]))
+
+    order = [h[0] for h in HEADINGS]
+    digest = 0
+    counts = {name: 0 for name in order}
+    for cell_x in range(-20, 21):
+        for cell_z in range(-20, 21):
+            name = step(seed, cell_x, cell_z)[0]
+            counts[name] += 1
+            digest = (digest * 31 + order.index(name)) % (1 << 32)
+    print("sweep 41x41 digest=%d %s stations=%d"
+          % (digest, " ".join("%s=%d" % (k, counts[k]) for k in sorted(counts)),
+             len(stations(seed, 20))))
+
 
 
 def main():

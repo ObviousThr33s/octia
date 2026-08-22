@@ -1,0 +1,129 @@
+```
+ACT TWO
+MILESTONE 5
+OCTIA_[0.1.0.R.O.M.E]_traj
+SEEK KEG |ALL|
+```
+
+THE RISE AND FALL OF EVERY ROMAN EMPEROR - as two glyphs each
+
+Set down 2026-08-22, as the test case TRAJECTORY.traj needed and did not have.
+Companion to that file, same standing: a sketch, owed to nobody.
+
+    tools/emperors.tsv        the corpus, one line an emperor
+    tools/emperor-strip.py    the strip as text, the sheet as a PNG
+    python tools/emperor-strip.py --legend
+
+
+I. WHY ROME AND NOT SOMETHING OF OURS
+-------------------------------------
+
+TRAJECTORY.traj claims a story can be packed into a line of glyphs, one glyph a
+beat, and read off a cave wall without a wiki. On twelve beats of this mod's
+own fiction that claim is unfalsifiable: the same hand picks the beats and the
+alphabet, and of course they fit.
+
+Eighty-five Roman emperors are the honest test. Somebody else chose the events.
+There are far more of them than any wall wants. And they are relentlessly
+similar - a man comes to power one of six ways and leaves it one of seven, over
+and over for five hundred years - which is exactly the condition a glyph
+alphabet either survives or does not.
+
+The result: thirteen glyphs, two per emperor, and the whole Principate and
+Dominate on one sheet at 128 x 108 px. Inside the ceiling in VII of the
+trajectory with room to spare, and not one beat needed a third glyph.
+
+
+II. THE ALPHABET
+----------------
+
+    rise    >   acclaimed by soldiers
+            ^   dynastic or adopted heir
+            $   bought the throne
+            x   seized it in civil war
+            +   raised by the senate
+            =   made colleague by an emperor
+
+    fall    ~   died of illness or age
+            !   murdered
+            #   killed in battle
+            *   executed, or died a captive
+            %   took his own life
+            v   put down, and outlived it
+            ?   the sources disagree
+
+Six in, seven out. The seventh out is the one worth defending: **? is not a
+gap, it is a finding.** A natural death and a quiet poisoning look identical at
+this distance, and Tiberius, Claudius, Gordian III, Numerian and half a dozen
+others are genuinely contested. A glyph that guesses would carve a coin-flip
+into stone and read exactly as confidently as the ones that are known. Eleven
+of eighty-five land on ?, which is about the rate an honest reading of the
+sources gives.
+
+
+III. WHAT THE STRIP SAYS
+------------------------
+
+The first rows are dynastic - ^ after ^ after ^ - and the ink is quiet. Then
+238 happens, and one row carries all six men who were emperor in that single
+year. The middle of the third century is a wall of > and !, soldiers in and
+knives out, and you can see the crisis as a texture before you have read a
+name. The last rows go = and * : made a colleague by somebody, killed by
+somebody else. Eleven emperors in all end on *, and seven of those eleven are
+in the final third of the strip.
+
+That is the whole argument for the form. A table of eighty-five reigns is a
+table. The same data as a strip has a shape, and the shape is the history.
+
+
+IV. IT IS A LEDGER, NOT A NARRATIVE
+-----------------------------------
+
+Worth saying because it is the honest limit. A Linear B tablet is a ledger -
+sign, then count, then sign, then count - and this is the same object: an entry
+per emperor, two marks an entry, no clauses and no because. Nothing here says
+why Commodus was strangled or that Diocletian grew cabbages. The strip carries
+what happened, in what order, at what density. Everything else needs prose, and
+prose does not go on a cave wall.
+
+For the mod, that is the right shape anyway: the wall says somebody arrived,
+somebody sheltered, somebody left something behind. Why is what the player is
+for.
+
+
+V. WHERE THE LINE STOPS, AND WHAT IS CONTESTABLE
+------------------------------------------------
+
+It stops at Romulus Augustulus in 476. The Eastern line runs another thousand
+years, and "every emperor" is a promise nobody keeps - see how quickly a
+complete list turns into an argument about Byzantium, about co-emperors who
+reigned as infants, about usurpers who held a province and never held Rome.
+
+What is in the corpus is the conventional canon: the men usually counted,
+including the ones who lasted a fortnight, excluding those who never held the
+city. Dates are reign years rounded to the year. The causes follow the
+mainstream account and ? marks the ones where it is not one account.
+
+**Do not treat the file as a source.** It is a test fixture for an alphabet. If
+a beat matters, check it against somebody who read the Latin.
+
+
+VI. WHAT IT CHANGES UPSTREAM
+----------------------------
+
+1. **A useful alphabet is small, and now that is measured rather than felt.**
+   The mod's own strip in TRAJECTORY.traj II uses twelve glyphs. Five centuries
+   of Rome needed thirteen. Whatever the LSR in section V of that file finds,
+   it is not going to find that the answer was forty.
+
+2. **The 128 px rule survives contact with a real corpus.** Eighty-five beats,
+   8 px a glyph, eleven rows: 128 x 108. The ceiling was set on a nerve and it
+   turns out to be roomy.
+
+3. **Step 2 of the order is done, one size down.** That step wanted a glyph
+   sheet at 16 px a glyph; this is the same job at 8, with a renderer that
+   writes its own PNGs and needs nothing installed.
+
+4. **The cave wall gets Octia's twelve, not Rome's eighty-five.** This corpus
+   is the proof, not the content. Nothing in the mod should ever draw an
+   emperor.

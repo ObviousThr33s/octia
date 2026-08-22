@@ -1,0 +1,106 @@
+# Every Roman emperor of the West, Augustus to Romulus Augustulus, as one beat
+# each: a glyph for how they came in, a glyph for how they went out.
+#
+# The line stops at 476 deliberately. The Eastern line runs another thousand
+# years and "every emperor" is a promise nobody keeps - see docs/EMPERORS.traj.
+#
+# The canon is the conventional one: the men usually counted, including the
+# ones who held power for a fortnight, excluding the usurpers who never held
+# Rome. Dates are reign years, AD unless marked BC, and rounded to the year.
+#
+# Where the ancient sources disagree about a death - and they disagree often,
+# because a natural death and a quiet poisoning look identical at this
+# distance - the fall glyph is ? rather than a guess dressed up as a fact.
+#
+# rise   > acclaimed by soldiers  ^ dynastic or adopted heir  $ bought it
+#        x seized in civil war    + raised by the senate      = made colleague
+# fall   ~ died of illness or age  ! murdered      # killed in battle
+#        * executed or died a captive              % took his own life
+#        v put down and outlived it                ? the sources disagree
+#
+# name	from	to	rise	fall
+Augustus	-27	14	x	~
+Tiberius	14	37	^	?
+Caligula	37	41	^	!
+Claudius	41	54	>	?
+Nero	54	68	^	%
+Galba	68	69	>	!
+Otho	69	69	x	%
+Vitellius	69	69	>	!
+Vespasian	69	79	>	~
+Titus	79	81	^	~
+Domitian	81	96	^	!
+Nerva	96	98	+	~
+Trajan	98	117	^	~
+Hadrian	117	138	^	~
+Antoninus Pius	138	161	^	~
+Marcus Aurelius	161	180	^	~
+Lucius Verus	161	169	=	~
+Commodus	180	192	^	!
+Pertinax	193	193	+	!
+Didius Julianus	193	193	$	*
+Septimius Severus	193	211	>	~
+Caracalla	211	217	^	!
+Geta	211	211	=	!
+Macrinus	217	218	>	*
+Elagabalus	218	222	x	!
+Severus Alexander	222	235	^	!
+Maximinus Thrax	235	238	>	!
+Gordian I	238	238	x	%
+Gordian II	238	238	=	#
+Pupienus	238	238	+	!
+Balbinus	238	238	+	!
+Gordian III	238	244	+	?
+Philip the Arab	244	249	>	#
+Decius	249	251	>	#
+Herennius Etruscus	251	251	=	#
+Hostilian	251	251	=	~
+Trebonianus Gallus	251	253	>	!
+Aemilianus	253	253	>	!
+Valerian	253	260	>	*
+Gallienus	253	268	=	!
+Claudius Gothicus	268	270	>	~
+Quintillus	270	270	>	?
+Aurelian	270	275	>	!
+Tacitus	275	276	+	?
+Florianus	276	276	>	!
+Probus	276	282	>	!
+Carus	282	283	>	?
+Numerian	283	284	=	?
+Carinus	283	285	=	#
+Diocletian	284	305	>	v
+Maximian	286	308	=	%
+Constantius I	305	306	^	~
+Galerius	305	311	^	~
+Severus II	306	307	^	*
+Maxentius	306	312	x	#
+Maximinus Daia	310	313	>	?
+Licinius	308	324	=	*
+Constantine I	306	337	>	~
+Constantine II	337	340	^	#
+Constans I	337	350	^	!
+Constantius II	337	361	^	~
+Magnentius	350	353	x	%
+Julian	361	363	>	#
+Jovian	363	364	>	?
+Valentinian I	364	375	>	~
+Valens	364	378	=	#
+Gratian	375	383	^	!
+Valentinian II	375	392	^	?
+Magnus Maximus	383	388	x	*
+Theodosius I	379	395	=	~
+Eugenius	392	394	x	*
+Honorius	395	423	^	~
+Constantine III	407	411	>	*
+Constantius III	421	421	=	~
+Johannes	423	425	x	*
+Valentinian III	425	455	^	!
+Petronius Maximus	455	455	x	!
+Avitus	455	456	>	v
+Majorian	457	461	>	*
+Libius Severus	461	465	+	?
+Anthemius	467	472	=	*
+Olybrius	472	472	=	~
+Glycerius	473	474	>	v
+Julius Nepos	474	480	=	!
+Romulus Augustulus	475	476	x	v

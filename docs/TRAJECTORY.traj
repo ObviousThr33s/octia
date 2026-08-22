@@ -1,0 +1,499 @@
+```
+ACT TWO
+MILESTONE 5
+OCTIA_[0.1.0.T.R.A.J]_traj
+SEEK KEG |ALL|
+```
+
+TRAJECTORY - where this is heading, written down before it is decided
+
+Set down 2026-08-22, from a sitting held out loud. This is a trajectory, not a
+plan of record: nothing here is owed, and anything that lands moves out of this
+file and into ROADMAP.md or a doc of its own. Read it the way you would read a
+napkin - the arrows are real, the numbers are not.
+
+Said at the sitting and kept here verbatim, because it sets the tone: do not
+take this too seriously. People get scared of pixel counts higher than 128.
+
+
+I. THE TWO MILESTONES
+---------------------
+
+SMALL
+    One cave, one neat little home in it, one glyph strip on the wall that
+    reads. Nothing procedural, nothing clever. A player walks in, sees somebody
+    lived here, and can read what happened on the wall without a wiki.
+
+    Small is the whole point. It is the smallest thing that proves the story
+    can be told on a wall instead of in a book, and everything in section IV
+    is scoring machinery that is worthless until one hand-made cave exists to
+    score against.
+
+BIG
+    Pulling down trees of gettafruit from sky lattices.
+
+    The lattice overhead is the same lattice as the one underfoot. Sightlines
+    already seeds a lattice of waypoints and a leg from each one to the next -
+    see SIGHTLINES.md - and the sky version is that structure raised, with
+    growth hanging from the legs. You do not climb it. You bring it down: pull
+    a leg and what is growing on it comes with it.
+
+    That is the shape of the thing and it is as far as it is decided.
+    Gettafruit is a placeholder name and reads like one on purpose.
+
+
+II. THE STORY, AS A LINE OF GLYPHS
+----------------------------------
+
+The cave art is the story. Not a mural - a strip. One glyph per beat, left to
+right, packed tight enough that a whole arc fits above a doorway.
+
+    ^  =  o  .  ~  |  n  ?  b  *  c  T
+
+    ^   the mast at spawn, lit                  OctiaBeacon        landed
+    =   andesite frame, panel cycling           AndesiteFramePanel landed
+    o   the core, moored                        ShipCoreBlock      landed
+    .   a derelict, where a ship failed         DerelictFeature    landed
+    ~   the thread between waypoints            Sightlines         landed
+    |   an obelisk, slot bored down it          ObeliskFeature     landed
+    n   an arch on a node, squared to the leg   ArchFeature        landed
+    ?   somebody on the road, keeping a band    Wayfarer           landed
+    b   what they put down and left             BindleItem         landed
+    *   the echo, a column between eras         EraEcho            landed
+    c   a cave somebody made a home of          -                  SMALL
+    T   the lattice overhead, and the pull      -                  BIG
+
+The form is tested somewhere else on purpose - see EMPERORS.traj, where every
+Roman emperor from Augustus to Romulus Augustulus is packed into two glyphs
+each and the whole five hundred years lands on one 128 x 108 sheet. Somebody
+else picked those beats, which is what makes it a test rather than a flourish.
+
+Rules of the strip, such as they are:
+
+  - Linear. A beat is a glyph is a column. No stacking, no branching, no
+    reading order to learn.
+  - Every glyph is a feature that exists in the world. A glyph for a thing the
+    mod does not do is a lie carved in stone, and worse than a blank wall.
+  - The strip is readable at 16 px a glyph. Twelve glyphs is 192 px of wall,
+    which is one and a half blocks of texture, not a texture.
+  - The two open glyphs are the two milestones. When c lands the strip says
+    somebody sheltered; when T lands it says somebody ate.
+
+
+III. THE FEATURES AS HIGH POINTS ON A MAP
+-----------------------------------------
+
+Every landed feature is a peak. Height is how much of the story leans on it,
+not how much code it took.
+
+    height  peak            what it is load-bearing for
+    ------  --------------  ------------------------------------------------
+      5     the thread      everything sited relative to a leg or a node
+      5     the moorings    the era spine; the echo is downstream of it
+      4     the obelisk     the marker you walk toward; wayfarer siting
+      3     the derelict    the reason to be out there at all
+      3     the wayfarer    the only person you meet
+      2     the beacon      where you start, and first light
+      2     the bindle      the only thing anyone hands over
+      1     the arch        it dresses a node; nothing depends on it
+
+The map is the join. Sightlines already draws the lattice over a save
+(tools/sightline-map.py) and the debug view already plots moorings (F6). A
+peak map is those two on one sheet with the heights above, and it is the input
+to section IV rather than a picture for its own sake.
+
+
+IV. PEAKS TO CAVES, BY MONTE CARLO
+----------------------------------
+
+The question: given a peak, which cave belongs to it?
+
+Not "generate a cave" - vanilla already made thousands and they are better than
+anything a feature would carve. The job is choosing, and choosing is sampling.
+
+    for each peak, seeded off worldSeed ^ peakPos:
+        draw N candidate points from the air volume within R of the peak
+        keep the ones that are enclosed (no sky, floor solid, headroom >= 3)
+        score each on:
+            floor area flat enough to stand a bed on
+            distance to the peak, wanted near but not adjacent
+            depth below the surface, wanted shallow enough to walk out of
+            how much wall is unbroken - the strip needs somewhere to go
+        take the best of N, or none if nothing scores
+
+    N small. This is a choice made once per peak per save, not a tick cost.
+
+Seeded off the world seed for the reason placeNearSpawn already is: a given
+seed must answer the same thing every time, or nobody can share a seed and
+nobody can write a gametest against it.
+
+None is a legal answer. A peak with no cave near it simply has no cave, and
+the strip for that beat lives on an obelisk instead.
+
+
+V. LSR OVER THE SMALLEST PLAYABLE SETS
+--------------------------------------
+
+Twelve glyphs is more story than a first hour needs. The question underneath
+is which subset still plays, and it is answerable rather than arguable.
+
+    enumerate subsets of the strip that still read as an arc
+        (must keep: arrival, one marker, one person, one shelter)
+    for each, measure what a first hour actually produces -
+        minutes to first landmark, minutes to first person, whether the
+        player found the second thing without being told
+    least-squares fit of that against set size
+    take the knee, not the maximum
+
+The prediction, stated now so the fit can embarrass it later: the knee is at
+five or six glyphs, and the arch is the first thing off the list.
+
+This is the section most likely to be quietly dropped, and dropping it is
+allowed. Writing it down costs a paragraph; running it costs playtests.
+
+
+VI. POLYGON MATCH
+-----------------
+
+From the fitted set, match a glyph to the cave it goes in.
+
+    cave cross-section at chest height  ->  polygon
+    glyph outline                       ->  polygon
+    normalise both for scale and rotation, compare by radial signature
+    a low-cost match earns the strip a wall; a high-cost one gets an obelisk
+
+The reason it is worth anything: a strip that echoes the shape of the room it
+is in reads as belonging to the room. That is the whole return, and it is a
+small one - so a cheap 8-bin signature is right and anything heavier is not.
+
+
+VII. THE CONSTRAINT THAT OUTRANKS ALL OF IT
+-------------------------------------------
+
+    128 px. Nothing wider.
+
+Every texture, every glyph sheet, every atlas page this trajectory produces
+stays at or under 128 px on a side. Not a performance number - a nerve one.
+The mod's existing textures are 16 px and the glyph strip is 16 px a glyph,
+which is inside this by a wide margin, and it is written down here so that a
+later hand with a nice idea about a 512 px mural has to argue with a line in a
+file rather than with nobody.
+
+Neat, not grand. Little home ideas: a bed, a lit corner, a strip over the
+door. Cave art is what somebody scratched on a wall while living there, and
+scale is the fastest way to make that read as a monument instead.
+
+
+VIII. THE ORDER
+---------------
+
+    1. one hand-made cave, one home, one strip           (SMALL)
+    2. the glyph sheet, twelve glyphs at 16 px
+    3. the peak map: lattice + moorings + heights, one sheet
+    4. Monte Carlo siting, seeded, none allowed as an answer
+    5. LSR over subsets, if anybody is playtesting
+    6. polygon match, cheap
+    7. the sky lattice, and pulling it down                (BIG)
+
+Steps 1 and 2 are worth doing whatever happens to 3 through 6. Step 7 does not
+depend on any of them - it depends on the lattice, which already exists.
+
+================================================================================
+SITTING TWO - 2036
+================================================================================
+
+Set down 2026-08-22, later the same day. The number at the top of this sitting
+is the horizon: **2036**. Ten years. Nothing in either sitting needs to happen
+this year, and writing the far date down is what stops a sketch from being read
+as a backlog.
+
+To trajectorize: to write the thing down before deciding it. Everything here is
+approximate and says so - approx., etc., et al. - and a number that turns out
+to matter gets promoted to ROADMAP.md, where numbers are held to.
+
+
+IX. PARTICLE EFFECTS, ENCHANT ALL LUMINARIES
+--------------------------------------------
+
+Landed the same day it was said. Every block this mod owns that emits light now
+wears a halo of enchant motes drawn on a shell around it, falling inward, so
+the light reads as gathering rather than leaking.
+
+    block/Halo.java         the sums: how many motes, and where
+    block/Luminaries.java   the one call that needs the game
+    HaloTest                the sweep that keeps motes out of the andesite
+
+One rule, applied to light rather than to a list: lit gets the halo, dark does
+not, and the next luminary registered gets it for one line in its animateTick.
+It costs nothing on a server - animateTick is client-side - and nothing at all
+for a player looking the other way.
+
+The number worth knowing: the inner shell is 0.9, not 0.5. Half a block is the
+distance to a face; the distance to a corner is 0.866, and a tighter shell puts
+every diagonal mote inside the block it is falling toward, invisible and still
+paid for.
+
+**What it does not reach.** The mast at spawn and the obelisk crowns are
+vanilla blocks. Their light is not ours to dress without a mixin, and this mod
+does not take one. The halo is on Octia's own blocks or it is nowhere.
+
+
+X. NOISE PADS OUT THE REAL, AND SEALED CELLS ARE THE REAL
+---------------------------------------------------------
+
+A wall of glyphs where every glyph counts is a document. A wall where most of
+them are noise and a few are sealed is a *find* - and finding is the verb this
+mod is about.
+
+    most cells on a wall are padding
+    a minority are sealed: locked, load-bearing, true of this save
+    the seal has to be visible in-world, or the wall is unreadable rather
+        than mysterious
+
+The join that makes this cheap arrived with IX: **the sealed cells are the lit
+ones.** A sealed glyph is cut into a lit panel and wears the halo; padding is
+cut into dark andesite and does not. No new state, no new block, no legend to
+teach - the player learns it the first time they walk past a wall and only some
+of it glitters.
+
+**And the padding gets authored, not randomised.** This is the seagull note,
+and it is the whole of it: the noise needs a friend too. Random glyphs read as
+random within about four seconds, and the wall goes from mysterious to broken.
+Pad instead with real beats belonging to somebody else - the emperors corpus is
+eighty-five of them sitting in tools/, already in the alphabet, already true of
+somebody. Then every mark on the wall is somebody's signal, and the only
+question is whose.
+
+
+XI. WHAT IF THE GUY CONTROLLED THE RAT
+--------------------------------------
+
+The crew is a language model driving a body that looks like a player. The
+inversion: a player driving a body while a language model narrates as though it
+decided.
+
+Nothing new is needed to try it. Order already reduces anything to six verbs,
+CrewPlayer already takes orders from whatever hands them over, and Cleric
+already speaks. Swap the source of the orders and keep the voice:
+
+    /octia crew take <name>    you steer, the cleric still talks
+    the model is told what happened, not asked what to do
+    it says why it did the thing you just did
+
+The reason it is worth an entry rather than a joke: it is the cheapest test in
+the codebase of whether the crew's voice is doing any work. If a wayfarer is
+just as convincing when a person is pulling the strings and the model is only
+explaining, then the model was always doing the explaining and never the
+deciding - which is worth knowing before more is built on it.
+
+Consent is the open question, and it is a real one: a crew member who can be
+worn is a different character from one who can be asked. Do not make it the
+default, and do not let it reach a wayfarer at all. Strangers are not yours.
+
+
+XII. VERY MESOLITHIC
+--------------------
+
+The art direction, and it is now a rule rather than a mood.
+
+**Mesolithic, not neolithic.** Before agriculture, before monuments, before
+anybody had a surplus to build with. Scratched marks, ochre, a hand, a tally.
+Somebody sheltering in a cave that was already there, on the way to somewhere,
+leaving a mark because they had a stone and a wall and an hour.
+
+What it rules out, which is the useful half: no temples, no monoliths that
+somebody clearly organised labour to raise, no writing system with a grammar,
+no gold. The obelisks already sit right on this line - a prism laid along a leg
+is a marker, not a monument - and the arch is the closest thing to a violation
+the mod currently has.
+
+It also settles the pixel argument for good. 128 px was set on a nerve in VII;
+mesolithic is the reason it was the right nerve. Nothing in this world is
+supposed to look like it took a workshop.
+
+
+XIII. WHAT SITTING TWO CHANGES IN THE ORDER
+-------------------------------------------
+
+The order in VIII stands. Two additions and one deletion:
+
+    +   IX landed already, ahead of everything, because it was one line per
+        block and it makes X almost free
+    +   X's seal-is-light rule goes into step 1: the first hand-made cave has
+        a lit strip and a dark one, and the dark one is emperors
+    -   nothing is deleted, but XI is explicitly out of the order - it is a
+        test to run, not a feature to ship
+
+Horizon 2036. Nothing here is owed.
+
+XIV. SYNCHROTRONS, VIA CERN
+---------------------------
+
+**The machine, first.** A synchrotron is a closed ring with bending magnets at
+the corners and straight sections between them. Something circulates, gains a
+little energy each lap, and is steered back onto the same circuit forever. CERN
+does not have one of these, it has a chain of them feeding each other -
+Linac4 into the PS Booster into the PS into the SPS into the LHC, roughly
+160 MeV, 2 GeV, 26 GeV, 450 GeV, then several TeV a beam - and the last ring is
+26.7 km around, about 1,232 dipoles, and a bunch goes round it something like
+eleven thousand times a second. Four points on the ring are where beams cross.
+
+The cousins matter more here than the collider does. At a light source - ESRF,
+Diamond, SOLEIL - the beam is not there to collide. At every bend it throws
+light off **tangentially**, and each tangent is a beamline running out to an
+experiment hall. The ring is the source; the interesting places are the ones
+the tangents point at.
+
+(Those figures are from memory. Check them against CERN before any of them go
+somewhere that matters - AGENTS.md V, the same rule as opening the jar.)
+
+**Now the join, and it is not a metaphor.** `Sightlines` gives every cell
+exactly one outgoing leg. A function iterated on a finite set of visited cells
+must repeat one, so **every thread in this world ends in a closed circuit.**
+The lattice has been full of rings since the day it was written and nothing has
+ever looked at them.
+
+`world/Ring.java` looks at them, and `RingTest` pins what it finds. Measured
+over 419,904 walks across 64 seeds, a 81 x 81 cell window each:
+
+    every walk closes                       419,904 of 419,904, no failures
+    starts already on a ring                15.17%
+    mean lead-in before the ring            6.57 legs
+    rings of 2 legs (degenerate)            6.03%
+    rings of 4 legs (a square, ~2 km)       66.42%
+    rings of 6 legs or more                 27.55%
+    mean circumference                      2,587 blocks
+    largest found                           32 legs, 16,867 blocks
+    distinct rings per 41 km window         ~248
+
+So the lattice makes SPS-sized machines readily and LHC-sized ones almost
+never: 26.7 km is about 52 legs, and 52 did not occur once in four hundred
+thousand walks. The biggest thing out there is roughly two thirds of an LHC,
+and it is rare enough to be worth naming when a save has one.
+
+**What maps onto what, if any of this is built:**
+
+    bending magnet      the arch at a node - it already stands squared across
+                        the leg, which is what a magnet does to a beam
+    straight section    the leg, and the obelisk laid along it
+    the tangent         a beamline: the line out of a node along the leg it
+                        did not take
+    experiment hall     what the tangent points at - a dig, a derelict, sited
+                        on the tangent rather than scattered near it
+    injection           the beacon at spawn, which is already where everything
+                        enters this world from
+    the beam            ROADMAP's obelisk chain, which is a pulse looking for a
+                        route: run it round a ring instead of along a line
+
+The last row is the cheap one and the one worth doing first. A pulse that
+lights nodes in sequence needs a route that comes back, or it walks off the map
+and stops - and a ring is exactly a route that comes back. The visual is
+already built too: IX throws motes *inward*; a tangent throws the same motes
+*along the leg the beam did not take*, which is what a bend looks like from
+outside.
+
+**Three honest limits.**
+
+1. **Two-leg rings are not machines.** Six per cent of walks end in a thread
+   bouncing between two nodes. That is a standing wave, not a circuit, and
+   anything that sites on rings has to exclude them by name.
+2. **You cannot see a ring.** Two kilometres around is not a thing a person
+   standing in a field perceives, ever. This is a *map* feature - F6, and
+   `tools/sightline-map.py` - and any design that needs the player to feel the
+   ring from the ground is a design that will not work.
+3. **Nothing reads `Ring` yet.** It is measurement, not mechanism. It went in
+   because the claim "every thread ends in a ring" is either true of the
+   lattice or it is not, and now the answer is in a test rather than in a
+   paragraph.
+
+XV. THE TANGENTS, AND WHAT THEY POINT AT
+----------------------------------------
+
+The row XIV called the cheap one, built. `world/Beamline.java`, pinned by
+`BeamlineTest`, drawn by `tools/sightline-map.py`.
+
+**The rule.** A node whose incoming leg arrives on one heading and whose
+outgoing leg leaves on another is a bend. A bend throws a *station*: a point on
+the tangent, 160 to 384 blocks past the node, seeded per bend. A node the thread
+runs straight through throws nothing, because a straight section does not
+radiate - which is the physics and also, usefully, half the density.
+
+**The payoff, which is the only reason to build it.** An obelisk lies along its
+leg with a slot bored down its length. Sight through the slot, along the leg,
+past the arch standing on the node at the far end - and a station is exactly
+where that line goes. This mod has had a thing you can sight along since the
+lattice landed and nothing at the far end of the sighting. This is what goes
+there.
+
+**One bug found by writing the test for that sentence.** The first version
+carried the *cardinal* on past the node instead of the leg's own direction. A
+leg bends up to thirty degrees off its cardinal, so the far end landed as much
+as **172 blocks off the line somebody is sighting along** - measured over 39,808
+stations. Carrying the line instead puts it dead ahead, within the 0.62 blocks
+that rounding to a coordinate costs. The wrong version passed every other test
+in the file.
+
+**Measured**, 16 seeds, 61 x 61 cells each, 59,536 nodes:
+
+    stations                            39,808, or 0.669 a node
+    density                             2.55 per km2
+    nodes nothing points at             30.53% - they radiate nothing
+    arrivals running straight through   33.12% - no bend, no station
+    stations from a reversal            0.62%
+    mean drift past the node            272 blocks
+    landing inside their host cell's
+        obelisk corridor                32.62%
+
+That last one is not a defect. A third of stations sit where an obelisk may
+also stand, which means a third of them arrive already marked - and the other
+two thirds are a walk into an empty cell with nothing but the sighting to go on.
+Both readings are wanted; leave it alone.
+
+**And now a wreck stands at one.** `BeamlineDerelictFeature`, registered as
+`octia:derelict_station`, puts an ordinary derelict at the far end of a tangent -
+the same hull, dig and dressing `DerelictFeature` builds anywhere else, on a site
+the lattice chose instead of a coin flip. Sight through an obelisk's slot, along
+the leg, past the arch at the far node, and walk: that is now a wreck.
+
+**The chunk that contains a station is the one that builds it.** That is the
+whole trick, and it is forced by a constraint rather than chosen: a generation
+worker may only write near its own chunk, so a feature cannot answer "there is a
+station 300 blocks that way" by building there. Claiming by containment means no
+two chunks can claim the same station, nothing has to remember what has been
+built, and every write stays where it belongs. `Beamline.inChunk` is that
+question and `BeamlineTest` pins both halves of it - a chunk answers only with a
+station really inside it, and every station is claimed by the chunk that holds
+one.
+
+**The rarity is in the lattice, so the placement has none.**
+`derelict_station.json` asks once per chunk with no rarity filter at all. A
+station lands in about **one chunk in 1,575**, measured over 1,286,408 chunks -
+against the wild wreck's one roll in 800, most of which are then refused by
+footing, water or a village. Two stations in one chunk happens 0.010% of the
+time and the second is dropped rather than built over the first.
+
+It yields to structures like the wild one does. A wreck at a station is meant,
+but not enough to put it in somebody's village square - and the tangent that
+pointed at it is still true whether or not the wreck could take the site.
+
+**Unverified in game, and that is the honest state of it.** This machine cannot
+reach `maven.fabricmc.net`, so nothing here has been through `tools/verify.ps1`.
+The arithmetic is pinned by JUnit (35 pure tests green) and the gate has a
+`@GameTest` that proves the negative - on ground the wild wreck accepts, the
+station wreck declines, because no station is there. What has never run is a real
+chunk generating a real hull at a real tangent.
+
+**And the map now draws them**, which matters because XIV said this is a map
+feature and not a spectacle: dashed gold tangents off the bends, an open ring
+where each lands, a "nearest station" readout under the cursor.
+
+**A drift found on the way, and it is the bigger finding of the two.**
+`tools/sightline-map.py` was transposing `rawStep` and had never had the
+white-cell re-pick that `Sightlines.step` has had since the two-cycle fix. The
+map drew a different lattice than the game generates for **12.7% of cells**, and
+`CORRIDOR` was still 32 there against 128 in the Java. Both fixed. The check the
+file itself prescribes - diff the Python probe against `Probe.java` - passed the
+whole time, because it compared four cells and three white cells in four keep
+their raw draw. `--probe` now prints a digest over 41 x 41 cells and a station
+count, and `Probe.java` prints the same, so the next drift fails the diff on the
+first run.

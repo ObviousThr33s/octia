@@ -62,6 +62,17 @@ public final class OctiaWorldgen {
     public static final String OBELISK = "obelisk";
 
     /**
+     * The wreck at the end of a beamline.
+     *
+     * <p>A registry path only, not a kind: what it builds is a derelict and it
+     * reports itself to {@link RuinRegistry} as {@link #DERELICT}, because a
+     * player who finds one has found a derelict and nothing about the search
+     * "where are the wrecks" should have to know which of the two features put
+     * it there. See {@link BeamlineDerelictFeature}.
+     */
+    private static final String DERELICT_STATION = "derelict_station";
+
+    /**
      * The arch. A landmark, but not yet a recorded one.
      *
      * <p>Private where the two above are public, and the asymmetry is a decision
@@ -115,6 +126,7 @@ public final class OctiaWorldgen {
 
     /** Held from registration so nothing has to cast them back out of the registry. */
     private static DerelictFeature derelict;
+    private static BeamlineDerelictFeature derelictStation;
     private static ObeliskFeature obelisk;
     private static ArchFeature arch;
     private static TemplateRuinFeature templateRuin;
@@ -126,6 +138,8 @@ public final class OctiaWorldgen {
     public static void bootstrap() {
         derelict = Registry.register(BuiltInRegistries.FEATURE, Octia.id(DERELICT),
                 new DerelictFeature(NoneFeatureConfiguration.CODEC));
+        derelictStation = Registry.register(BuiltInRegistries.FEATURE, Octia.id(DERELICT_STATION),
+                new BeamlineDerelictFeature(NoneFeatureConfiguration.CODEC));
         obelisk = Registry.register(BuiltInRegistries.FEATURE, Octia.id(OBELISK),
                 new ObeliskFeature(NoneFeatureConfiguration.CODEC));
         arch = Registry.register(BuiltInRegistries.FEATURE, Octia.id(ARCH),
@@ -141,7 +155,7 @@ public final class OctiaWorldgen {
         // Same decoration step either way, so this is also the order they run in
         // a chunk. Nothing depends on that today; the two lists are kept apart
         // because only the second one is meant to grow without touching Java.
-        for (String path : new String[] {DERELICT, OBELISK, ARCH}) {
+        for (String path : new String[] {DERELICT, DERELICT_STATION, OBELISK, ARCH}) {
             scheduleInOverworld(path);
         }
         for (String path : TEMPLATE_RUINS) {
@@ -179,6 +193,11 @@ public final class OctiaWorldgen {
     /** The registered features themselves, for tests that place one directly. */
     public static DerelictFeature derelict() {
         return derelict;
+    }
+
+    /** The station wreck. For tests that place one directly. */
+    public static BeamlineDerelictFeature derelictStation() {
+        return derelictStation;
     }
 
     public static ObeliskFeature obelisk() {

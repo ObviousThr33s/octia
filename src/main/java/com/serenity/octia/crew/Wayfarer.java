@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.serenity.octia.Octia;
+import com.serenity.octia.OctiaItems;
 import com.serenity.octia.world.OctiaWorldgen;
 import com.serenity.octia.world.RuinRegistry;
 
@@ -17,6 +18,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -84,6 +87,17 @@ public final class Wayfarer {
     private static final int ASK_TICKS = 200;
 
     /**
+     * One departure in this many leaves a bindle where they stood.
+     *
+     * <p>Not every one, because a bindle at the end of every meeting is a
+     * vending machine rather than a thing somebody left, and the road would fill
+     * with them at one every four minutes. One in three is often enough that a
+     * player who meets a few strangers will find one, and rare enough that
+     * finding one still means something.
+     */
+    private static final int BINDLE_IN = 3;
+
+    /**
      * Names a traveller might have. Plain, unplaceable, and deliberately not
      * model ids - a stranger called {@code qwen2_5} is a bug report, not a
      * person. Sixteen characters or fewer and legal per {@link SeatName}.
@@ -114,7 +128,7 @@ public final class Wayfarer {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             Wayfarer wayfarer = ACTIVE.remove(server);
             if (wayfarer != null) {
-                wayfarer.leave("the server is closing");
+                wayfarer.leave("the server is closing", false);
             }
         });
 
@@ -314,13 +328,56 @@ public final class Wayfarer {
 
     /** Takes the wayfarer out of the world, quietly. */
     public void leave(String why) {
+        leave(why, true);
+    }
+
+    /**
+     * The same, saying whether anything is left behind.
+     *
+     * <p>A shutdown is not a departure. The server closing takes every wayfarer
+     * out of the world at once, and a bindle dropped on that path would be a
+     * bindle per stranger per restart, lying in a world nobody was walking
+     * through - so that one caller passes false and the road stays clean.
+     */
+    private void leave(String why, boolean onTheRoad) {
         if (body == null) {
             return;
+        }
+        if (onTheRoad) {
+            leaveBindle();
         }
         Crew.of(server).logOff(body, why);
         Octia.LOGGER.info("Octia: {} went on ({}).", body.seatName(), why);
         body = null;
         nextArrival = server.getTickCount() + COOLDOWN;
+    }
+
+    /**
+     * Sometimes, what they were carrying stays where they stood.
+     *
+     * <p>The only thing a wayfarer ever gives you, and it is given by being put
+     * down rather than handed over - which is the whole character. A stranger
+     * who will not close past six blocks cannot pass you anything, and one that
+     * traded would be a wandering trader with a better prompt.
+     *
+     * <p>The drop keeps an unlimited lifetime deliberately. They leave once
+     * nobody has had eyes on them for twenty seconds, so a bindle on the normal
+     * five-minute despawn would rot on an empty road every single time: the one
+     * player who might come back for it is by definition not there when it
+     * lands.
+     */
+    private void leaveBindle() {
+        if (random.nextInt(BINDLE_IN) != 0) {
+            return;
+        }
+        ItemStack bindle = OctiaItems.forTheRoad(random);
+        ItemEntity dropped = new ItemEntity(body.serverLevel(), body.getX(), body.getY() + 0.5, body.getZ(), bindle);
+        dropped.setDeltaMovement(Vec3.ZERO);
+        dropped.setUnlimitedLifetime();
+        body.serverLevel().addFreshEntity(dropped);
+
+        Octia.LOGGER.info("Octia: {} left a bindle at {}.",
+                body.seatName(), body.blockPosition().toShortString());
     }
 
     // ---- Odds and ends -------------------------------------------------------

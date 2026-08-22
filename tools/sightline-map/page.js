@@ -1,17 +1,19 @@
 const D = window.__DATA__;
 const SP = D.spacing, COR = D.corridor;
 const legs = D.legs, byCell = new Map(legs.map(l => [l.c[0]+","+l.c[1], l]));
+const beams = D.stations || [];
 const pins = [];
 for (const [id, spots] of Object.entries(D.structures))
   for (const [x, z] of spots) pins.push({id, x, z});
 
 document.getElementById("facts").innerHTML = [
   ["save", D.name], ["seed", D.seed], ["terrain", D.generator.replace("minecraft:","")],
-  ["explored", D.chunks + " chunks"], ["starts", pins.length], ["cells drawn", legs.length]
+  ["explored", D.chunks + " chunks"], ["starts", pins.length], ["cells drawn", legs.length],
+  ["stations", beams.length]
 ].map(([k,v]) => `${k} <b>${v}</b>`).join("");
 
 const ex = D.extent.map(v => v*16);
-const layers = {legs:1, corridor:1, nodes:1, pins:1, grid:1, extent:1};
+const layers = {legs:1, corridor:1, beamlines:1, nodes:1, pins:1, grid:1, extent:1};
 const chips = document.getElementById("chips");
 for (const k of Object.keys(layers)) {
   const b = document.createElement("button");
@@ -79,6 +81,23 @@ function draw(){
       ctx.stroke();
     }
   }
+  if (layers.beamlines){
+    // The tangent: the leg's own direction carried on past the node, and an
+    // open ring where it lands. Dashed, because nothing is built along it -
+    // the line is a sightline, not a road.
+    ctx.strokeStyle = C.gold; ctx.globalAlpha = .55; ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    for (const b of beams){
+      const n = toS(b.n[0], b.n[1]), s = toS(b.s[0], b.s[1]);
+      ctx.beginPath(); ctx.moveTo(n[0],n[1]); ctx.lineTo(s[0],s[1]); ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 1.2;
+    for (const b of beams){
+      const s = toS(b.s[0], b.s[1]);
+      ctx.beginPath(); ctx.arc(s[0], s[1], 3, 0, 6.2832); ctx.stroke();
+    }
+  }
   if (layers.nodes){
     ctx.fillStyle = C.gold;
     for (const l of legs){ const a = toS(l.a[0], l.a[1]);
@@ -115,6 +134,15 @@ function report(wx, wz){
   const near = d <= COR;
   v.textContent = near ? "1 in 8 broken" : "4 in 8 broken";
   v.className = "verdict " + (near ? "stand" : "break");
+  // The nearest station, so the cursor can answer "is there a beamline end
+  // near here" the same way a feature would ask Beamline.nearest.
+  let best = null, bestD = Infinity;
+  for (const b of beams){
+    const dd = Math.hypot(b.s[0]-wx, b.s[1]-wz);
+    if (dd < bestD){ bestD = dd; best = b; }
+  }
+  const st = el("rStation");
+  if (st) st.textContent = best ? Math.round(bestD) + " b " + best.h.toLowerCase() : "—";
 }
 
 let drag = null;

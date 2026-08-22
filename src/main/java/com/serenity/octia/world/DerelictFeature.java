@@ -102,11 +102,25 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         if (!OctiaWorldgen.active()) {
             return false;
         }
+        return raise(context.level(), context.random(), context.origin(), true);
+    }
 
-        WorldGenLevel level = context.level();
-        RandomSource random = context.random();
-
-        Seat seat = survey(level, random, context.origin());
+    /**
+     * A wreck on a column, with or without yielding to whatever else is there.
+     *
+     * <p>The one definition of what placing a derelict means, so that the three
+     * callers - the rarity roll above, the guaranteed spawn wreck, and the
+     * beamline station in {@link BeamlineDerelictFeature} - cannot drift apart
+     * on the descent, the sink, or the order of the draws. The only thing they
+     * ever disagreed about is the structure check, so that is the parameter.
+     *
+     * @param yieldToStructures whether a village or a mineshaft on the site is
+     *                          allowed to refuse it. False only for the wreck
+     *                          that must exist - see {@link #seat}.
+     */
+    public static boolean raise(WorldGenLevel level, RandomSource random, BlockPos column,
+            boolean yieldToStructures) {
+        Seat seat = survey(level, random, column);
         if (seat == null) {
             return false;
         }
@@ -120,7 +134,8 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
         // so a site cleared on the hull's footprint alone would pass, build
         // clear of the village, and then put suspicious gravel in somebody's
         // wheat. The radius checked has to be the radius written to.
-        if (!RuinGround.clearOfStructures(level, seat.core().below(1), DIG_MAX, DIG_MAX, 3)) {
+        if (yieldToStructures
+                && !RuinGround.clearOfStructures(level, seat.core().below(1), DIG_MAX, DIG_MAX, 3)) {
             return false;
         }
 
@@ -209,8 +224,7 @@ public class DerelictFeature extends Feature<NoneFeatureConfiguration> {
      * columns of that during {@code SERVER_STARTED} is a stall nobody asked for.
      */
     public static boolean seat(WorldGenLevel level, RandomSource random, BlockPos column) {
-        Seat seat = survey(level, random, column);
-        return seat != null && build(level, random, seat);
+        return raise(level, random, column, false);
     }
 
     /**
