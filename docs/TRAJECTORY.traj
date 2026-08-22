@@ -1,0 +1,194 @@
+```
+ACT TWO
+MILESTONE 5
+OCTIA_[0.1.0.T.R.A.J]_traj
+SEEK KEG |ALL|
+```
+
+TRAJECTORY - where this is heading, written down before it is decided
+
+Set down 2026-08-22, from a sitting held out loud. This is a trajectory, not a
+plan of record: nothing here is owed, and anything that lands moves out of this
+file and into ROADMAP.md or a doc of its own. Read it the way you would read a
+napkin - the arrows are real, the numbers are not.
+
+Said at the sitting and kept here verbatim, because it sets the tone: do not
+take this too seriously. People get scared of pixel counts higher than 128.
+
+
+I. THE TWO MILESTONES
+---------------------
+
+SMALL
+    One cave, one neat little home in it, one glyph strip on the wall that
+    reads. Nothing procedural, nothing clever. A player walks in, sees somebody
+    lived here, and can read what happened on the wall without a wiki.
+
+    Small is the whole point. It is the smallest thing that proves the story
+    can be told on a wall instead of in a book, and everything in section IV
+    is scoring machinery that is worthless until one hand-made cave exists to
+    score against.
+
+BIG
+    Pulling down trees of gettafruit from sky lattices.
+
+    The lattice overhead is the same lattice as the one underfoot. Sightlines
+    already seeds a lattice of waypoints and a leg from each one to the next -
+    see SIGHTLINES.md - and the sky version is that structure raised, with
+    growth hanging from the legs. You do not climb it. You bring it down: pull
+    a leg and what is growing on it comes with it.
+
+    That is the shape of the thing and it is as far as it is decided.
+    Gettafruit is a placeholder name and reads like one on purpose.
+
+
+II. THE STORY, AS A LINE OF GLYPHS
+----------------------------------
+
+The cave art is the story. Not a mural - a strip. One glyph per beat, left to
+right, packed tight enough that a whole arc fits above a doorway.
+
+    ^  =  o  .  ~  |  n  ?  b  *  c  T
+
+    ^   the mast at spawn, lit                  OctiaBeacon        landed
+    =   andesite frame, panel cycling           AndesiteFramePanel landed
+    o   the core, moored                        ShipCoreBlock      landed
+    .   a derelict, where a ship failed         DerelictFeature    landed
+    ~   the thread between waypoints            Sightlines         landed
+    |   an obelisk, slot bored down it          ObeliskFeature     landed
+    n   an arch on a node, squared to the leg   ArchFeature        landed
+    ?   somebody on the road, keeping a band    Wayfarer           landed
+    b   what they put down and left             BindleItem         landed
+    *   the echo, a column between eras         EraEcho            landed
+    c   a cave somebody made a home of          -                  SMALL
+    T   the lattice overhead, and the pull      -                  BIG
+
+Rules of the strip, such as they are:
+
+  - Linear. A beat is a glyph is a column. No stacking, no branching, no
+    reading order to learn.
+  - Every glyph is a feature that exists in the world. A glyph for a thing the
+    mod does not do is a lie carved in stone, and worse than a blank wall.
+  - The strip is readable at 16 px a glyph. Twelve glyphs is 192 px of wall,
+    which is one and a half blocks of texture, not a texture.
+  - The two open glyphs are the two milestones. When c lands the strip says
+    somebody sheltered; when T lands it says somebody ate.
+
+
+III. THE FEATURES AS HIGH POINTS ON A MAP
+-----------------------------------------
+
+Every landed feature is a peak. Height is how much of the story leans on it,
+not how much code it took.
+
+    height  peak            what it is load-bearing for
+    ------  --------------  ------------------------------------------------
+      5     the thread      everything sited relative to a leg or a node
+      5     the moorings    the era spine; the echo is downstream of it
+      4     the obelisk     the marker you walk toward; wayfarer siting
+      3     the derelict    the reason to be out there at all
+      3     the wayfarer    the only person you meet
+      2     the beacon      where you start, and first light
+      2     the bindle      the only thing anyone hands over
+      1     the arch        it dresses a node; nothing depends on it
+
+The map is the join. Sightlines already draws the lattice over a save
+(tools/sightline-map.py) and the debug view already plots moorings (F6). A
+peak map is those two on one sheet with the heights above, and it is the input
+to section IV rather than a picture for its own sake.
+
+
+IV. PEAKS TO CAVES, BY MONTE CARLO
+----------------------------------
+
+The question: given a peak, which cave belongs to it?
+
+Not "generate a cave" - vanilla already made thousands and they are better than
+anything a feature would carve. The job is choosing, and choosing is sampling.
+
+    for each peak, seeded off worldSeed ^ peakPos:
+        draw N candidate points from the air volume within R of the peak
+        keep the ones that are enclosed (no sky, floor solid, headroom >= 3)
+        score each on:
+            floor area flat enough to stand a bed on
+            distance to the peak, wanted near but not adjacent
+            depth below the surface, wanted shallow enough to walk out of
+            how much wall is unbroken - the strip needs somewhere to go
+        take the best of N, or none if nothing scores
+
+    N small. This is a choice made once per peak per save, not a tick cost.
+
+Seeded off the world seed for the reason placeNearSpawn already is: a given
+seed must answer the same thing every time, or nobody can share a seed and
+nobody can write a gametest against it.
+
+None is a legal answer. A peak with no cave near it simply has no cave, and
+the strip for that beat lives on an obelisk instead.
+
+
+V. LSR OVER THE SMALLEST PLAYABLE SETS
+--------------------------------------
+
+Twelve glyphs is more story than a first hour needs. The question underneath
+is which subset still plays, and it is answerable rather than arguable.
+
+    enumerate subsets of the strip that still read as an arc
+        (must keep: arrival, one marker, one person, one shelter)
+    for each, measure what a first hour actually produces -
+        minutes to first landmark, minutes to first person, whether the
+        player found the second thing without being told
+    least-squares fit of that against set size
+    take the knee, not the maximum
+
+The prediction, stated now so the fit can embarrass it later: the knee is at
+five or six glyphs, and the arch is the first thing off the list.
+
+This is the section most likely to be quietly dropped, and dropping it is
+allowed. Writing it down costs a paragraph; running it costs playtests.
+
+
+VI. POLYGON MATCH
+-----------------
+
+From the fitted set, match a glyph to the cave it goes in.
+
+    cave cross-section at chest height  ->  polygon
+    glyph outline                       ->  polygon
+    normalise both for scale and rotation, compare by radial signature
+    a low-cost match earns the strip a wall; a high-cost one gets an obelisk
+
+The reason it is worth anything: a strip that echoes the shape of the room it
+is in reads as belonging to the room. That is the whole return, and it is a
+small one - so a cheap 8-bin signature is right and anything heavier is not.
+
+
+VII. THE CONSTRAINT THAT OUTRANKS ALL OF IT
+-------------------------------------------
+
+    128 px. Nothing wider.
+
+Every texture, every glyph sheet, every atlas page this trajectory produces
+stays at or under 128 px on a side. Not a performance number - a nerve one.
+The mod's existing textures are 16 px and the glyph strip is 16 px a glyph,
+which is inside this by a wide margin, and it is written down here so that a
+later hand with a nice idea about a 512 px mural has to argue with a line in a
+file rather than with nobody.
+
+Neat, not grand. Little home ideas: a bed, a lit corner, a strip over the
+door. Cave art is what somebody scratched on a wall while living there, and
+scale is the fastest way to make that read as a monument instead.
+
+
+VIII. THE ORDER
+---------------
+
+    1. one hand-made cave, one home, one strip           (SMALL)
+    2. the glyph sheet, twelve glyphs at 16 px
+    3. the peak map: lattice + moorings + heights, one sheet
+    4. Monte Carlo siting, seeded, none allowed as an answer
+    5. LSR over subsets, if anybody is playtesting
+    6. polygon match, cheap
+    7. the sky lattice, and pulling it down                (BIG)
+
+Steps 1 and 2 are worth doing whatever happens to 3 through 6. Step 7 does not
+depend on any of them - it depends on the lattice, which already exists.

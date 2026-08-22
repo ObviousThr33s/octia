@@ -130,6 +130,7 @@ octia/
 │  ├─ UPGRADING.md                      what breaks above 1.21.1, with lines
 │  ├─ NOTATION.md                       the KEG notation, codified
 │  ├─ BINDLES.md                        the bindle, and what it carries
+│  ├─ TRAJECTORY.traj                   the sketch: glyphs, caves, the lattice
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
