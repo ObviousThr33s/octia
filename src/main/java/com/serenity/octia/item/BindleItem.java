@@ -241,9 +241,18 @@ public class BindleItem extends Item {
         return true;
     }
 
-    /** Vanilla's bundle sounds. A bindle is the same gesture, so it is the same noise. */
+    /**
+     * Vanilla's bundle sounds. A bindle is the same gesture, so it is the same
+     * noise.
+     *
+     * <p>{@code BUNDLE_REMOVE_ONE}, not {@code BUNDLE_REMOVE}. The sound is
+     * {@code item.bundle.remove_one} and the constant is named after the id, so
+     * the shorter spelling compiles nowhere - which the first CI run on this
+     * branch established in forty-two seconds, and no amount of reading it back
+     * had.
+     */
     private static void play(Player player, boolean in) {
-        player.playSound(in ? SoundEvents.BUNDLE_INSERT : SoundEvents.BUNDLE_REMOVE, 0.8F, 0.8F);
+        player.playSound(in ? SoundEvents.BUNDLE_INSERT : SoundEvents.BUNDLE_REMOVE_ONE, 0.8F, 0.8F);
     }
 
     // ---- What it looks like --------------------------------------------------
