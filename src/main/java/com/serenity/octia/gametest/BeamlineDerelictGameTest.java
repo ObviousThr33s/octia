@@ -33,28 +33,52 @@ import java.util.Optional;
  */
 public class BeamlineDerelictGameTest implements FabricGameTest {
 
-    /** Where the floor is laid, matching DerelictGameTest's own ground. */
-    private static final BlockPos GROUND = new BlockPos(3, 2, 3);
+    /**
+     * Where the feature is handed its surface, and why it is not the box floor.
+     *
+     * <p>Same spot and same depth as {@code DerelictGameTest}, and that is the
+     * point rather than a coincidence: this test's whole claim is that two
+     * features answer differently about <em>identical</em> ground, so the ground
+     * has to be ground the other one demonstrably accepts.
+     */
+    private static final BlockPos GROUND = new BlockPos(4, 3, 4);
 
-    /** A patch of stone wide enough for a hull, its digs and its debris. */
-    private static void floor(GameTestHelper helper, BlockPos where) {
+    /**
+     * Solid ground around the drop point, four deep.
+     *
+     * <p>Four, because the wreck sinks two courses and then refuses ground that
+     * is air one further down. A single course - which is what this test laid on
+     * its first run - is refused by every derelict feature there is, and the
+     * refusal looks exactly like the station gate working. Five blocks of reach
+     * because gametest plots are thirteen apart and {@code setBlock} does not
+     * bounds-check.
+     */
+    private static void floor(GameTestHelper helper, BlockPos centre) {
         for (int dx = -5; dx <= 5; dx++) {
             for (int dz = -5; dz <= 5; dz++) {
-                helper.setBlock(where.offset(dx, 0, dz), Blocks.STONE);
+                for (int dy = -1; dy >= -4; dy--) {
+                    helper.setBlock(centre.offset(dx, dy, dz), Blocks.GRAVEL);
+                }
             }
         }
     }
 
     private static boolean place(GameTestHelper helper, BlockPos where, boolean station) {
         ServerLevel level = helper.getLevel();
-        BlockPos absolute = helper.absolutePos(where);
+
+        // Explicitly, and not because it is tidy: the per-save switch is a
+        // static that other tests in this suite set and the server clears, and
+        // a feature that declines because Octia is switched off looks precisely
+        // like a feature that declined because there is no station here.
+        OctiaWorldgen.setActive(true);
+
         return (station ? OctiaWorldgen.derelictStation() : OctiaWorldgen.derelict())
                 .place(new FeaturePlaceContext<>(
                         Optional.empty(),
                         level,
                         level.getChunkSource().getGenerator(),
-                        RandomSource.create(1),
-                        absolute.above(),
+                        RandomSource.create(1234L),
+                        helper.absolutePos(where),
                         NoneFeatureConfiguration.INSTANCE));
     }
 
