@@ -325,3 +325,83 @@ The order in VIII stands. Two additions and one deletion:
         test to run, not a feature to ship
 
 Horizon 2036. Nothing here is owed.
+
+XIV. SYNCHROTRONS, VIA CERN
+---------------------------
+
+**The machine, first.** A synchrotron is a closed ring with bending magnets at
+the corners and straight sections between them. Something circulates, gains a
+little energy each lap, and is steered back onto the same circuit forever. CERN
+does not have one of these, it has a chain of them feeding each other -
+Linac4 into the PS Booster into the PS into the SPS into the LHC, roughly
+160 MeV, 2 GeV, 26 GeV, 450 GeV, then several TeV a beam - and the last ring is
+26.7 km around, about 1,232 dipoles, and a bunch goes round it something like
+eleven thousand times a second. Four points on the ring are where beams cross.
+
+The cousins matter more here than the collider does. At a light source - ESRF,
+Diamond, SOLEIL - the beam is not there to collide. At every bend it throws
+light off **tangentially**, and each tangent is a beamline running out to an
+experiment hall. The ring is the source; the interesting places are the ones
+the tangents point at.
+
+(Those figures are from memory. Check them against CERN before any of them go
+somewhere that matters - AGENTS.md V, the same rule as opening the jar.)
+
+**Now the join, and it is not a metaphor.** `Sightlines` gives every cell
+exactly one outgoing leg. A function iterated on a finite set of visited cells
+must repeat one, so **every thread in this world ends in a closed circuit.**
+The lattice has been full of rings since the day it was written and nothing has
+ever looked at them.
+
+`world/Ring.java` looks at them, and `RingTest` pins what it finds. Measured
+over 419,904 walks across 64 seeds, a 81 x 81 cell window each:
+
+    every walk closes                       419,904 of 419,904, no failures
+    starts already on a ring                15.17%
+    mean lead-in before the ring            6.57 legs
+    rings of 2 legs (degenerate)            6.03%
+    rings of 4 legs (a square, ~2 km)       66.42%
+    rings of 6 legs or more                 27.55%
+    mean circumference                      2,587 blocks
+    largest found                           32 legs, 16,867 blocks
+    distinct rings per 41 km window         ~248
+
+So the lattice makes SPS-sized machines readily and LHC-sized ones almost
+never: 26.7 km is about 52 legs, and 52 did not occur once in four hundred
+thousand walks. The biggest thing out there is roughly two thirds of an LHC, and it is
+rare enough to be worth naming when a save has one.
+
+**What maps onto what, if any of this is built:**
+
+    bending magnet      the arch at a node - it already stands squared across
+                        the leg, which is what a magnet does to a beam
+    straight section    the leg, and the obelisk laid along it
+    the tangent         a beamline: the line out of a node along the leg it
+                        did not take
+    experiment hall     what the tangent points at - a dig, a derelict, sited
+                        on the tangent rather than scattered near it
+    injection           the beacon at spawn, which is already where everything
+                        enters this world from
+    the beam            ROADMAP's obelisk chain, which is a pulse looking for a
+                        route: run it round a ring instead of along a line
+
+The last row is the cheap one and the one worth doing first. A pulse that
+lights nodes in sequence needs a route that comes back, or it walks off the map
+and stops - and a ring is exactly a route that comes back. The visual is
+already built too: IX throws motes *inward*; a tangent throws the same motes
+*along the leg the beam did not take*, which is what a bend looks like from
+outside.
+
+**Three honest limits.**
+
+1. **Two-leg rings are not machines.** Six per cent of walks end in a thread
+   bouncing between two nodes. That is a standing wave, not a circuit, and
+   anything that sites on rings has to exclude them by name.
+2. **You cannot see a ring.** Two kilometres around is not a thing a person
+   standing in a field perceives, ever. This is a *map* feature - F6, and
+   `tools/sightline-map.py` - and any design that needs the player to feel the
+   ring from the ground is a design that will not work.
+3. **Nothing reads `Ring` yet.** It is measurement, not mechanism. It went in
+   because the claim "every thread ends in a ring" is either true of the
+   lattice or it is not, and now the answer is in a test rather than in a
+   paragraph.

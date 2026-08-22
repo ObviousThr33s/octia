@@ -160,7 +160,7 @@ octia/
 │  │  ├─ block/                         the andesite frame panel
 │  │  ├─ item/                          the bindle, and the sums it does
 │  │  ├─ ship/                          the core, its status, the moorings
-│  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice
+│  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice, rings
 │  │  ├─ crew/                          seats, orders, the gangway
 │  │  ├─ life/                          keep-inventory, held on: death costs a life
 │  │  ├─ client/                        client entrypoint and the F6 map
@@ -172,7 +172,7 @@ octia/
 │     ├─ assets/octia/                  textures, models, blockstates, lang
 │     ├─ data/octia/                    recipes, loot tables, worldgen
 │     └─ data/minecraft/tags/block/     the vanilla tags these blocks join
-└─ src/test/java/com/serenity/octia/    JUnit: codex, crew, sightlines, bindles
+└─ src/test/java/com/serenity/octia/    JUnit: codex, crew, lattice, bindles, halo
 ```
 
 ## License
