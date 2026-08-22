@@ -63,6 +63,11 @@ right, packed tight enough that a whole arc fits above a doorway.
     c   a cave somebody made a home of          -                  SMALL
     T   the lattice overhead, and the pull      -                  BIG
 
+The form is tested somewhere else on purpose - see EMPERORS.traj, where every
+Roman emperor from Augustus to Romulus Augustulus is packed into two glyphs
+each and the whole five hundred years lands on one 128 x 108 sheet. Somebody
+else picked those beats, which is what makes it a test rather than a flourish.
+
 Rules of the strip, such as they are:
 
   - Linear. A beat is a glyph is a column. No stacking, no branching, no

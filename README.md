@@ -131,6 +131,7 @@ octia/
 │  ├─ NOTATION.md                       the KEG notation, codified
 │  ├─ BINDLES.md                        the bindle, and what it carries
 │  ├─ TRAJECTORY.traj                   the sketch: glyphs, caves, the lattice
+│  ├─ EMPERORS.traj                     the glyph alphabet, tested on Rome
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
@@ -145,6 +146,8 @@ octia/
 │  ├─ backup-world.ps1                  snapshot a dev save outside the repo
 │  ├─ world-report.py                   read a save without launching the game
 │  ├─ sightline-map.py                  draw the lattice over a save, as HTML
+│  ├─ emperors.tsv                      85 emperors, two glyphs each
+│  ├─ emperor-strip.py                  that corpus as a strip, and a sheet
 │  ├─ sightline-map/                    that page's parts; no network, no CDN
 │  ├─ frontdoor.ps1                     build + open the desktop window
 │  ├─ frontdoor/                        its sources; no Fabric, no Loom
