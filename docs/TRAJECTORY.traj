@@ -508,3 +508,98 @@ whole time, because it compared four cells and three white cells in four keep
 their raw draw. `--probe` now prints a digest over 41 x 41 cells and a station
 count, and `Probe.java` prints the same, so the next drift fails the diff on the
 first run.
+
+================================================================================
+SITTING THREE - THE TWO NETS
+================================================================================
+
+Set down 2026-08-22, later the same evening, out of a screenshots folder. Same
+standing as the other two sittings: a sketch, owed to nobody, and the first step
+in it is a decision rather than a line of code.
+
+
+XVI. TWO NETS, AND THE MAP BETWEEN THEM
+---------------------------------------
+
+**The observation.** `run/screenshots/` is a corpus and nobody had noticed. Not
+of pictures - of *situated text*. Every frame carries the HUD, the chat, and
+whatever the player typed at the moment they saw the thing they pressed F2 for:
+
+    "spooky"
+    "nobody here"
+    "that must be the skeleton that killed me last world"
+    "from pure data?"
+    "first obelisk found at---"
+    "not quite but close I guess"
+
+That is player intuition with a timestamp, a position, a biome and a block
+under the crosshair attached to it. It is the only record this project has of
+what any of it *feels* like, and it is currently a folder nobody reads.
+
+**The other net.** The in-game Java object model, which is already structured
+and already enumerable: the registries, the blockstates, the data components,
+the feature graph, the loot tables, and the KEG types in `codex/`. Nothing has
+to be learned to know what is in it. It can be listed.
+
+**The idea is neither net. It is the map between them.** One space over what a
+player says about a thing, one over the thing, and a function from the first to
+the second.
+
+**Why it is a real item and not a pretty one.** Those two are joined by hand
+today, three times over, and each join is somebody guessing:
+
+    Situation.wayfarerBriefing   hand-writes what a stranger knows
+    assets/octia/lang/en_us.json hand-writes what everything is called
+    TRAJECTORY.traj II           hand-assigns a glyph to a beat
+
+Three hand-authored joins between the same two sides. A learned map would not
+replace any of them outright - see XII, and the note below - but it would say
+where they disagree with how anybody actually talks about the world.
+
+**The machinery is already on the bench, filtered out, idle.** This is the part
+that makes it cheap. `SeatName.isChatCleric` exists to *drop* the models that
+cannot hold a conversation, and reading it back is the finding: the bench
+carries an embedding model, a vision projector, and a speech model, and the
+crew deliberately never seats them.
+
+    embed    -> the text side of the map, already reachable, already local
+    mmproj   -> a vision projector, which is what a screenshot corpus wants
+    whisper  -> not needed here, and worth remembering it is there
+    clip     -> the same
+
+An embedder and a vision projector, sitting on a bench this mod already talks
+to, excluded from the only job it currently has. Nothing new needs installing to
+try the smallest version of this.
+
+**The smallest version.** Not a model, a scatter plot. Take what is already on
+disk - the chat lines out of the logs, the block and biome under the crosshair
+out of the F3 text - embed the utterances, embed the object names, and look at
+what lands near what. If "spooky" sits nearest `minecraft:deepslate` and
+`octia:andesite_frame_panel` in a dark cave, the map is telling the truth about
+the palette. If it sits nearest nothing, there is no map here and the entry
+closes.
+
+**Three limits, and the first one is a decision.**
+
+1. **The corpus is not in the repo and may not belong in it.** `run/` is
+   gitignored on purpose - it is the dev client's world, not the project's.
+   Collecting player text into version control is a choice about what this
+   repo is for, and it is not a choice a tool should make quietly.
+2. **Chat is other people's words.** LAN guests appear in these logs, and so do
+   the crew - a wayfarer's line is a local model's output and a guest's line is
+   a person's. Provenance before collection, and consent before anything a
+   person said leaves the machine it was said on.
+3. **A learned map must not author the art.** XII fixed mesolithic as a rule
+   precisely so that scale and grandeur are not up for negotiation, and the
+   glyph alphabet is small on purpose (XV, and EMPERORS.traj: thirteen glyphs
+   carried five centuries). A map that proposes glyphs is useful; a map that
+   picks them is how an alphabet becomes forty marks nobody can read.
+
+**What it changes upstream, if it works at all.** X wants padding that reads as
+somebody's signal rather than as noise, and the emperors corpus is standing in
+for that today. XI wants to know whether the crew's voice is doing any work.
+Both of those are questions about whether generated text lands where a person
+would put it - which is the same question this map answers, asked twice in two
+places.
+
+Horizon 2036, like the rest. Nothing here is owed.
