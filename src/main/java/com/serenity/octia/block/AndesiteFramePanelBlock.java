@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
@@ -51,6 +52,15 @@ public class AndesiteFramePanelBlock extends Block {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LIGHT);
+    }
+
+    /**
+     * The halo, when the panel is lit. See {@link Luminaries} for why this is
+     * one line and why it costs a dark panel nothing.
+     */
+    @Override
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        Luminaries.halo(state, level, pos, random);
     }
 
     /**

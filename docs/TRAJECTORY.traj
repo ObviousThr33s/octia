@@ -197,3 +197,131 @@ VIII. THE ORDER
 
 Steps 1 and 2 are worth doing whatever happens to 3 through 6. Step 7 does not
 depend on any of them - it depends on the lattice, which already exists.
+
+================================================================================
+SITTING TWO - 2036
+================================================================================
+
+Set down 2026-08-22, later the same day. The number at the top of this sitting
+is the horizon: **2036**. Ten years. Nothing in either sitting needs to happen
+this year, and writing the far date down is what stops a sketch from being read
+as a backlog.
+
+To trajectorize: to write the thing down before deciding it. Everything here is
+approximate and says so - approx., etc., et al. - and a number that turns out
+to matter gets promoted to ROADMAP.md, where numbers are held to.
+
+
+IX. PARTICLE EFFECTS, ENCHANT ALL LUMINARIES
+--------------------------------------------
+
+Landed the same day it was said. Every block this mod owns that emits light now
+wears a halo of enchant motes drawn on a shell around it, falling inward, so
+the light reads as gathering rather than leaking.
+
+    block/Halo.java         the sums: how many motes, and where
+    block/Luminaries.java   the one call that needs the game
+    HaloTest                the sweep that keeps motes out of the andesite
+
+One rule, applied to light rather than to a list: lit gets the halo, dark does
+not, and the next luminary registered gets it for one line in its animateTick.
+It costs nothing on a server - animateTick is client-side - and nothing at all
+for a player looking the other way.
+
+The number worth knowing: the inner shell is 0.9, not 0.5. Half a block is the
+distance to a face; the distance to a corner is 0.866, and a tighter shell puts
+every diagonal mote inside the block it is falling toward, invisible and still
+paid for.
+
+**What it does not reach.** The mast at spawn and the obelisk crowns are
+vanilla blocks. Their light is not ours to dress without a mixin, and this mod
+does not take one. The halo is on Octia's own blocks or it is nowhere.
+
+
+X. NOISE PADS OUT THE REAL, AND SEALED CELLS ARE THE REAL
+---------------------------------------------------------
+
+A wall of glyphs where every glyph counts is a document. A wall where most of
+them are noise and a few are sealed is a *find* - and finding is the verb this
+mod is about.
+
+    most cells on a wall are padding
+    a minority are sealed: locked, load-bearing, true of this save
+    the seal has to be visible in-world, or the wall is unreadable rather
+        than mysterious
+
+The join that makes this cheap arrived with IX: **the sealed cells are the lit
+ones.** A sealed glyph is cut into a lit panel and wears the halo; padding is
+cut into dark andesite and does not. No new state, no new block, no legend to
+teach - the player learns it the first time they walk past a wall and only some
+of it glitters.
+
+**And the padding gets authored, not randomised.** This is the seagull note,
+and it is the whole of it: the noise needs a friend too. Random glyphs read as
+random within about four seconds, and the wall goes from mysterious to broken.
+Pad instead with real beats belonging to somebody else - the emperors corpus is
+eighty-five of them sitting in tools/, already in the alphabet, already true of
+somebody. Then every mark on the wall is somebody's signal, and the only
+question is whose.
+
+
+XI. WHAT IF THE GUY CONTROLLED THE RAT
+--------------------------------------
+
+The crew is a language model driving a body that looks like a player. The
+inversion: a player driving a body while a language model narrates as though it
+decided.
+
+Nothing new is needed to try it. Order already reduces anything to six verbs,
+CrewPlayer already takes orders from whatever hands them over, and Cleric
+already speaks. Swap the source of the orders and keep the voice:
+
+    /octia crew take <name>    you steer, the cleric still talks
+    the model is told what happened, not asked what to do
+    it says why it did the thing you just did
+
+The reason it is worth an entry rather than a joke: it is the cheapest test in
+the codebase of whether the crew's voice is doing any work. If a wayfarer is
+just as convincing when a person is pulling the strings and the model is only
+explaining, then the model was always doing the explaining and never the
+deciding - which is worth knowing before more is built on it.
+
+Consent is the open question, and it is a real one: a crew member who can be
+worn is a different character from one who can be asked. Do not make it the
+default, and do not let it reach a wayfarer at all. Strangers are not yours.
+
+
+XII. VERY MESOLITHIC
+--------------------
+
+The art direction, and it is now a rule rather than a mood.
+
+**Mesolithic, not neolithic.** Before agriculture, before monuments, before
+anybody had a surplus to build with. Scratched marks, ochre, a hand, a tally.
+Somebody sheltering in a cave that was already there, on the way to somewhere,
+leaving a mark because they had a stone and a wall and an hour.
+
+What it rules out, which is the useful half: no temples, no monoliths that
+somebody clearly organised labour to raise, no writing system with a grammar,
+no gold. The obelisks already sit right on this line - a prism laid along a leg
+is a marker, not a monument - and the arch is the closest thing to a violation
+the mod currently has.
+
+It also settles the pixel argument for good. 128 px was set on a nerve in VII;
+mesolithic is the reason it was the right nerve. Nothing in this world is
+supposed to look like it took a workshop.
+
+
+XIII. WHAT SITTING TWO CHANGES IN THE ORDER
+-------------------------------------------
+
+The order in VIII stands. Two additions and one deletion:
+
+    +   IX landed already, ahead of everything, because it was one line per
+        block and it makes X almost free
+    +   X's seal-is-light rule goes into step 1: the first hand-made cave has
+        a lit strip and a dark one, and the dark one is emperors
+    -   nothing is deleted, but XI is explicitly out of the order - it is a
+        test to run, not a feature to ship
+
+Horizon 2036. Nothing here is owed.
