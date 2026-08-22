@@ -30,9 +30,6 @@ import net.minecraft.world.level.block.state.BlockState;
  */
 public final class Luminaries {
 
-    /** How hard a mote falls toward the block it belongs to. Slow: this is a drift. */
-    private static final double PULL = 0.22;
-
     private Luminaries() {
     }
 
@@ -41,18 +38,38 @@ public final class Luminaries {
      *
      * <p>Safe to call from any block's {@code animateTick}. An unlit block does
      * no work beyond one comparison.
+     *
+     * <p><b>An enchant mote does not take a velocity, and getting that backwards
+     * is what the first version of this did.</b> {@code addParticle}'s last
+     * three arguments are a speed for most particle types, but
+     * {@code EnchantParticle} reads them as an <i>offset to where the mote
+     * appears</i> and then flies it to the position it was spawned at. So the
+     * position argument is the <b>destination</b>, not the origin.
+     *
+     * <p>Vanilla spells it out: the enchanting table calls this at the table's
+     * own coordinates and passes the offset to a bookshelf, and what you see is
+     * a glyph leaving the shelf and arriving at the table. Passing a negative
+     * offset as though it were a pull - which is what was shipped - draws motes
+     * that start near the shell and drift outward, away from the block. It looks
+     * deliberate, it survived every test in {@code HaloTest} because the
+     * arithmetic it checks is unchanged, and it was caught the first time
+     * somebody watched a lit panel.
+     *
+     * <p>So: the block's centre is the destination, and the mote's shell offset
+     * is handed over whole. A mote appears out on the shell and falls in until
+     * it is absorbed at the andesite.
      */
     public static void halo(BlockState state, Level level, BlockPos pos, RandomSource random) {
         int motes = Halo.motes(state.getLightEmission());
         for (int i = 0; i < motes; i++) {
             Halo.Mote mote = Halo.at(random.nextDouble(), random.nextDouble(), random.nextDouble());
             level.addParticle(ParticleTypes.ENCHANT,
-                    pos.getX() + 0.5 + mote.x(),
-                    pos.getY() + 0.5 + mote.y(),
-                    pos.getZ() + 0.5 + mote.z(),
-                    -mote.x() * PULL,
-                    -mote.y() * PULL,
-                    -mote.z() * PULL);
+                    pos.getX() + 0.5,
+                    pos.getY() + 0.5,
+                    pos.getZ() + 0.5,
+                    mote.x(),
+                    mote.y(),
+                    mote.z());
         }
     }
 }
