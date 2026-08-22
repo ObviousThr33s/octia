@@ -32,6 +32,10 @@ import org.slf4j.LoggerFactory;
  *   <li>{@link OctiaBlocks#bootstrap()} - the blocks and their block items are
  *       filed into the registries on the way through that class's static
  *       initialiser; the call itself adds them to creative tabs.</li>
+ *   <li>{@link OctiaItems#bootstrap()} - the same, for the items that are
+ *       not blocks. Second rather than first because the bindle's road
+ *       packing reads a block item, and a class that reads
+ *       {@code OctiaBlocks} wants that class initialised already.</li>
  *   <li>{@code ServerWorldEvents.LOAD} - reads the per-save switch the moment a
  *       save's Overworld loads, publishes it where the generation workers can
  *       see it, and on a save's first load raises the beacon and seats the
@@ -93,6 +97,11 @@ public final class Octia implements ModInitializer {
         // initialiser. Doing it here, rather than at class-load time from some
         // earlier hook, is what guarantees the registries are open.
         OctiaBlocks.bootstrap();
+
+        // The items that are not blocks. A separate call rather than a line
+        // in the funnel above, because that funnel makes one BlockItem per
+        // block and a bindle is not a block - see the seam note there.
+        OctiaItems.bootstrap();
 
         // The world-create switch, read at the one moment it can be read: the
         // first time a save's Overworld loads. Asking earlier means asking

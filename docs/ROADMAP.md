@@ -279,6 +279,14 @@ model at all:
   the cleric said. Reserve that depends on a language model remembering to be
   reserved is not reserve.
 
+**They leave something now.** One departure in three puts a bindle down where
+they stood - two or three stacks of road things, on an unlimited lifetime
+because they leave once nobody is watching and a five-minute despawn would rot
+it on an empty road every time. It is the only thing a wayfarer ever gives you,
+and it is given by being put down rather than handed over, which is the whole
+character: one that traded would be a wandering trader with a better prompt.
+See [BINDLES.md](BINDLES.md).
+
 **Still open.** They arrive anywhere outdoors at night rather than near an
 obelisk, because obelisk positions are not recorded anywhere — a ruin registry
 would fix that and would also serve the minimap integration. And nothing yet

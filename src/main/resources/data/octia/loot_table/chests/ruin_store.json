@@ -135,6 +135,11 @@
           "type": "minecraft:item",
           "name": "minecraft:book",
           "weight": 2
+        },
+        {
+          "type": "minecraft:item",
+          "name": "octia:bindle",
+          "weight": 3
         }
       ]
     }

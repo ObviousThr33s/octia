@@ -27,6 +27,9 @@ Not a scaffold any more, and not a finished content mod. What is registered:
   through it facing the way the thread runs. Nothing in a vanilla world points
   at anything; the survey of the dev saves that establishes that is in
   [docs/SIGHTLINES.md](docs/SIGHTLINES.md).
+- **Bindles.** A cloth tied to a stick: four stacks, no screen, worked like a
+  bundle. Crafted, found in a ruin's store, or left on the road by a wayfarer
+  who put theirs down where they stood. See [docs/BINDLES.md](docs/BINDLES.md).
 - **Crew.** Server-side fake players seated by `/octia crew muster`, spoken for
   by a local model when one answers and by an offline tender when none does.
   LAN guests see them without installing anything.
@@ -126,6 +129,7 @@ octia/
 │  ├─ DEVOPS.md                         why GameTest, and how it stays open
 │  ├─ UPGRADING.md                      what breaks above 1.21.1, with lines
 │  ├─ NOTATION.md                       the KEG notation, codified
+│  ├─ BINDLES.md                        the bindle, and what it carries
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
@@ -148,7 +152,9 @@ octia/
 │  ├─ java/com/serenity/octia/
 │  │  ├─ Octia.java                     entrypoint; MOD_ID and id() live here
 │  │  ├─ OctiaBlocks.java               registration, one place
+│  │  ├─ OctiaItems.java                the same, for what is not a block
 │  │  ├─ block/                         the andesite frame panel
+│  │  ├─ item/                          the bindle, and the sums it does
 │  │  ├─ ship/                          the core, its status, the moorings
 │  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice
 │  │  ├─ crew/                          seats, orders, the gangway
@@ -162,7 +168,7 @@ octia/
 │     ├─ assets/octia/                  textures, models, blockstates, lang
 │     ├─ data/octia/                    recipes, loot tables, worldgen
 │     └─ data/minecraft/tags/block/     the vanilla tags these blocks join
-└─ src/test/java/com/serenity/octia/    JUnit: codex, crew, sightlines
+└─ src/test/java/com/serenity/octia/    JUnit: codex, crew, sightlines, bindles
 ```
 
 ## License

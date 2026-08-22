@@ -28,7 +28,8 @@
       "${mod_package}.gametest.WayfarerGameTest",
       "${mod_package}.gametest.RuinRegistryGameTest",
       "${mod_package}.gametest.KeepInventoryGameTest",
-      "${mod_package}.gametest.FirstLightGameTest"
+      "${mod_package}.gametest.FirstLightGameTest",
+      "${mod_package}.gametest.BindleGameTest"
     ]
   },
   "depends": {
