@@ -368,8 +368,8 @@ over 419,904 walks across 64 seeds, a 81 x 81 cell window each:
 
 So the lattice makes SPS-sized machines readily and LHC-sized ones almost
 never: 26.7 km is about 52 legs, and 52 did not occur once in four hundred
-thousand walks. The biggest thing out there is roughly two thirds of an LHC, and it is
-rare enough to be worth naming when a save has one.
+thousand walks. The biggest thing out there is roughly two thirds of an LHC,
+and it is rare enough to be worth naming when a save has one.
 
 **What maps onto what, if any of this is built:**
 
