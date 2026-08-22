@@ -591,6 +591,25 @@ in our own code arrives with its evidence attached rather than being swallowed.
 The local `verify.ps1` still bounds nothing, which is the remaining half of the
 job and is listed under the gate work.
 
+**A four-cell check is not a check.** `tools/sightline-map.py` transposes the
+lattice out of `Sightlines.java` so the map can be drawn without launching the
+game, and the file's own docstring says what to do about that: diff
+`--probe` against `tools/sightline-map/Probe.java`. That diff passed for weeks
+while the Python drew a different lattice than the game generates for **12.7% of
+cells** - it was still transposing `rawStep`, with none of the white-cell
+re-pick that `Sightlines.step` grew when two-cycles were fixed, and `CORRIDOR`
+was 32 there against 128 here.
+
+It passed because it compared **four cells**, and three white cells in four keep
+their raw draw. The probability that four cells catch a rule that changes one
+cell in eight is not far off half - a coin flip dressed as a gate.
+
+Fixed 2026-08-22, both the transposition and the check: `--probe` now prints a
+digest over 41 x 41 cells plus a station count, and `Probe.java` prints the
+same. **When a check exists to catch drift, size it against the drift rate.** A
+sample that would miss the failure most of the time is worse than no check,
+because it is read as evidence.
+
 **A structure query may only ever ask about its own chunk.** `startsForStructure`
 reads twice - the references held by the chunk you name, and then the chunk that
 *owns* each start those references point at. A chunk's references are filled from

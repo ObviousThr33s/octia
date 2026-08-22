@@ -405,3 +405,67 @@ outside.
    because the claim "every thread ends in a ring" is either true of the
    lattice or it is not, and now the answer is in a test rather than in a
    paragraph.
+
+XV. THE TANGENTS, AND WHAT THEY POINT AT
+----------------------------------------
+
+The row XIV called the cheap one, built. `world/Beamline.java`, pinned by
+`BeamlineTest`, drawn by `tools/sightline-map.py`.
+
+**The rule.** A node whose incoming leg arrives on one heading and whose
+outgoing leg leaves on another is a bend. A bend throws a *station*: a point on
+the tangent, 160 to 384 blocks past the node, seeded per bend. A node the thread
+runs straight through throws nothing, because a straight section does not
+radiate - which is the physics and also, usefully, half the density.
+
+**The payoff, which is the only reason to build it.** An obelisk lies along its
+leg with a slot bored down its length. Sight through the slot, along the leg,
+past the arch standing on the node at the far end - and a station is exactly
+where that line goes. This mod has had a thing you can sight along since the
+lattice landed and nothing at the far end of the sighting. This is what goes
+there.
+
+**One bug found by writing the test for that sentence.** The first version
+carried the *cardinal* on past the node instead of the leg's own direction. A
+leg bends up to thirty degrees off its cardinal, so the far end landed as much
+as **172 blocks off the line somebody is sighting along** - measured over 39,808
+stations. Carrying the line instead puts it dead ahead, within the 0.62 blocks
+that rounding to a coordinate costs. The wrong version passed every other test
+in the file.
+
+**Measured**, 16 seeds, 61 x 61 cells each, 59,536 nodes:
+
+    stations                            39,808, or 0.669 a node
+    density                             2.55 per km2
+    nodes nothing points at             30.53% - they radiate nothing
+    arrivals running straight through   33.12% - no bend, no station
+    stations from a reversal            0.62%
+    mean drift past the node            272 blocks
+    landing inside their host cell's
+        obelisk corridor                32.62%
+
+That last one is not a defect. A third of stations sit where an obelisk may
+also stand, which means a third of them arrive already marked - and the other
+two thirds are a walk into an empty cell with nothing but the sighting to go on.
+Both readings are wanted; leave it alone.
+
+**What is not built.** Nothing places a ruin at a station yet. The predicate a
+feature needs is there and tested - `Beamline.nearest(seed, x, z, range)` - and
+wiring it into `DerelictFeature` or `TemplateRuinFeature` is a small edit that
+should be made by somebody who can run `tools/verify.ps1` against it. Written
+down rather than guessed at.
+
+**And the map now draws them**, which matters because XIV said this is a map
+feature and not a spectacle: dashed gold tangents off the bends, an open ring
+where each lands, a "nearest station" readout under the cursor.
+
+**A drift found on the way, and it is the bigger finding of the two.**
+`tools/sightline-map.py` was transposing `rawStep` and had never had the
+white-cell re-pick that `Sightlines.step` has had since the two-cycle fix. The
+map drew a different lattice than the game generates for **12.7% of cells**, and
+`CORRIDOR` was still 32 there against 128 in the Java. Both fixed. The check the
+file itself prescribes - diff the Python probe against `Probe.java` - passed the
+whole time, because it compared four cells and three white cells in four keep
+their raw draw. `--probe` now prints a digest over 41 x 41 cells and a station
+count, and `Probe.java` prints the same, so the next drift fails the diff on the
+first run.

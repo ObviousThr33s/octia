@@ -160,7 +160,7 @@ octia/
 │  │  ├─ block/                         the andesite frame panel
 │  │  ├─ item/                          the bindle, and the sums it does
 │  │  ├─ ship/                          the core, its status, the moorings
-│  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice, rings
+│  │  ├─ world/                         beacon, derelict, obelisk, arch, lattice, beams
 │  │  ├─ crew/                          seats, orders, the gangway
 │  │  ├─ life/                          keep-inventory, held on: death costs a life
 │  │  ├─ client/                        client entrypoint and the F6 map
