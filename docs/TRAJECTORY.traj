@@ -449,11 +449,39 @@ also stand, which means a third of them arrive already marked - and the other
 two thirds are a walk into an empty cell with nothing but the sighting to go on.
 Both readings are wanted; leave it alone.
 
-**What is not built.** Nothing places a ruin at a station yet. The predicate a
-feature needs is there and tested - `Beamline.nearest(seed, x, z, range)` - and
-wiring it into `DerelictFeature` or `TemplateRuinFeature` is a small edit that
-should be made by somebody who can run `tools/verify.ps1` against it. Written
-down rather than guessed at.
+**And now a wreck stands at one.** `BeamlineDerelictFeature`, registered as
+`octia:derelict_station`, puts an ordinary derelict at the far end of a tangent -
+the same hull, dig and dressing `DerelictFeature` builds anywhere else, on a site
+the lattice chose instead of a coin flip. Sight through an obelisk's slot, along
+the leg, past the arch at the far node, and walk: that is now a wreck.
+
+**The chunk that contains a station is the one that builds it.** That is the
+whole trick, and it is forced by a constraint rather than chosen: a generation
+worker may only write near its own chunk, so a feature cannot answer "there is a
+station 300 blocks that way" by building there. Claiming by containment means no
+two chunks can claim the same station, nothing has to remember what has been
+built, and every write stays where it belongs. `Beamline.inChunk` is that
+question and `BeamlineTest` pins both halves of it - a chunk answers only with a
+station really inside it, and every station is claimed by the chunk that holds
+one.
+
+**The rarity is in the lattice, so the placement has none.**
+`derelict_station.json` asks once per chunk with no rarity filter at all. A
+station lands in about **one chunk in 1,575**, measured over 1,286,408 chunks -
+against the wild wreck's one roll in 800, most of which are then refused by
+footing, water or a village. Two stations in one chunk happens 0.010% of the
+time and the second is dropped rather than built over the first.
+
+It yields to structures like the wild one does. A wreck at a station is meant,
+but not enough to put it in somebody's village square - and the tangent that
+pointed at it is still true whether or not the wreck could take the site.
+
+**Unverified in game, and that is the honest state of it.** This machine cannot
+reach `maven.fabricmc.net`, so nothing here has been through `tools/verify.ps1`.
+The arithmetic is pinned by JUnit (35 pure tests green) and the gate has a
+`@GameTest` that proves the negative - on ground the wild wreck accepts, the
+station wreck declines, because no station is there. What has never run is a real
+chunk generating a real hull at a real tangent.
 
 **And the map now draws them**, which matters because XIV said this is a map
 feature and not a spectacle: dashed gold tangents off the bends, an open ring

@@ -145,6 +145,42 @@ public final class Beamline {
                 node.z() + (int) Math.round(dz / length * drift));
     }
 
+    /**
+     * The station that belongs to one chunk, or null if none lands in it.
+     *
+     * <p>What a feature asks, and the shape is chosen so that the answer needs
+     * no coordination. A station lands in exactly one chunk, so the chunk that
+     * contains it is the one that builds it: no two chunks can claim the same
+     * station, nothing has to remember what has been built, and a generation
+     * worker never writes outside its own region - which is the constraint that
+     * ruled out simply moving a wreck to the nearest station.
+     *
+     * <p><b>One per chunk, and the rest are dropped.</b> Two stations in one
+     * sixteen-block square is rare - see docs/TRAJECTORY.traj XV - and the
+     * alternative is two hulls in the same chunk overlapping each other. The
+     * first in scan order wins, and scan order is fixed, so the answer is a
+     * function of the seed like everything else in the lattice.
+     */
+    public static Station inChunk(long seed, int chunkX, int chunkZ) {
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        int cellX = Sightlines.cell(minX);
+        int cellZ = Sightlines.cell(minZ);
+        int reach = (int) Math.ceil((DRIFT_MAX + Sightlines.JITTER + Sightlines.SPACING / 2.0)
+                / Sightlines.SPACING);
+
+        for (int dx = -reach; dx <= reach; dx++) {
+            for (int dz = -reach; dz <= reach; dz++) {
+                for (Station station : thrownBy(seed, cellX + dx, cellZ + dz)) {
+                    if (station.at().x() >> 4 == chunkX && station.at().z() >> 4 == chunkZ) {
+                        return station;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /** How far past the node this beamline reaches. A draw, held between the bounds. */
     private static int drift(long seed, int cellX, int cellZ, Sightlines.Heading arriving) {
         long h = Sightlines.hash(seed, cellX, cellZ, STATION_SALT + arriving.ordinal());

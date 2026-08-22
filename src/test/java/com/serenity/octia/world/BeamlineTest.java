@@ -131,6 +131,58 @@ class BeamlineTest {
         }
     }
 
+    /**
+     * What the feature calls. A chunk answers with a station only if a station
+     * really lands in it, and the station it answers with is one the lattice
+     * actually threw - the two claims a wreck at a station rests on.
+     */
+    @Test
+    @DisplayName("inChunk answers with a station that is in that chunk")
+    void inChunkIsInTheChunk() {
+        int found = 0;
+        for (long seed = 1; seed <= SEEDS; seed++) {
+            for (int chunkX = -60; chunkX <= 60; chunkX++) {
+                for (int chunkZ = -60; chunkZ <= 60; chunkZ++) {
+                    Beamline.Station station = Beamline.inChunk(seed, chunkX, chunkZ);
+                    if (station == null) {
+                        continue;
+                    }
+                    found++;
+                    assertEquals(chunkX, station.at().x() >> 4, "a station was claimed by the wrong chunk");
+                    assertEquals(chunkZ, station.at().z() >> 4, "a station was claimed by the wrong chunk");
+                    assertTrue(Beamline.thrownBy(seed, station.cellX(), station.cellZ()).contains(station),
+                            "inChunk invented a station its own cell does not throw");
+                }
+            }
+        }
+        assertTrue(found > 0, "no chunk in the sample held a station, so this test proved nothing");
+    }
+
+    /**
+     * Every station is claimable. A station that no chunk answers with is a
+     * beamline pointing at ground nothing will ever build on - the failure would
+     * be invisible in game and total in effect.
+     */
+    @Test
+    @DisplayName("every station is found by the chunk that contains it")
+    void everyStationIsClaimed() {
+        for (long seed = 1; seed <= SEEDS; seed++) {
+            for (int cx = -SPAN; cx <= SPAN; cx += 2) {
+                for (int cz = -SPAN; cz <= SPAN; cz += 2) {
+                    for (Beamline.Station station : Beamline.thrownBy(seed, cx, cz)) {
+                        Beamline.Station claimed = Beamline.inChunk(seed,
+                                station.at().x() >> 4, station.at().z() >> 4);
+                        assertTrue(claimed != null,
+                                "the chunk holding a station answered with nothing");
+                        // Two stations in one chunk is rare and only one gets
+                        // built - see Beamline.inChunk - so the claim may be the
+                        // other one. What may never happen is no claim at all.
+                    }
+                }
+            }
+        }
+    }
+
     /** The reference: every station within a generous cell window, closest first. */
     private static Beamline.Station sweep(long seed, int x, int z, double range) {
         List<Beamline.Station> all = new ArrayList<>();

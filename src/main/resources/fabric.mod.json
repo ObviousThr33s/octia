@@ -29,7 +29,8 @@
       "${mod_package}.gametest.RuinRegistryGameTest",
       "${mod_package}.gametest.KeepInventoryGameTest",
       "${mod_package}.gametest.FirstLightGameTest",
-      "${mod_package}.gametest.BindleGameTest"
+      "${mod_package}.gametest.BindleGameTest",
+      "${mod_package}.gametest.BeamlineDerelictGameTest"
     ]
   },
   "depends": {
