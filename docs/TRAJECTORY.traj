@@ -233,6 +233,17 @@ distance to a face; the distance to a corner is 0.866, and a tighter shell puts
 every diagonal mote inside the block it is falling toward, invisible and still
 paid for.
 
+**And the thing no test caught.** The first version shipped with the motes
+travelling the wrong way, and it took somebody opening the game to see it. An
+enchant mote is not given a velocity: {@code EnchantParticle} reads
+{@code addParticle}'s last three arguments as an offset to where it should
+appear and then flies to the position it was spawned at, so the position is the
+destination. Vanilla's enchanting table spawns at the table and offsets to the
+bookshelf, which is why glyphs arrive at the table. Passing a negative offset as
+a pull draws motes drifting outward instead - and it survived HaloTest, because
+the arithmetic HaloTest checks was right the whole time. The gates prove the
+machinery; a person at a lit panel proves the direction.
+
 **What it does not reach.** The mast at spawn and the obelisk crowns are
 vanilla blocks. Their light is not ours to dress without a mixin, and this mod
 does not take one. The halo is on Octia's own blocks or it is nowhere.

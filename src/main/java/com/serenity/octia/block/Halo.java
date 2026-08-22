@@ -8,8 +8,10 @@ package com.serenity.octia.block;
  * {@code addParticle}, and that lives in {@link Luminaries}.
  *
  * <p><b>The shell is the whole idea.</b> Motes are drawn on a spherical shell
- * around the block and pushed inward, so the light reads as gathering rather
- * than as leaking. That only works if no mote ever spawns inside the cube it is
+ * around the block and flown inward, so the light reads as gathering rather
+ * than as leaking. How that is asked for is {@link Luminaries}' problem and it
+ * is not obvious - an enchant mote is given a destination and an offset, not a
+ * velocity, and the first version had it exactly backwards. That only works if no mote ever spawns inside the cube it is
  * falling toward: a particle drawn at the centre of a solid block is invisible,
  * and half a dozen invisible particles a tick is a performance cost with
  * nothing to show for it.
