@@ -113,17 +113,17 @@ class NotationTest {
     @Test
     @DisplayName("scope keeps both readings available")
     void scopeKeepsBothReadings() {
-        Scope s = Scope.parse("|SEEK|SAGE|HELIOS|ALL|USERS|");
+        Scope s = Scope.parse("|SEEK|SAGE|DEVOPS|ALL|USERS|");
 
         // Cardinality - the divisor reading in the Mobius note.
         assertEquals(5, s.size());
         // Selector - the alternation reading.
-        assertTrue(s.contains("HELIOS"));
-        assertEquals(List.of("SEEK", "SAGE", "HELIOS", "ALL", "USERS"), s.members());
+        assertTrue(s.contains("DEVOPS"));
+        assertEquals(List.of("SEEK", "SAGE", "DEVOPS", "ALL", "USERS"), s.members());
 
         // Outer pipes are part of the form and are always emitted.
-        assertEquals("|SEEK|SAGE|HELIOS|ALL|USERS|", s.toNotation());
-        assertEquals(s, Scope.parse("SEEK|SAGE|HELIOS|ALL|USERS"));
+        assertEquals("|SEEK|SAGE|DEVOPS|ALL|USERS|", s.toNotation());
+        assertEquals(s, Scope.parse("SEEK|SAGE|DEVOPS|ALL|USERS"));
     }
 
     @Test

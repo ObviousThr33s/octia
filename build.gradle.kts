@@ -84,6 +84,23 @@ loom {
             vmArg("-Dfabric-api.gametest")
             vmArg("-Dfabric-api.gametest.report-file=" +
                     layout.buildDirectory.file("test-results/gametest/report.xml").get().asFile.absolutePath)
+
+            // What the crew bench is allowed to expect of this machine.
+            //
+            // CrewBenchGameTest refuses to guess: it asserts the online contract
+            // when this says "required" and the offline tender contract when it
+            // says "absent", and an unrecognised value is an error rather than a
+            // quiet skip. Its own default is "required", which is the right
+            // default for a test written at a desk with LM Studio open and the
+            // wrong one for a gate.
+            //
+            // "absent" here, because OCTIA.md standing order 2 says the gates run
+            // with no display, no Mojang account and no secrets - and a local
+            // model on 127.0.0.1 is the same class of thing. A gate that cannot
+            // go green on a clean checkout is not a gate. Pass -PoctiaBench=required
+            // (tools/verify.ps1 -Bench) to check the network side instead.
+            vmArg("-Doctia.crew.network=" + (findProperty("octiaBench") ?: "absent"))
+
             runDir("build/gametest")
         }
 
@@ -147,4 +164,29 @@ tasks.processResources {
     filesMatching("fabric.mod.json") {
         expand(props)
     }
+}
+
+// ---- The door -------------------------------------------------------------
+// The third way in, beside SEEK.cmd at the repo root and the desktop shortcut
+// that `tools/frontdoor.ps1 -Install` writes. All three call the same script.
+//
+// Registered lazily and wired to nothing. `tasks.register` does not configure
+// the task unless somebody asks for it by name, which is what keeps a
+// powershell.exe command line out of CI's way - verify.yml runs on Linux and
+// would choke the moment this was realised there.
+//
+// It must never become a dependency of `build` or `check`. Those two are the
+// gates; the gates run with no display, no account and no window, and this
+// opens a window. A doorbell, not a dependency.
+//
+// The door itself still does not build against Loom and still knows nothing
+// about Minecraft - see the header of tools/frontdoor.ps1 for why it lives
+// outside the source set and caches its own jar.
+tasks.register<Exec>("door") {
+    group = "octia"
+    description = "Open the OCTIA front door. Compiles it first if it is stale."
+    commandLine(
+        "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", layout.projectDirectory.file("tools/frontdoor.ps1").asFile.absolutePath,
+    )
 }

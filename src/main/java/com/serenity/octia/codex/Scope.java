@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A pipe-delimited audience: {@code |SEEK|SAGE|HELIOS|ALL|USERS|}.
+ * A pipe-delimited audience: {@code |SEEK|SAGE|DEVOPS|ALL|USERS|}.
  *
  * <p>Leading and trailing pipes are part of the form, not decoration.
  *

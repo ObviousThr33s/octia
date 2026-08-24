@@ -47,13 +47,16 @@ public final class OctiaBeacon {
      * Finds honest ground at the save's spawn column and raises the beacon
      * there.
      *
-     * <p>Seed-independence lives in this method. WORLD_SURFACE alone is not
-     * enough: it stops on the first non-air block, which over an ocean is the
-     * water surface and under a jungle is a leaf. MOTION_BLOCKING_NO_LEAVES
-     * ignores foliage, and the walk-down afterwards drops through any fluid
-     * until it stands on something solid. An ocean spawn therefore gets a
-     * beacon on the seabed with its mast breaking the surface, rather than a
-     * column of panels bobbing in open water.
+     * <p>Seed-independence lives in {@link Landfall#groundIn}, which used to be
+     * a method here. WORLD_SURFACE alone is not enough: it stops on the first
+     * non-air block, which over an ocean is the water surface and under a
+     * jungle is a leaf. MOTION_BLOCKING_NO_LEAVES ignores foliage, and the
+     * walk-down afterwards drops through any fluid until it stands on something
+     * solid. An ocean spawn therefore gets a beacon on the seabed with its mast
+     * breaking the surface, rather than a column of panels bobbing in open
+     * water. It moved because a sky world needs that walk to be able to answer
+     * <em>nothing is here</em>, and a method that can say no is a different
+     * method.
      */
     public static void raise(ServerLevel level) {
         // The real spawn, and it only became real recently. This used to be
@@ -66,13 +69,16 @@ public final class OctiaBeacon {
         // receipt: [0.2.1] and [0.2.2] carry their mast at x=0 z=0, [0.2.3]
         // onward carry it at spawn. claimBeacon fires once per save, so the
         // early worlds keep what they got.
-        BlockPos spawn = level.getSharedSpawnPos();
-
-        // The spawn chunk is not guaranteed resident the instant the level loads,
-        // and reading a heightmap out of an unloaded chunk answers with nonsense.
-        level.getChunk(spawn);
-
-        BlockPos base = groundAt(level, spawn);
+        //
+        // Landfall, not groundAt, and the difference only shows on a sky world:
+        // groundAt cannot answer "there is nothing here" - it walks to the
+        // bottom of the world and hands back what it found there, which over a
+        // void is a mast standing at y=-63 under an empty sky. Landfall looks
+        // for real ground, moves the spawn to it if it has to, and makes an
+        // island only when there is none within reach. On ordinary terrain it
+        // finds ground in the spawn column on the first read and behaves exactly
+        // as this line did before, spawn untouched.
+        BlockPos base = Landfall.secure(level);
         build(level, base);
         // Recorded, not merely logged. A log line is gone the next time the file
         // rolls, and the debug map needs to know where this went for the life of
@@ -88,17 +94,6 @@ public final class OctiaBeacon {
                 base, HEIGHT, PAD * 2 + 1, PAD * 2 + 1);
     }
 
-    /** The first solid block at this column, ignoring foliage and dropping through fluid. */
-    public static BlockPos groundAt(ServerLevel level, BlockPos column) {
-        BlockPos p = level.getHeightmapPos(
-                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
-        while (p.getY() > level.getMinBuildHeight() + 1
-                && (level.getBlockState(p.below()).isAir()
-                    || !level.getFluidState(p.below()).isEmpty())) {
-            p = p.below();
-        }
-        return p;
-    }
 
     /**
      * The beacon itself, as blocks. Public and level-agnostic so a GameTest can

@@ -44,6 +44,13 @@ public final class FrontDoorPanel extends JPanel {
     private final String artifact;
     private final List<PortalButton> portals = new ArrayList<>();
     private final DoorwayView door;
+
+    /**
+     * Occupies the same region as the door, and only one of the two is ever
+     * visible. See {@link #through()}.
+     */
+    private final TerminalView terminal;
+
     private final PortalButton minimise;
     private final PortalButton close;
 
@@ -59,15 +66,19 @@ public final class FrontDoorPanel extends JPanel {
     private List<String> deckLines = List.of();
 
     public FrontDoorPanel(String[] codex, String artifact, DoorwayView door,
-                          List<PortalButton> calls, Runnable onMinimise, Runnable onClose) {
+                          TerminalView terminal, List<PortalButton> calls,
+                          Runnable onMinimise, Runnable onClose) {
         this.codex = codex.clone();
         this.artifact = artifact;
         this.door = door;
+        this.terminal = terminal;
         setOpaque(true);
         setBackground(Nocturne.BG);
         setLayout(null);
 
         add(door);
+        terminal.setVisible(false);
+        add(terminal);
         for (PortalButton b : calls) {
             portals.add(b);
             add(b);
@@ -83,6 +94,11 @@ public final class FrontDoorPanel extends JPanel {
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(1180, 760);
+    }
+
+    /** The pane behind the door. Package-private: only the shot path wants it. */
+    TerminalView terminal() {
+        return terminal;
     }
 
     /** Puts the keyboard on the first call, so Tab starts where the eye does. */
@@ -165,6 +181,26 @@ public final class FrontDoorPanel extends JPanel {
         int doorW = Math.max(0, w - doorX - GUTTER);
         int doorH = Math.max(0, h - HEADER - FOOTER);
         door.setBounds(doorX, HEADER, doorW, doorH);
+        terminal.setBounds(doorX, HEADER, doorW, doorH);
+    }
+
+    /**
+     * Through the door: the doorway gives its region to the terminal.
+     *
+     * <p>One way, and there is no way back. That is not a missing feature - a
+     * door you have walked through is behind you, and the window has nothing
+     * to say with a picture of an unopened one while a build is running beside
+     * it. Idempotent, because every call goes through here and the second press
+     * must not flicker the region.
+     */
+    public void through() {
+        if (!door.isVisible()) {
+            return;
+        }
+        door.setVisible(false);
+        terminal.setVisible(true);
+        revalidate();
+        repaint();
     }
 
     // ---- paint ------------------------------------------------------------

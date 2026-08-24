@@ -80,6 +80,18 @@ public final class OctiaClient implements ClientModInitializer {
     /** Fallback height of the tab strip if the bar cannot be found. */
     private static final int TAB_STRIP_HEIGHT = 24;
 
+    /**
+     * The last create-screen this class chose a world type for.
+     *
+     * <p>Identity only - it is never dereferenced, so what it points at does
+     * not matter, only whether it is the same object. Weak because a strong
+     * static would pin one dead screen for the rest of the launch, and a
+     * create-world screen holds the entire world-creation context behind it:
+     * every loaded datapack's registries.
+     */
+    private static java.lang.ref.Reference<CreateWorldScreen> defaulted =
+            new java.lang.ref.WeakReference<>(null);
+
     /** Must stay public and no-arg — Fabric instantiates entrypoints reflectively. */
     public OctiaClient() {
     }
@@ -87,6 +99,13 @@ public final class OctiaClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         OctiaDebugOverlay.bootstrap();
+
+        // The suit. Registered here rather than lazily on first render because
+        // both halves of it are one-shot registrations - a model layer that has
+        // to exist before any model is baked, and a callback that fires while
+        // the renderers are being built. A hook installed after that has missed
+        // the only event it wanted.
+        HevSuit.bootstrap();
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof CreateWorldScreen)) {
@@ -104,10 +123,24 @@ public final class OctiaClient implements ClientModInitializer {
                 }
             }
 
+            // The world type follows the switch, but only on the way in.
+            //
+            // AFTER_INIT fires again on every resize (see the class note), and
+            // re-applying there would undo a world type the player picked from
+            // the button between two window drags. So the default is applied
+            // once per screen, on the first pass, and after that only a click on
+            // the toggle moves it.
+            CreateWorldScreen create = (CreateWorldScreen) screen;
+            if (defaulted.get() != create) {
+                defaulted = new java.lang.ref.WeakReference<>(create);
+                SkyChoice.follow(create, OctiaWorldOption.pending());
+            }
+
             int y = tabStripBottom(screen) + GAP;
             OctiaToggle button = new OctiaToggle(X, y, widthFor(scaledWidth), H, label(), b -> {
                 OctiaWorldOption.setPending(!OctiaWorldOption.pending());
                 b.setMessage(label());
+                SkyChoice.follow(create, OctiaWorldOption.pending());
                 Octia.LOGGER.info("Octia: next world will be created {}.",
                         OctiaWorldOption.pending() ? "ENABLED" : "DISABLED");
             });

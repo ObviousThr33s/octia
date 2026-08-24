@@ -70,7 +70,7 @@ in the idea log.
 
 > *"when traveling along a mobius loop … the chromatic aberration of end points
 > in terms of spread over space time such that it is deviation of
-> (theta)/|SEEK|SAGE|HELIOS|ALL|USERS|"*
+> (theta)/|SEEK|SAGE|DEVOPS|ALL|USERS|"*
 
 Read as a numeric spec, this is well-formed and lands in order 1:
 
@@ -84,7 +84,7 @@ Read as a numeric spec, this is well-formed and lands in order 1:
 - **Deviation of θ.** The offset is angular, measured along the loop, not a
   linear distance. `θ` accumulates over traversal, so the observable is
   `dθ/d(arc)` — order 1.
-- **Divided by a scope selector.** `|SEEK|SAGE|HELIOS|ALL|USERS|` normalises
+- **Divided by a scope selector.** `|SEEK|SAGE|DEVOPS|ALL|USERS|` normalises
   the deviation by *audience*. The same seam reads differently depending on who
   is asking. Narrower scope → larger visible deviation; `ALL` → the aberration
   averages toward zero.
@@ -93,7 +93,7 @@ Taken together: **aberration = dθ/d(arc) ÷ |scope|.** A rate over a
 normalisation, which is why it belongs beside hull stress and not beside the
 tier table.
 
-The one part I would flag rather than assume: `SEEK | SAGE | HELIOS | ALL |
+The one part I would flag rather than assume: `SEEK | SAGE | DEVOPS | ALL |
 USERS` is written as an alternation, so it reads as a *selector* (pick one) —
 but dividing by it implies a *cardinality* (how many). Those give different
 functions. Which one is intended changes the formula.
