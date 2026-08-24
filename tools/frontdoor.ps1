@@ -19,11 +19,6 @@
     opening the window. It writes exactly two paths: the .lnk on your desktop
     and the .ico beside the jar.
 
-    (Since 2026-07-31 there is one other write outside the repo: if the estate
-    ledger file exists - helios_system_developer_ops\ledger\pulse.jsonl - a
-    plain open appends one wake line of JSON there. -Install does not pulse,
-    and deleting pulse.jsonl turns the pulse off entirely.)
-
 .PARAMETER Rebuild
     Recompile even when the jar looks current.
 
@@ -44,25 +39,6 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-# pulse v0 (2026-07-31): see the -Install note. The lever writes, never the
-# door itself. A failed pulse never blocks the door.
-function Write-Pulse([hashtable]$line) {
-    try {
-        $desk = $env:HELIOS_DESK
-        if (-not $desk) { $desk = 'C:\Users\kfman\Desktop\all_projects\work_projects\Neptune Computer Systems\Neptune Computer System Domains\helios_system_developer_ops' }
-        $ledger = Join-Path $desk 'ledger\pulse.jsonl'
-        if (Test-Path -LiteralPath $ledger -PathType Leaf) {
-            $o = [ordered]@{ t = (Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz') }
-            foreach ($k in @('frame','event','door','mode','exit','pid')) {
-                if ($line.Contains($k)) { $o[$k] = $line[$k] }
-            }
-            # .NET append: UTF-8 without BOM even on a fresh file, which
-            # Add-Content -Encoding UTF8 cannot promise on PS 5.1.
-            [System.IO.File]::AppendAllText($ledger, (ConvertTo-Json -InputObject $o -Compress) + [Environment]::NewLine)
-        }
-    } catch { }
-}
 
 $repo    = Split-Path -Parent $PSScriptRoot
 $src     = Join-Path $PSScriptRoot 'frontdoor'
@@ -236,7 +212,4 @@ if ($Install) {
 
 Step "open"
 $proc = Start-Process -FilePath $javaw -ArgumentList ($runPrefix + $repo) -WorkingDirectory $repo -PassThru
-# wake only: javaw detaches and the door outlives this lever, so its pid is
-# the honest one to record and no sleep line is observable from here.
-Write-Pulse @{ frame = 'OCTIA'; event = 'wake'; door = 'frontdoor.ps1'; pid = $proc.Id }
 Write-Host "  the door is open." -ForegroundColor DarkGray
