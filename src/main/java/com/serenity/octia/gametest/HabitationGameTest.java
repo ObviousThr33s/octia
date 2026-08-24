@@ -11,6 +11,7 @@ import com.serenity.octia.world.RuinAge;
 
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
@@ -163,6 +164,58 @@ public class HabitationGameTest implements FabricGameTest {
             throw new AssertionError("a recent ruin left " + placed.get(RuinAge.RECENT)
                     + " things and an ancient one " + placed.get(RuinAge.ANCIENT)
                     + " - age no longer changes what is left behind");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * F4 - a pot never floats.
+     *
+     * <p>The 23.43.26 playtest found a decorated pot standing on a grass tuft
+     * at 264 193 22: surfaceNear answers "the block below is not air", and a
+     * tuft is not air. Half of this floor is that trap and half is honest
+     * gravel, so the dressing has both something to refuse and somewhere to
+     * go. The assertion is the decision - every pot stands on a face that
+     * holds it up - never which props appeared. ANCIENT, because it is the
+     * only age that places a pot.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void aPotNeverFloats(GameTestHelper helper) {
+        floor(helper, ANCHOR);
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                if (((dx + dz) & 1) == 0) {
+                    helper.setBlock(ANCHOR.offset(dx, 0, dz), Blocks.SHORT_GRASS);
+                }
+            }
+        }
+
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(ANCHOR);
+        for (int seed = 0; seed < 40; seed++) {
+            Habitation.dress(level, RandomSource.create(seed), anchor, RuinAge.ANCIENT);
+        }
+
+        // The law: support, checked the same way the fix asks it. A pot over a
+        // tuft fails here, and so does a pot atop an earlier seed's pot.
+        int pots = 0;
+        for (BlockPos p : BlockPos.betweenClosed(anchor.offset(-7, -1, -7), anchor.offset(7, 3, 7))) {
+            if (!level.getBlockState(p).is(Blocks.DECORATED_POT)) {
+                continue;
+            }
+            pots++;
+            if (!level.getBlockState(p.below()).isFaceSturdy(level, p.below(), Direction.UP)) {
+                throw new AssertionError("a pot floats at " + p.immutable() + " over "
+                        + level.getBlockState(p.below()).getBlock()
+                        + " - ground that holds nothing up");
+            }
+        }
+        // Vacuity guard: deterministic per the fixed seed list, and about ten
+        // store rolls over forty seeds against a half-sturdy board makes zero
+        // effectively impossible. If the balance ever shifts, this says so
+        // instead of passing empty.
+        if (pots == 0) {
+            throw new AssertionError("the dressing never placed a pot - the assertion never ran");
         }
         helper.succeed();
     }

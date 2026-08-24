@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "P": {
+      "item": "octia:andesite_frame_panel"
+    },
+    "S": {
+      "item": "minecraft:string"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "pattern": [
+    "P P",
+    "SLS",
+    "P P"
+  ],
+  "result": {
+    "count": 1,
+    "id": "octia:sail_rig"
+  }
+}

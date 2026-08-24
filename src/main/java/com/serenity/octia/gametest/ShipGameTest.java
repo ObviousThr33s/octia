@@ -11,6 +11,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -229,5 +230,125 @@ public class ShipGameTest implements FabricGameTest {
         helper.setBlock(corner, OctiaBlocks.ANDESITE_FRAME_PANEL);
         helper.assertBlockProperty(CORE, ShipCoreBlock.STATUS, ShipStatus.MOORED);
         helper.succeed();
+    }
+
+    /**
+     * F5 - repeated use inside the cooldown emits once.
+     *
+     * <p>One mock player, held: {@code makeMockPlayer} mints a fresh UUID per
+     * call, and two mocks would be two cooldowns and a test of nothing. The
+     * third assertion is the ordering pin - reconcile runs outside the gate,
+     * so a silenced click still picks up a dig - and it fails if the renderer
+     * ever gates reconcile. The +1 on the delay is scheduling margin; the
+     * exact boundary is pinned by the exclusive {@code <} in the gate
+     * expression, not by this test.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void insideCooldownEmitsOnce(GameTestHelper helper) {
+        helper.setBlock(CORE, OctiaBlocks.SHIP_CORE);
+        buildHull(helper, CORE);
+
+        ServerLevel level = helper.getLevel();
+        BlockPos core = helper.absolutePos(CORE);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        if (!ShipCoreBlock.readout(level, core, player)) {
+            throw new AssertionError("a fresh player's first click was silenced");
+        }
+
+        // Outside the hull ring, inside the call radius.
+        helper.setBlock(CORE.offset(3, 0, 3), Blocks.SUSPICIOUS_GRAVEL);
+
+        if (ShipCoreBlock.readout(level, core, player)) {
+            throw new AssertionError("a second click inside the cooldown window spoke");
+        }
+        helper.assertBlockProperty(CORE, ShipCoreBlock.STATUS, ShipStatus.CALLED);
+
+        helper.runAfterDelay(ShipCoreBlock.READOUT_COOLDOWN_TICKS + 1, () -> {
+            if (!ShipCoreBlock.readout(level, core, player)) {
+                throw new AssertionError("the window has passed and the readout is still silent");
+            }
+            helper.succeed();
+        });
+    }
+
+    /**
+     * F5 - the bearing names the dig's actual octant.
+     *
+     * <p>No mock: this asserts the pure seam, not the chat plumbing, which is
+     * what assert-the-decision prefers and what a mock connection could not
+     * count anyway. The two diagonal placements sit in opposite octants, so an
+     * axis-sign bug cannot pass both; the third pins the degenerate-column
+     * word, the singular "pace" and the register in one literal - "above" is
+     * not a heading, it is this test's own dy choice.
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void bearingNamesTheDigsOctant(GameTestHelper helper) {
+        helper.setBlock(CORE, OctiaBlocks.SHIP_CORE);
+        buildHull(helper, CORE);
+
+        ServerLevel level = helper.getLevel();
+        BlockPos core = helper.absolutePos(CORE);
+
+        // +X is east, -Z is north: NE, 6 paces.
+        helper.setBlock(CORE.offset(4, 0, -4), Blocks.SUSPICIOUS_GRAVEL);
+        assertLineTracksTheDig(helper, level, core, CORE.offset(4, 0, -4));
+
+        helper.setBlock(CORE.offset(4, 0, -4), Blocks.AIR);
+        helper.setBlock(CORE.offset(-4, 0, 4), Blocks.SUSPICIOUS_GRAVEL);
+        assertLineTracksTheDig(helper, level, core, CORE.offset(-4, 0, 4));
+
+        helper.setBlock(CORE.offset(-4, 0, 4), Blocks.AIR);
+        helper.setBlock(CORE.offset(0, 1, 0), Blocks.SUSPICIOUS_SAND);
+        BlockPos above = ShipCoreBlock.findDig(level, core);
+        if (above == null) {
+            throw new AssertionError("a dig straight above the core was not found");
+        }
+        String line = ShipCoreBlock.calledLine(core, above);
+        if (!line.equals("calling from above, 1 pace")) {
+            throw new AssertionError("a dig straight up the core's column read \"" + line
+                    + "\" instead of \"calling from above, 1 pace\"");
+        }
+        helper.succeed();
+    }
+
+    /** The scan finds the one dig placed, and the line names its octant. */
+    private static void assertLineTracksTheDig(GameTestHelper helper, ServerLevel level,
+                                               BlockPos core, BlockPos relativeDig) {
+        BlockPos placed = helper.absolutePos(relativeDig);
+        BlockPos dig = ShipCoreBlock.findDig(level, core);
+        if (dig == null) {
+            throw new AssertionError("a dig within range at " + placed + " was not found");
+        }
+        if (!dig.equals(placed)) {
+            throw new AssertionError("with a single candidate the scan found " + dig
+                    + " instead of " + placed);
+        }
+        String line = ShipCoreBlock.calledLine(core, dig);
+        String expected = expectedLine(core, dig);
+        if (!line.equals(expected)) {
+            throw new AssertionError("the dig at " + placed + " read \"" + line
+                    + "\" but its own geometry says \"" + expected + "\"");
+        }
+    }
+
+    /**
+     * An independent derivation from signums, never atan2: dz below zero
+     * contributes "N", above "S", dx above zero "E", below "W", N/S first. It
+     * throws unless |dx| equals |dz| with both nonzero, so it is only ever
+     * valid on the exact diagonals this test places and cannot be silently
+     * reused off them - on those diagonals it cannot disagree with a correct
+     * implementation and will disagree with a flipped-axis one.
+     */
+    private static String expectedLine(BlockPos core, BlockPos dig) {
+        int dx = dig.getX() - core.getX();
+        int dz = dig.getZ() - core.getZ();
+        if (dx == 0 || Math.abs(dx) != Math.abs(dz)) {
+            throw new AssertionError("expectedLine only reads exact diagonals, not dx="
+                    + dx + " dz=" + dz);
+        }
+        String word = (dz < 0 ? "N" : "S") + (dx > 0 ? "E" : "W");
+        long paces = Math.round(Math.sqrt(core.distSqr(dig)));
+        return "calling from " + word + ", " + paces + (paces == 1 ? " pace" : " paces");
     }
 }

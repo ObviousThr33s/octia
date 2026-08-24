@@ -148,7 +148,10 @@ public class ShipCoreBlock extends Block {
 
     /**
      * The archaeology hook. Any brushable block or decorated pot in range is a
-     * dig, and a dig is what calls a ship.
+     * dig, and a dig is what calls a ship. This returns the dig itself - the
+     * first match in scan order - or null; "which dig" has one deterministic
+     * answer, and the min-corner bias of that answer is not worth a
+     * full-volume nearest scan.
      *
      * <p><b>The seam, named so it is not improvised.</b> This one condition is
      * the entire definition of "dig". The moment a second answer is wanted -
@@ -158,16 +161,24 @@ public class ShipCoreBlock extends Block {
      * it; this note exists so the next hand adds the tag rather than a second
      * call site.
      */
-    public static boolean digSiteInRange(BlockGetter level, BlockPos core) {
+    public static BlockPos findDig(BlockGetter level, BlockPos core) {
         for (BlockPos p : BlockPos.betweenClosed(
                 core.offset(-CALL_RADIUS, -CALL_RADIUS, -CALL_RADIUS),
                 core.offset(CALL_RADIUS, CALL_RADIUS, CALL_RADIUS))) {
             BlockState state = level.getBlockState(p);
             if (state.getBlock() instanceof BrushableBlock || state.is(Blocks.DECORATED_POT)) {
-                return true;
+                // betweenClosed hands out one reused cursor, and the early
+                // return abandons the iterator - no test can catch the
+                // omission, so this comment is the guard.
+                return p.immutable();
             }
         }
-        return false;
+        return null;
+    }
+
+    /** Whether anything is calling. The name {@link #survey} reads on. */
+    public static boolean digSiteInRange(BlockGetter level, BlockPos core) {
+        return findDig(level, core) != null;
     }
 
     /** What the core is, right now, without changing anything. */
@@ -263,14 +274,77 @@ public class ShipCoreBlock extends Block {
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
-                                               Player player, BlockHitResult hitResult) {
+    /**
+     * The bearing-and-distance line, as a pure function so a test can hold it
+     * to a literal. "calling from NE, 41 paces" - a pace is a block, and the
+     * register stays wordy, never a coordinate. No trailing period and no
+     * styling: the printer owns those, the tests own this string.
+     *
+     * <p>The degenerate column is named rather than mumbled: a dig straight up
+     * or down the core's own column has dx and dz both zero, atan2(0, 0) would
+     * lie "N", and the honest word is "above" or "below". A dy of zero cannot
+     * occur there - the dig would be the core.
+     */
+    public static String calledLine(BlockPos core, BlockPos dig) {
+        int dx = dig.getX() - core.getX();
+        int dz = dig.getZ() - core.getZ();
+        String word = dx == 0 && dz == 0
+                ? (dig.getY() > core.getY() ? "above" : "below")
+                : octant(dx, dz);
+        // 3D Euclidean, whole blocks, never zero - the dig is never the core.
+        long paces = Math.round(Math.sqrt(core.distSqr(dig)));
+        return "calling from " + word + ", " + paces + (paces == 1 ? " pace" : " paces");
+    }
+
+    /**
+     * atan2(dx, -dz), not the textbook order: Minecraft's north is negative Z -
+     * the same convention as {@code Sightlines.Leg.bearing()} and the debug
+     * overlay. floorMod folds the negative half-circle (a bearing of -180
+     * rounds to -4, and floorMod 8 gives 4, "S"); Math.round's half-up puts an
+     * exact 22.5-degree boundary in the counterclockwise-next octant,
+     * deterministically.
+     */
+    private static String octant(int dx, int dz) {
+        return OCTANTS[(int) Math.floorMod(Math.round(Math.toDegrees(Math.atan2(dx, -dz)) / 45.0), 8)];
+    }
+
+    /**
+     * The readout: what a right-click says, and whether it says it at all.
+     * Returns whether it spoke - that boolean is the testable decision.
+     *
+     * <p><b>Reconcile runs before and outside the gate.</b> The click is the
+     * documented re-survey, so a silenced click still picks up a dig, updates
+     * the blockstate, the store and the halo. Silence never means stale - and
+     * a status change inside the window is also silenced, because the
+     * charter's "re-print nothing" is unconditional, the blockstate and halo
+     * still say it, and three seconds is the price.
+     *
+     * <p><b>Per player, not per core.</b> Two players at one core each speak;
+     * one player hopping core A to core B inside sixty ticks is silenced at B.
+     * Accepted and named, since two cores are never a three-second walk apart
+     * in practice. A suppressed click writes nothing, so the window re-arms
+     * from the last time this spoke: the 26-click player hears the readout
+     * once per sixty ticks, not never.
+     *
+     * <p><b>Cost, priced.</b> A CALLED click runs two 13x13x13 scans -
+     * reconcile's and {@link #findDig}'s. The class already prices the survey
+     * "fine on demand, indefensible per tick", and the cooldown caps demand at
+     * one readout per player per three seconds.
+     */
+    public static boolean readout(Level level, BlockPos pos, Player player) {
         if (level.isClientSide) {
-            return InteractionResult.SUCCESS;
+            return false;
         }
 
         ShipStatus status = reconcile(level, pos, null);
+
+        long now = level.getGameTime();
+        Long last = LAST_READOUT.get(player.getUUID());
+        if (last != null && now - last < READOUT_COOLDOWN_TICKS) {
+            return false;
+        }
+        LAST_READOUT.put(player.getUUID(), now);
+
         ShipMoorings moorings = ShipMoorings.get(level.getServer());
 
         // The mod's display name, spelled out. tools/rename-mod.ps1 rewrites
@@ -290,12 +364,36 @@ public class ShipCoreBlock extends Block {
             case CALLED -> "hull intact. a dig is calling.";
         };
         player.displayClientMessage(Component.literal("  " + detail).withStyle(ChatFormatting.GRAY), false);
+
+        if (status == ShipStatus.CALLED) {
+            // The null guard is paranoia against anything moving between
+            // reconcile's survey and this second scan inside one server-thread
+            // call; it costs one branch and cannot print a lie.
+            BlockPos dig = findDig(level, pos);
+            if (dig != null) {
+                player.displayClientMessage(Component.literal("  " + calledLine(pos, dig))
+                        .withStyle(ChatFormatting.GRAY), false);
+            }
+        }
+
         player.displayClientMessage(Component.literal("  " + moorings.count() + " moored across all eras")
                 .withStyle(ChatFormatting.DARK_GRAY), false);
 
         level.playSound(null, pos, status == ShipStatus.CALLED
                         ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_RESONATE,
                 SoundSource.BLOCKS, 0.6f, status.isMoored() ? 1.0f : 0.6f);
+        return true;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+                                               Player player, BlockHitResult hitResult) {
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+        // The interaction succeeds whether or not it speaks - the arm swings
+        // either way, and the silenced click has still re-surveyed.
+        readout(level, pos, player);
         return InteractionResult.SUCCESS;
     }
 }
