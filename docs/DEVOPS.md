@@ -10,6 +10,13 @@ just the commands.
 |---|---|---|
 | **Play** | `.\tools\play.ps1` | Builds, then launches the real game with the mod loaded, for you to drive |
 | **Verify** | `.\tools\verify.ps1` | Builds, then runs every in-world test headless and exits non-zero on failure |
+| **Verify, with a bench** | `.\tools\verify.ps1 -Bench` | The same, but declares that a local model endpoint is running and holds the crew to it |
+
+A bare verify declares `octia.crew.network=absent`, which is an assertion and not
+a skip: it holds the crew to the offline tender. `-Bench` declares `required`
+instead and needs something answering on 1234 / 11434 / 8080.
+[docs/BENCH.md](BENCH.md) is where that decision and its alternatives are
+recorded; `build.gradle.kts` is where the property is passed to the gametest run.
 
 They are separate on purpose. Verification that needs a person watching a
 window is not verification — it is a demo. And a demo that a robot drives is

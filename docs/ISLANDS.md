@@ -222,3 +222,85 @@ here breaks "the promise that a player meets a derelict at all" silently, and `v
 would still report green.
 
 `[2026-08-17]`
+
+---
+
+## IX. Built 2026-08-22 — shape A, and what it cost
+
+**The gardener chose A.** *"make all terrain like this."* So the middle option this file
+recommended was not taken, and the ambition was.
+
+### What terrain is now
+
+`data/octia/worldgen/world_preset/sky.json` — the Overworld generated from
+**`minecraft:floating_islands`** with the **ordinary Overworld biome source** over it.
+Islands of plains, savanna, snowy taiga; sea level at -64; the noise band y 0 to 256, and
+open air under all of it. The Nether and the End are left exactly as vanilla wrote them.
+
+It is tagged into `minecraft:normal`, so it stands on the world-type button as **Octia
+Sky** and can be chosen by anyone, mod switch or no. `client/SkyChoice.java` is what makes
+the mod's own switch select it: **Octia: On** moves the type from `minecraft:normal` to
+`octia:sky`, **Off** moves it back, and it will not touch any other choice — pick
+Amplified and the switch leaves it alone, because at that point the player has said
+something more specific than the switch has.
+
+**This answers §VII.1.** Dimension or overworld: **overworld**, through a world preset.
+`fabric-dimensions-v1` stays on the classpath and unused. A preset is data, and the moment
+terrain becomes Java it stops being something a pack author can borrow, override or turn
+off.
+
+### §IV was half wrong, and the correction matters
+
+That section named four load-bearing paths that "assume ground beneath the anchor" and
+called the footing question the first real task. **It was already answered.**
+`RuinGround.hasFooting` rejects any position in the floor plane whose block `isAir()` —
+so a derelict, an obelisk, an arch and a habitation all decline an island edge today,
+without being asked to and without a line being written. Air was never the untested case;
+it was the case the existing gate happened to already cover.
+
+What was genuinely missing was not footing but **arrival**. Nothing in the mod could say
+*there is no ground here.* `OctiaBeacon.groundAt` walked down and returned wherever it
+stopped, which over a void is the bottom of the world — a mast at y=-63 under an empty
+sky, and a player spawning into open air and falling out of it before the title fades.
+That method is gone; `world/Landfall.java` replaced it with the one thing it could not do,
+which is answer **null**.
+
+`Landfall.secure` looks in the spawn column, then rings outward 16 to 96 blocks, and moves
+the world spawn to the first real ground it finds. It asks no question about which
+generator made the level, deliberately: *is there ground under the spawn* is a fact about
+the world, not about how it was made, and on ordinary terrain the first read answers yes
+and nothing below it ever runs.
+
+### The gift, stated rather than hidden
+
+When nothing answers within 96 blocks, `Landfall` **builds an island** — fifteen across,
+grass on two of soil on stone, at y=96. `world/Isle.java` is its shape as arithmetic, with
+no Minecraft imports, so `IsleTest` can assert the profile without a world and
+`LandfallGameTest` can assert that the world got the shape `Isle` described.
+
+This is in tension with §I and the tension should stay visible. Skyblock's island is
+given too — the map *is* the gift, and the contract is what is missing around it. But an
+island this mod prints is not terrain, and calling it terrain would be the quiet kind of
+lie this file exists to prevent. It is the last resort, taken because the alternative is
+handing a player a fall as their first experience of the mod.
+
+### Still open, and now sharper
+
+**§VII.3 — what is scarce — is still unanswered, and it is now the whole game.** Islands
+over void make *anchorage* scarce by accident: there is less ground, so there are fewer
+places a hull can be moored. Nothing yet makes it scarce **on purpose**. Ex Nihilo's
+answer was matter and it was a progression system; Octia's should be anchorage and it is
+currently a side effect of the terrain. Until somebody designs that, this is a beautiful
+world with the same loop in it.
+
+**§VII.2 is now cheap to answer and has not been.** A hull floating with nothing under it
+is one gametest, and `hasFooting` is not consulted by `ShipCoreBlock.hullIntact` at all —
+the eight neighbours are a rule about a plane. It should hold. Nobody has looked.
+
+**Unmeasured:** how far apart islands actually are on a `floating_islands` seed, and
+therefore how often `Landfall` rings out to 96 and how often it gives up and builds. §VIII
+set the standard — a 200-seed sweep over two million cells — and this section has not met
+it. The sweep to run is: for N seeds, how far from spawn is the nearest column with ground
+in it.
+
+`[2026-08-22]`

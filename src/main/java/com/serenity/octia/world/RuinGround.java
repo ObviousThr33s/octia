@@ -222,7 +222,7 @@ final class RuinGround {
      * Walks down from a position to the first free space above solid ground,
      * dropping through air <em>and</em> fluid on the way.
      *
-     * <p>This is {@code OctiaBeacon.groundAt}'s idea, which is why an ocean
+     * <p>This is {@link Landfall#groundIn}'s idea, which is why an ocean
      * spawn gets a mast standing on the seabed rather than a column of panels
      * bobbing at the surface. Written here against block reads only - no
      * heightmap - because a feature runs during generation where the non-{@code _WG}

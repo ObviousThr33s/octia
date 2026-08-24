@@ -26,13 +26,31 @@
 .PARAMETER Clean
     Wipe build output first. Slower; use when mappings or Loom look confused.
 
+.PARAMETER Bench
+    Declare that a local model endpoint IS running, and hold the crew bench to
+    it. Without this the run declares octia.crew.network=absent and asserts the
+    offline tender contract instead.
+
+    The default is deliberate. CrewBenchGameTest defaults to "required" on its
+    own, which is right at a desk with LM Studio open and wrong for a gate:
+    OCTIA.md standing order 2 says the gates run with no display, no account and
+    no secrets, and something listening on 127.0.0.1:1234 is the same class of
+    dependency. A gate that cannot go green on a clean checkout is not a gate.
+
+    Use -Bench when you have started LM Studio, Ollama, or anything else on
+    1234 / 11434 / 8080 and you want the online half checked.
+
 .EXAMPLE
     .\tools\verify.ps1
+
+.EXAMPLE
+    .\tools\verify.ps1 -Bench
 #>
 [CmdletBinding()]
 param(
     [switch]$SkipBuild,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$Bench
 )
 
 $ErrorActionPreference = 'Stop'
@@ -93,7 +111,17 @@ if ($stale.Count -gt 0) {
 }
 
 Step "gametest  (headless dedicated server, real game)"
-& $gradlew -p $repo runGametest --console=plain
+
+# Said out loud, both ways. "absent" is a real assertion - it holds the crew to
+# the offline tender - and a reader who does not know that would otherwise read
+# a green run as proof the bench works. It is proof the bench's absence works.
+if ($Bench) {
+    Write-Host "  crew bench: required (an endpoint must answer)" -ForegroundColor Yellow
+    & $gradlew -p $repo runGametest --console=plain -PoctiaBench=required
+} else {
+    Write-Host "  crew bench: absent (asserting the offline tender; -Bench checks the other half)" -ForegroundColor DarkGray
+    & $gradlew -p $repo runGametest --console=plain
+}
 $gametestExit = $LASTEXITCODE
 
 # ---- Report ---------------------------------------------------------------
@@ -142,8 +170,14 @@ Write-Host ""
 Write-Host ("  {0} test(s): {1} failed, {2} errored, {3} skipped" -f $tests, $failures, $errors, $skipped)
 Write-Host ("  report: {0}" -f $report)
 
+# Newest first, and the sort is the whole point. This took whatever came back
+# first, which is alphabetical - so with an octia-0.1.0.jar left over beside the
+# octia-0.2.0-alpha.1.jar that had just been built and tested, the receipt named
+# the old one. A line that says which artifact a green run was green about must
+# not name a different artifact; that is worse than printing nothing.
 $jar = Get-ChildItem (Join-Path $repo 'build\libs') -Filter '*.jar' -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notmatch 'sources' } | Select-Object -First 1
+    Where-Object { $_.Name -notmatch 'sources' } |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($jar) { Write-Host ("  jar:    {0} ({1} bytes)" -f $jar.Name, $jar.Length) }
 
 if ($failures -gt 0 -or $errors -gt 0 -or $gametestExit -ne 0) {

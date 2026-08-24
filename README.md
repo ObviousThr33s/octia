@@ -16,10 +16,22 @@ Not a scaffold any more, and not a finished content mod. What is registered:
 - **Moorings.** A moored core writes its position to `SavedData` keyed by
   `BlockPos` and nothing else. The same position in another dimension is the
   same mooring — deliberate, and a gametest pins it.
+- **Terrain: floating islands.** `octia:sky` generates the Overworld from
+  `minecraft:floating_islands` with ordinary Overworld biomes on top, so the
+  world is plains and savanna and snowy taiga with open air under all of it. It
+  stands on the world-type button as **Octia Sky** and can be picked by anyone;
+  the switch below selects it for you. See [docs/ISLANDS.md](docs/ISLANDS.md).
 - **Worldgen, behind a per-save switch.** A button on the create-world screen
-  decides it once and the save keeps that answer for life. On: a lit mast at
-  spawn, one derelict within a short walk of it, then derelicts and obelisks
-  out through the world.
+  decides it once and the save keeps that answer for life. On: the sky world
+  type, a lit mast at spawn, one derelict within a short walk of it, then
+  derelicts and obelisks out through the world.
+- **Landfall.** A sky world's spawn column is usually empty, so the first load
+  looks for real ground, moves the spawn to it, and builds one island if nothing
+  answers within 96 blocks. You wake up standing on something.
+- **The HEV suit.** A hazardous environment suit worn *over* whatever skin you
+  have, not in place of it — the player model inflated a quarter block and drawn
+  as a second pass, transparent at the head so your own face is still in there.
+  Client-side, cosmetic, and it does not come off.
 - **Sightlines.** A seeded lattice of waypoints, and a leg from each one to the
   next. Every obelisk is a large andesite prism laid along the leg under it,
   with a slot bored down its length that you can sight through, and an arch
@@ -38,7 +50,27 @@ Not a scaffold any more, and not a finished content mod. What is registered:
 `onInitialize` opens the registries and installs those hooks. Each one carries
 the reason it is registered there and not somewhere earlier.
 
+## Start here
+
+Double-click **`SEEK.cmd`** at the root of this repo. It opens the front door —
+a window onto the project with the two scripts below on it as calls. Nothing has
+to be built first, and nothing has to be installed: the door's jar and icon are
+committed under `tools/frontdoor/build/`, so a clone opens it as it stands.
+
+From the door, **SEEK PLAY |DEV|** runs both gates in one press: verify (which
+builds), then the game, with both reporting into a terminal pane behind the
+door. That is the whole path from a fresh clone to a running dev client.
+
+Two other ways to the same window, if you prefer them:
+
+```powershell
+.\gradlew door                    # the same script, through the build
+.\tools\frontdoor.ps1 -Install    # a shortcut on your desktop
+```
+
 ## Two scripts
+
+Both are on the door, and both work on their own.
 
 **Play it yourself** — builds, then launches the real game with the mod loaded:
 

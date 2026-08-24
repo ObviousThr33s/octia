@@ -1,6 +1,14 @@
 # Gradle
 .gradle/
-build/
+# Rooted on purpose. A bare "build/" matches a directory of that name at ANY
+# depth, which silently swallowed tools/frontdoor/build/ - so the front door's
+# jar and icon have never reached GitHub and anyone cloning got a door they
+# could not open without a JDK. See docs/FRONT_DOOR.md; that tool is outside
+# the Gradle parts list and its artifact is committed deliberately.
+/build/
+
+# The front door's loose class files are output; its jar and icon are not.
+tools/frontdoor/build/classes/
 
 # Loom's decompiled/remapped caches and the generated run directory
 .fabric/
