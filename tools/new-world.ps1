@@ -32,9 +32,20 @@
     Full world name. Defaults to the next free SERENITY_[a.b.c.S.A.F.E].project.
 
 .PARAMETER Type
-    Overworld preset: normal, amplified, large_biomes, flat. Default normal.
+    Overworld preset: normal, amplified, large_biomes, flat, sky. Default normal.
     The three existing saves deliberately run three different presets - see
     docs/WORLDS.md - and a placement rule that behaves in all of them is a rule.
+
+    'sky' is Octia's own - octia:sky, the whole Overworld drawn from
+    minecraft:floating_islands with ordinary Overworld biomes on top. It is the
+    only value here that is not in the minecraft namespace, which is why the
+    namespace below is derived rather than assumed. A dedicated server resolves
+    level-type through the WORLD_PRESET registry, and the mod's data is on the
+    classpath under runWorldgen, so this needs no other machinery.
+
+    If the preset ever fails to resolve, the server falls back to normal WITHOUT
+    saying so in any obvious way. tools/world-report.py is how you tell: a sky
+    world has nothing below y=0, an ordinary one has bedrock at -64.
 
 .PARAMETER Chunks
     Radius in chunks to generate around spawn, for measuring ruin density over a
@@ -49,7 +60,7 @@
 param(
     [long]$Seed = 0,
     [string]$Name = '',
-    [ValidateSet('normal', 'amplified', 'large_biomes', 'flat')]
+    [ValidateSet('normal', 'amplified', 'large_biomes', 'flat', 'sky')]
     [string]$Type = 'normal',
     [int]$Chunks = 0
 )
@@ -131,7 +142,7 @@ if (Test-Path -LiteralPath $destination) {
 
 Step "world  $Name"
 Write-Host "  seed    : $Seed"
-Write-Host "  terrain : minecraft:$Type"
+Write-Host "  terrain : $(if ($Type -eq 'sky') { 'octia' } else { 'minecraft' }):$Type"
 Write-Host "  into    : $destination"
 
 # ---- server.properties -----------------------------------------------------
@@ -155,7 +166,12 @@ Write-Host "  into    : $destination"
 #                         warning, and an unauthenticated server is exactly the
 #                         thing not to leave listening. No login happens here.
 #   white-list            on and enforced, with an empty whitelist.
-$levelType = "minecraft\:$Type"
+# Derived, not assumed. Every vanilla preset is in the minecraft namespace and
+# octia:sky is not, and a hardcoded namespace here is exactly the kind of thing
+# that silently generates the wrong world - the server falls back to normal and
+# says nothing a person would notice.
+$typeNamespace = if ($Type -eq 'sky') { 'octia' } else { 'minecraft' }
+$levelType = "${typeNamespace}\:$Type"
 @(
     "level-name=$Name",
     "level-seed=$Seed",
