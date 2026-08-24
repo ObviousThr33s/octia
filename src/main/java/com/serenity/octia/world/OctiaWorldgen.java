@@ -87,6 +87,26 @@ public final class OctiaWorldgen {
     private static final String ARCH = "arch";
 
     /**
+     * The switchback stair. A path, not a landmark.
+     *
+     * <p>Private for the ARCH constant's own reason, which is the precedent:
+     * {@link StairwayFeature} never calls {@link RuinRegistry#report}, so a
+     * public kind would advertise a key that answers with an empty list.
+     */
+    private static final String STAIRWAY = "stairway";
+
+    /**
+     * The watershed. A landmark of water, and not yet a recorded one.
+     *
+     * <p>Private for the ARCH reasoning above, applied verbatim:
+     * {@link WatershedFeature} never calls {@link RuinRegistry#report}, so no
+     * kind string "watershed" ever reaches the store, and a public key would
+     * advertise an answer that is always empty. The day the map wants water,
+     * this line joins the two public names above and that is the whole change.
+     */
+    private static final String WATERSHED = "watershed";
+
+    /**
      * The feature type that places authored .nbt ruins. Its registry path is
      * the TYPE, not a ruin - many placed features share it, one per template,
      * each naming its own file in the configured feature JSON.
@@ -129,6 +149,8 @@ public final class OctiaWorldgen {
     private static BeamlineDerelictFeature derelictStation;
     private static ObeliskFeature obelisk;
     private static ArchFeature arch;
+    private static StairwayFeature stairway;
+    private static WatershedFeature watershed;
     private static TemplateRuinFeature templateRuin;
 
     private OctiaWorldgen() {
@@ -144,6 +166,10 @@ public final class OctiaWorldgen {
                 new ObeliskFeature(NoneFeatureConfiguration.CODEC));
         arch = Registry.register(BuiltInRegistries.FEATURE, Octia.id(ARCH),
                 new ArchFeature(NoneFeatureConfiguration.CODEC));
+        stairway = Registry.register(BuiltInRegistries.FEATURE, Octia.id(STAIRWAY),
+                new StairwayFeature(NoneFeatureConfiguration.CODEC));
+        watershed = Registry.register(BuiltInRegistries.FEATURE, Octia.id(WATERSHED),
+                new WatershedFeature(NoneFeatureConfiguration.CODEC));
         templateRuin = Registry.register(BuiltInRegistries.FEATURE, Octia.id(TEMPLATE_RUIN),
                 new TemplateRuinFeature(TemplateRuinFeature.Config.CODEC));
 
@@ -155,7 +181,7 @@ public final class OctiaWorldgen {
         // Same decoration step either way, so this is also the order they run in
         // a chunk. Nothing depends on that today; the two lists are kept apart
         // because only the second one is meant to grow without touching Java.
-        for (String path : new String[] {DERELICT, DERELICT_STATION, OBELISK, ARCH}) {
+        for (String path : new String[] {DERELICT, DERELICT_STATION, OBELISK, ARCH, STAIRWAY, WATERSHED}) {
             scheduleInOverworld(path);
         }
         for (String path : TEMPLATE_RUINS) {
@@ -206,6 +232,16 @@ public final class OctiaWorldgen {
 
     public static ArchFeature arch() {
         return arch;
+    }
+
+    /** The switchback stair. For tests that place one directly. */
+    public static StairwayFeature stairway() {
+        return stairway;
+    }
+
+    /** The spring and its bowls. For tests that place one directly. */
+    public static WatershedFeature watershed() {
+        return watershed;
     }
 
     public static TemplateRuinFeature templateRuin() {

@@ -6,6 +6,8 @@
   "item.octia.bindle.empty": "Empty",
   "item.octia.bindle.line": "%s \u00d7 %s",
 
+  "item.octia.sail_rig": "Sail-Rig",
+
   "generator.octia.sky": "Octia Sky",
 
   "octia.create_world.toggle.on": "Octia: On",

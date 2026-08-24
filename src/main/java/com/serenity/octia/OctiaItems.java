@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.serenity.octia.item.Bindle;
 import com.serenity.octia.item.BindleItem;
+import com.serenity.octia.traverse.SailRigItem;
 
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.Registry;
@@ -38,6 +39,17 @@ public final class OctiaItems {
     public static final BindleItem BINDLE = register("bindle",
             new BindleItem(new Item.Properties().stacksTo(1)));
 
+    /**
+     * A hand-made sail-frame: andesite ribs over cloth, held, not worn.
+     *
+     * <p>Stacks to one because it is equipment - a committed hand is the price
+     * of the glide, and a stack of sails would be a stack of hands. No
+     * durability and no enchantability: the rig is a decision, not a tool that
+     * wears out. Everything it does lives in {@link SailRigItem}.
+     */
+    public static final SailRigItem SAIL_RIG = register("sail_rig",
+            new SailRigItem(new Item.Properties().stacksTo(1)));
+
     private OctiaItems() {
     }
 
@@ -51,7 +63,10 @@ public final class OctiaItems {
         // Tools and utilities, beside the bundle it is worked like, rather than
         // in ingredients where an empty bag would read as a crafting component.
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-                .register(entries -> entries.accept(BINDLE));
+                .register(entries -> {
+                    entries.accept(BINDLE);
+                    entries.accept(SAIL_RIG);
+                });
     }
 
     /**

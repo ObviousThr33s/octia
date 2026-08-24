@@ -32,7 +32,10 @@
       "${mod_package}.gametest.KeepInventoryGameTest",
       "${mod_package}.gametest.FirstLightGameTest",
       "${mod_package}.gametest.BindleGameTest",
-      "${mod_package}.gametest.BeamlineDerelictGameTest"
+      "${mod_package}.gametest.BeamlineDerelictGameTest",
+      "${mod_package}.gametest.SailRigGameTest",
+      "${mod_package}.gametest.StairwayGameTest",
+      "${mod_package}.gametest.WatershedGameTest"
     ]
   },
   "depends": {
