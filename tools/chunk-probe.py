@@ -116,21 +116,36 @@ def overview(save):
     """Which Y bands hold anything at all, across every chunk in the save."""
     band = collections.Counter()
     solid_band = collections.Counter()
+    rock_band = collections.Counter()
+    fluid_band = collections.Counter()
     blocks = collections.Counter()
     chunks = 0
+    deep_chunks = 0
 
     for path in regions(save):
         for chunk in R.read_region(path):
             if chunk.get("Status") not in ("minecraft:full", "full"):
                 continue
             chunks += 1
+            deep_rock = False
             for y, (palette, data) in chunk_sections(chunk).items():
-                real = [p for p in palette if p != "minecraft:air"]
+                if y < 0 and 2 in [_kind(p) for p in palette]:
+                    deep_rock = True
+                # _kind, not `!= "minecraft:air"`. That test passes cave_air and
+                # void_air, so every cave counted as material.
+                kinds = [_kind(p) for p in palette]
+                real = [p for p, k in zip(palette, kinds) if k]
                 band[y] += 1
                 if real:
                     solid_band[y] += 1
+                    if 2 in kinds:
+                        rock_band[y] += 1
+                    if 1 in kinds:
+                        fluid_band[y] += 1
                     for p in real:
                         blocks[p] += 1
+            if deep_rock:
+                deep_chunks += 1
 
     print("== %s" % os.path.basename(save.rstrip("\\/")))
     print("   %d full chunks" % chunks)
@@ -154,12 +169,62 @@ def overview(save):
         print("     %-34s %d section(s)" % (name, n))
 
     print()
+    # The tell, corrected 2026-08-23, and it was wrong twice over.
+    #
+    # It used to read "anything below y=0 means this is not a sky world". That
+    # called BOTH a genuine octia:sky save and a genuine vanilla
+    # floating_islands save "not a sky world", for two different reasons, and
+    # the two are opposites:
+    #
+    #   fluid below the band  - WATER, 3,756 blocks, in exactly the 25 chunks
+    #     the server had ticked out of 169 generated. Generation touched all of
+    #     them equally, so this is not generation: the sea is DRAINING out of
+    #     the bottom of the world. octia:sky sets sea_level 96 over a band whose
+    #     min_y is 0, and floating_islands has no floor, so water at the bottom
+    #     of the band has nothing to sit on. Vanilla sets sea_level to -64 for
+    #     exactly this reason - so that no water is ever placed at all.
+    #
+    #   rock below the band   - a TRIAL CHAMBER, tuff bricks and waxed copper,
+    #     at y -16 to -47, hanging in the void. On VANILLA floating_islands,
+    #     nothing to do with this mod: structures place in dimension space
+    #     (-64..320) rather than in the noise band, so one anchored near the
+    #     floor extends straight through it.
+    #
+    # So presence proves nothing, and the honest discriminator is a RATIO. An
+    # ordinary overworld has rock under essentially every chunk; a floating one
+    # has it under the few that caught a structure - 19 of 1,089 here, 1.7%.
     bedrock = any("bedrock" in b for b in blocks)
-    below_zero = [y for y in solid_band if y < 0]
+    fluid_below = sorted(y for y in fluid_band if y < 0)
+    share = 100.0 * deep_chunks / max(1, chunks)
+    continuous = share > 50.0
+
     print("   VERDICT")
-    print("     bedrock present     : %s" % ("YES - this is not a sky world" if bedrock else "no"))
-    print("     solid below y=0     : %s" % ("YES - not a sky world" if below_zero else "no"))
-    if not bedrock and not below_zero:
+    print("     bedrock present     : %s"
+          % ("YES - this is not a sky world" if bedrock else "no"))
+    if deep_chunks == 0:
+        note = "  - none"
+    elif continuous:
+        note = "  - continuous, so ordinary terrain"
+    else:
+        note = "  - scattered, i.e. structures reaching below the band"
+    print("     chunks with rock below y=0 : %d/%d (%.1f%%)%s"
+          % (deep_chunks, chunks, share, note))
+
+    sky = not bedrock and not continuous
+    if not sky:
+        # The leak test below only means anything on a floorless band. An
+        # ordinary overworld generates down to -64, so water under y=0 there is
+        # an ocean doing its job - and reporting it as a drain made every normal
+        # save cry wolf.
+        print("     fluid below y=0     : not asked - this band reaches below 0 anyway")
+    elif fluid_below:
+        n = sum(fluid_band[y] for y in fluid_below)
+        print("     fluid below y=0     : YES in %d section(s) - THE SEA IS DRAINING." % n)
+        print("                           Nothing GENERATES below the band, so this")
+        print("                           leaked. Check sea_level against noise.min_y.")
+    else:
+        print("     fluid below y=0     : no")
+    if sky:
         print("     -> floating islands over void, as asked for.")
 
 
@@ -196,43 +261,180 @@ def column(save, cx, cz):
     sys.exit("chunk %d,%d is not generated in this save" % (want_cx, want_cz))
 
 
-def profile(save):
-    """How much of each chunk is solid, as a distribution. Islands are sparse."""
-    fills = []
+# Fluids are counted apart from rock, and the split is the whole point of this
+# reading. "Solid" used to mean "not air", so a flooded cavern counted exactly
+# like a cavern filled with stone - and on a world whose settings turned
+# aquifers on and moved sea level from -64 to 96, that is the difference
+# between an archipelago and a bathtub. A number that cannot tell those apart
+# cannot answer the question this file exists to answer.
+FLUIDS = ("water", "lava", "bubble_column")
+
+AIR_NAMES = frozenset(("minecraft:air", "minecraft:cave_air", "minecraft:void_air"))
+
+
+def _kind(name):
+    """0 air, 1 fluid, 2 rock."""
+    if name in AIR_NAMES:
+        return 0
+    for f in FLUIDS:
+        if f in name:
+            return 1
+    return 2
+
+
+def _indices(palette, data):
+    """Every one of a section's 4096 palette indices, or None if uniform.
+
+    Each long is decoded once instead of once per block. The old loop
+    recomputed bits and per_long inside the 4096-iteration body and re-read the
+    same long up to sixteen times, which is why a profile over a played save
+    took minutes. Indices never span a long - Minecraft leaves the high bits of
+    each long unused rather than straddling - so this is a flat walk.
+    """
+    if len(palette) == 1 or not data:
+        return None
+    bits = max(4, (len(palette) - 1).bit_length())
+    per_long = 64 // bits
+    mask = (1 << bits) - 1
+    out = []
+    for raw in data:
+        raw &= 0xFFFFFFFFFFFFFFFF
+        for k in range(per_long):
+            out.append((raw >> (k * bits)) & mask)
+            if len(out) == 4096:
+                return out
+    return out
+
+
+def strata(save):
+    """What is at each depth, so "deeper" can be asked whether it means anything.
+
+    ROADMAP XIII wants stratigraphy - "deeper digs draw from older loot tables,
+    archaeology that means something vertically instead of being flat
+    everywhere" - and that is only buildable if the rock itself already changes
+    with depth. An ordinary overworld does: dirt, then stone, then deepslate at
+    0, then bedrock. A generator derived from floating_islands may not, because
+    its band is 256 tall and vanilla's depth-dependent surface rules were
+    written against a 384-tall column that starts at -64.
+
+    This is the reading Dig Dug, Motherload and Terraria all depend on: that
+    going down is going somewhere. If every band answers the same, depth is
+    scenery and the loot table is the only thing that could ever carry it.
+    """
+    bands = collections.defaultdict(collections.Counter)
+    kinds = collections.defaultdict(collections.Counter)
+    chunks = 0
+
     for path in regions(save):
         for chunk in R.read_region(path):
             if chunk.get("Status") not in ("minecraft:full", "full"):
                 continue
-            solid = 0
-            for y, (palette, data) in chunk_sections(chunk).items():
-                if len(palette) == 1:
-                    if palette[0] != "minecraft:air":
-                        solid += 4096
+            chunks += 1
+            for sy, (palette, data) in chunk_sections(chunk).items():
+                lo = sy * 16
+                kind = [_kind(p) for p in palette]
+                idx = _indices(palette, data)
+                if idx is None:
+                    bands[lo][palette[0]] += 4096
+                    kinds[lo][kind[0]] += 4096
                     continue
-                for i in range(4096):
-                    bits = max(4, (len(palette) - 1).bit_length())
-                    per_long = 64 // bits
-                    li = i // per_long
-                    if not data or li >= len(data):
-                        break
-                    raw = data[li] & 0xFFFFFFFFFFFFFFFF
-                    v = (raw >> ((i % per_long) * bits)) & ((1 << bits) - 1)
-                    if v < len(palette) and palette[v] != "minecraft:air":
-                        solid += 1
-            fills.append(solid)
-    if not fills:
+                for v, n in collections.Counter(idx).items():
+                    if v < len(palette):
+                        bands[lo][palette[v]] += n
+                        kinds[lo][kind[v]] += n
+
+    if not chunks:
         sys.exit("no full chunks")
-    fills.sort()
+
+    print("== strata over %d chunks, in 16-block bands" % chunks)
+    print("   %-11s %6s %6s %6s   %s"
+          % ("band", "rock", "fluid", "air", "commonest rock, by share of the rock there"))
+    for lo in sorted(bands, reverse=True):
+        total = sum(kinds[lo].values())
+        if not total:
+            continue
+        rock = kinds[lo][2]
+        top = [(p, n) for p, n in bands[lo].most_common() if _kind(p) == 2][:3]
+        named = ", ".join("%s %.0f%%" % (p.split(":")[-1], 100.0 * n / max(1, rock))
+                          for p, n in top)
+        print("   %5d..%-5d %5.1f%% %5.1f%% %5.1f%%   %s"
+              % (lo, lo + 15,
+                 100.0 * rock / total,
+                 100.0 * kinds[lo][1] / total,
+                 100.0 * kinds[lo][0] / total,
+                 named or "-"))
+
+    # The question the table exists to answer, answered rather than left to the
+    # eye: does the rock change with depth at all? Compared as the set of the
+    # three commonest rocks in each band that has any.
+    fills = [lo for lo in sorted(bands)
+             if kinds[lo][2] and 100.0 * kinds[lo][2] / max(1, sum(kinds[lo].values())) > 1.0]
+    signatures = set()
+    for lo in fills:
+        rock = kinds[lo][2]
+        top = tuple(p for p, _n in bands[lo].most_common() if _kind(p) == 2)[:3]
+        signatures.add(top)
+    print()
+    print("   %d band(s) hold more than 1%% rock, and they show %d distinct"
+          % (len(fills), len(signatures)))
+    print("   top-three rock signature(s).")
+    if len(signatures) <= 1:
+        print("   -> DEPTH MEANS NOTHING HERE. The same rock all the way down, so")
+        print("      nothing in the terrain can carry a stratum. Anything vertical")
+        print("      would have to be put there.")
+
+
+def profile(save):
+    """How much of each chunk is rock, and how much is fluid. Islands are sparse."""
+    rocks = []
+    fluids = []
+    for path in regions(save):
+        for chunk in R.read_region(path):
+            if chunk.get("Status") not in ("minecraft:full", "full"):
+                continue
+            rock = fluid = 0
+            for _y, (palette, data) in chunk_sections(chunk).items():
+                kinds = [_kind(p) for p in palette]
+                idx = _indices(palette, data)
+                if idx is None:
+                    if kinds[0] == 1:
+                        fluid += 4096
+                    elif kinds[0] == 2:
+                        rock += 4096
+                    continue
+                for v, n in collections.Counter(idx).items():
+                    if v >= len(kinds):
+                        continue
+                    if kinds[v] == 1:
+                        fluid += n
+                    elif kinds[v] == 2:
+                        rock += n
+            rocks.append(rock)
+            fluids.append(fluid)
+    if not rocks:
+        sys.exit("no full chunks")
+
+    # The full overworld column, 384 tall, deliberately - not the 256-tall band
+    # octia:sky generates in. Keeping one denominator is what lets a sky save's
+    # number be read against an ordinary save's.
     total = 384 * 256
-    print("== solid blocks per chunk, over %d chunks" % len(fills))
-    for label, v in (("min", fills[0]),
-                     ("p25", fills[len(fills) // 4]),
-                     ("median", fills[len(fills) // 2]),
-                     ("p75", fills[3 * len(fills) // 4]),
-                     ("max", fills[-1])):
-        print("   %-7s %8d  (%.2f%% of a full column stack)" % (label, v, 100.0 * v / total))
-    empty = sum(1 for f in fills if f == 0)
-    print("   completely empty chunks: %d (%.1f%%)" % (empty, 100.0 * empty / len(fills)))
+    n = len(rocks)
+    solids = sorted(r + f for r, f in zip(rocks, fluids))
+    rocks.sort()
+    fluids.sort()
+
+    print("== per chunk, over %d chunks  (%% of a full 384-tall column stack)" % n)
+    print("            %10s %10s %10s" % ("rock", "fluid", "rock+fluid"))
+    for label, i in (("min", 0), ("p25", n // 4), ("median", n // 2),
+                     ("p75", 3 * n // 4), ("max", n - 1)):
+        print("   %-7s  %7d    %7d    %7d      %5.2f%% rock, %5.2f%% total"
+              % (label, rocks[i], fluids[i], solids[i],
+                 100.0 * rocks[i] / total, 100.0 * solids[i] / total))
+
+    empty = sum(1 for s in solids if s == 0)
+    dry = sum(1 for f in fluids if f == 0)
+    print("   completely empty chunks : %d (%.1f%%)" % (empty, 100.0 * empty / n))
+    print("   chunks with no fluid    : %d (%.1f%%)" % (dry, 100.0 * dry / n))
 
 
 # ---- seeing it ------------------------------------------------------------
@@ -256,46 +458,156 @@ def write_png(path, width, height, rows):
         f.write(blob)
 
 
-# Ordered, because the first match wins and "grass_block" must be tested before
-# "block", "deepslate_coal_ore" before "coal_ore".
+# Air is matched EXACTLY, and never as a substring. This is not fussiness.
+#
+# "air" was an ordinary substring rule here, and "air" is a substring of
+# "stairs" - so minecraft:stone_brick_stairs, and every one of the trial
+# chamber's waxed_*_cut_copper_stairs, rendered as VOID. In the one tool whose
+# whole purpose is answering "is there void under this", solid stone read back
+# as a hole. Any key three letters long is a trap in a substring table; the
+# defence is to take air out of the table entirely.
+AIR = frozenset(("air", "cave_air", "void_air"))
+
+# Ordered, because the first match wins. Two orderings below are load-bearing
+# and a reorder is a silent recolour:
+#   "redstone" before "stone"     - redstone_ore ends in "stone"
+#   "campfire" before "fire"      - campfire ends in "fire"
+#   "mossy" before "moss_"        - and moss_ carries the underscore so it
+#                                   cannot take mossy_cobblestone, which is
+#                                   mostly cobble and should read as stone
+# "deepslate" stays ahead of the ore keys, so deepslate_iron_ore reads as the
+# depth it is at rather than as the ore in it - a terrain probe is asking about
+# rock, not about mining.
 PALETTE = [
     ("octia:ship_core", (255, 196, 60)),
     ("octia:andesite_frame_panel", (232, 120, 40)),
-    ("air", None),
+
+    # water and what lives in it
+    ("bubble_column", (110, 160, 215)),
     ("water", (38, 82, 158)),
     ("ice", (170, 210, 235)),
     ("seagrass", (48, 120, 90)),
     ("kelp", (48, 120, 90)),
+
+    # surface
     ("grass_block", (96, 152, 72)),
+    ("short_grass", (110, 164, 80)),
+    ("tall_grass", (110, 164, 80)),
+    ("moss_", (78, 128, 56)),
+    ("glow_lichen", (108, 138, 108)),
     ("snow", (238, 244, 248)),
     ("sand", (214, 202, 152)),
     ("gravel", (128, 124, 120)),
     ("dirt", (122, 88, 60)),
     ("clay", (150, 156, 162)),
+
+    # flowers, fungi, crops - all one green, because on a 2px slice they are
+    # one thing: something growing
+    ("poppy", (172, 74, 74)),
+    ("dandelion", (208, 196, 84)),
+    ("dead_bush", (128, 100, 62)),
+    ("mushroom", (168, 116, 104)),
+    ("pumpkin", (206, 126, 42)),
+    ("flower_pot", (140, 92, 74)),
+    ("potted", (140, 92, 74)),
+
+    # rock
     ("granite", (150, 106, 92)),
     ("diorite", (196, 196, 192)),
     ("andesite", (136, 138, 136)),
+    ("calcite", (224, 226, 220)),
+    ("smooth_basalt", (58, 58, 66)),
+    ("basalt", (72, 70, 78)),
     ("deepslate", (66, 66, 72)),
     ("tuff", (90, 92, 84)),
+    ("obsidian", (28, 20, 42)),
+    ("magma_block", (176, 82, 34)),
+    ("netherrack", (110, 50, 50)),
+    ("soul_soil", (76, 60, 52)),
+
+    # ore, and the geode
+    ("redstone", (156, 40, 40)),
+    ("lapis", (36, 72, 156)),
+    ("diamond", (96, 200, 202)),
+    ("emerald", (60, 172, 96)),
+    ("amethyst", (150, 104, 200)),
     ("copper", (150, 110, 78)),
     ("iron_ore", (176, 152, 124)),
     ("coal_ore", (54, 54, 58)),
     ("gold", (200, 168, 72)),
     ("lava", (220, 110, 30)),
+
+    # trees
     ("log", (92, 70, 44)),
     ("leaves", (66, 110, 54)),
+
+    # things a person made - mineshafts, villages, trial chambers, ruins
+    ("planks", (162, 130, 78)),
+    ("fence", (140, 112, 68)),
+    ("ladder", (140, 112, 68)),
+    ("barrel", (132, 104, 64)),
+    ("chest", (168, 124, 58)),
+    ("table", (150, 118, 72)),
+    ("button", (140, 112, 68)),
+    ("bone_block", (222, 218, 198)),
+    ("rail", (128, 112, 96)),
+    ("chain", (74, 76, 82)),
+    ("cobweb", (216, 218, 222)),
+    ("tripwire", (150, 150, 140)),
+    ("spawner", (46, 66, 78)),
+    ("vault", (58, 78, 92)),
+    ("dispenser", (112, 112, 114)),
+    ("cauldron", (62, 62, 66)),
+    ("decorated_pot", (176, 112, 84)),
+    ("terracotta", (152, 94, 68)),
+    ("glass", (206, 214, 220)),
+    ("wool", (228, 228, 228)),
+    ("concrete", (216, 216, 216)),
+    ("bed", (188, 72, 72)),
+
+    # light, which is what a ruin is found by
+    ("campfire", (232, 152, 56)),
+    ("fire", (236, 130, 40)),
+    ("torch", (248, 208, 108)),
+    ("lantern", (248, 208, 108)),
+    ("candle", (242, 224, 168)),
+
     ("stone", (118, 118, 120)),
 ]
 
 SKY_TOP = (16, 18, 26)      # the void above
 SKY_BOT = (8, 9, 14)        # and below - darker, so down reads as down
 
+UNMAPPED = (200, 60, 200)   # loud on purpose, so it gets noticed
+
+# Every name that fell through, and how often. Reported at exit rather than
+# only coloured, because "somebody will notice the magenta" is how a palette
+# hole survives for weeks - and a hole in a thin seam is a few pixels nobody
+# ever sees.
+_unmapped = collections.Counter()
+
 
 def colour_of(name):
+    path = name.split(":")[-1]
+    if path in AIR:
+        return None
     for key, rgb in PALETTE:
         if key in name:
             return rgb
-    return (200, 60, 200)   # unmapped: loud on purpose, so it gets noticed
+    _unmapped[name] += 1
+    return UNMAPPED
+
+
+def report_unmapped():
+    """What the palette could not name. To stderr, so it cannot be piped away
+    with the picture."""
+    if not _unmapped:
+        return
+    total = sum(_unmapped.values())
+    print("\n%d block(s) in %d kind(s) had no palette entry and were drawn "
+          "magenta:" % (total, len(_unmapped)), file=sys.stderr)
+    for name, n in _unmapped.most_common():
+        print("   %-46s %d" % (name, n), file=sys.stderr)
 
 
 def slice_view(save, z, x0, x1, y0, y1, scale, out):
@@ -353,6 +665,9 @@ def main():
     ap.add_argument("save")
     ap.add_argument("--column", nargs=2, type=int, metavar=("X", "Z"))
     ap.add_argument("--profile", action="store_true")
+    ap.add_argument("--strata", action="store_true",
+                    help="what rock is at each depth, and whether depth means "
+                         "anything at all in this world")
     ap.add_argument("--slice", type=int, metavar="Z",
                     help="render a vertical cross-section at this z, as a PNG")
     ap.add_argument("--x", nargs=2, type=int, default=[-128, 128], metavar=("X0", "X1"))
@@ -364,10 +679,13 @@ def main():
     if args.slice is not None:
         slice_view(args.save, args.slice, args.x[0], args.x[1],
                    args.y[0], args.y[1], args.scale, args.out)
+        report_unmapped()
     elif args.column:
         column(args.save, args.column[0], args.column[1])
     elif args.profile:
         profile(args.save)
+    elif args.strata:
+        strata(args.save)
     else:
         overview(args.save)
 

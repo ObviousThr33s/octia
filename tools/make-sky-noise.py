@@ -179,9 +179,114 @@ def reshape(node, gain, bias, swell, scale, seen):
     return node
 
 
+def pattern_knobs(word):
+    """A thread's ring, as generator settings. See docs/THREADS.md.
+
+    A ring of legs is a word in base 8 - one digit per leg, each the leg's
+    heading snapped to one of eight, which is what Mystery.markFor already
+    answers. This turns that word into terrain, so every pattern HAS a world and
+    "does it exist" becomes "has anyone opened it".
+
+    THIS FILE DOES NOT COMPUTE THE WORD, and must not learn how. Ring.from and
+    Sightlines.step are Java, and ROADMAP records what happened the last time a
+    Python tool transposed the lattice: sightline-map.py drew a different lattice
+    than the game generated for 12.7% of cells, and the check that was supposed
+    to catch it compared four cells. The word comes in as an argument, read off
+    the world by something that IS the lattice.
+
+    Bounded on purpose. make-sky-noise's own note says density is clamped to
+    [-1, 1] before use, so terms far outside that are wasted; every knob below
+    stays inside the range the sky settings were tuned in.
+    """
+    digits = [int(c) for c in word]
+    if not digits or any(d > 7 for d in digits):
+        sys.exit("a pattern is a word in base 8, one digit per leg: e.g. 2604")
+
+    # A ring has no start, so the same circuit entered at a different cell would
+    # otherwise name a different world. Canonical = least rotation.
+    rotations = [tuple(digits[i:] + digits[:i]) for i in range(len(digits))]
+    canon = min(rotations)
+    if tuple(digits) != canon:
+        print("pattern %s canonicalises to %s (a ring has no start)"
+              % (word, "".join(str(d) for d in canon)))
+    digits = list(canon)
+
+    turns = sum(1 for i in range(len(digits))
+                if digits[i] != digits[i - 1])
+
+    return {
+        "word": "".join(str(d) for d in digits),
+        "gain": 1.0,
+        "bias": round((sum(digits) % 5) * 0.05, 4),
+        "swell": round(0.2 + (turns % 5) * 0.15, 4),
+        "swell_scale": round(0.06 + (len(digits) % 4) * 0.02, 4),
+        # Dry, every one of them, and this is a constraint rather than a taste.
+        # octia:sky put sea_level 96 over a band whose min_y is 0 on a generator
+        # with no floor, and the sea drains out of the bottom of the world -
+        # measured, docs/ISLANDS.md X. Until that has a floor, a pattern world
+        # does not get water. A generator that ships a known leak by the
+        # thousand is worse than one that ships none.
+        "sea_level": -64,
+        "aquifers": False,
+    }
+
+
+def write_preset(word, repo):
+    """The world_preset that points at a pattern's noise settings.
+
+    Structurally sky.json's, which is proven to load. The Nether and the End are
+    left exactly as vanilla wrote them, for the reason ISLANDS.md IX gives: this
+    changes where you arrive, not the era stack under it.
+    """
+    preset = {
+        "_comment": ("DERIVED - do not hand-edit, regenerate. "
+                     "python tools/make-sky-noise.py --pattern %s" % word),
+        "dimensions": {
+            "minecraft:overworld": {
+                "type": "minecraft:overworld",
+                "generator": {
+                    "type": "minecraft:noise",
+                    "biome_source": {"type": "minecraft:multi_noise",
+                                     "preset": "minecraft:overworld"},
+                    "settings": "octia:thread_%s" % word,
+                },
+            },
+            "minecraft:the_nether": {
+                "type": "minecraft:the_nether",
+                "generator": {
+                    "type": "minecraft:noise",
+                    "biome_source": {"type": "minecraft:multi_noise",
+                                     "preset": "minecraft:nether"},
+                    "settings": "minecraft:nether",
+                },
+            },
+            "minecraft:the_end": {
+                "type": "minecraft:the_end",
+                "generator": {
+                    "type": "minecraft:noise",
+                    "biome_source": {"type": "minecraft:the_end"},
+                    "settings": "minecraft:end",
+                },
+            },
+        },
+    }
+    out = os.path.join(repo, "src", "main", "resources", "data", "octia",
+                       "worldgen", "world_preset", "thread_%s.json" % word)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(preset, f, indent=2)
+        f.write("\n")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--pattern", default=None, metavar="WORD",
+                    help="a thread's ring as a base-8 word, one digit per leg "
+                         "(e.g. 2604). Derives every knob below from it and "
+                         "writes octia:thread_WORD - both the noise settings "
+                         "and the world preset. See docs/THREADS.md.")
     ap.add_argument("--gain", type=float, default=1.0,
                     help="multiplier on the island noise. On its own this does NOTHING - "
                          "see the note at the top of this file.")
@@ -204,8 +309,27 @@ def main():
                     help="let the generator carve water bodies inside the terrain.")
     ap.add_argument("--no-aquifers", dest="aquifers", action="store_false")
 
-    ap.add_argument("--out", default=DEFAULT_OUT)
+    ap.add_argument("--out", default=None)
     args = ap.parse_args()
+
+    # --pattern overrides every knob, because a pattern world whose terrain did
+    # not follow from its pattern would be a lie told in data.
+    pattern = None
+    if args.pattern is not None:
+        k = pattern_knobs(args.pattern)
+        pattern = k["word"]
+        args.gain, args.bias = k["gain"], k["bias"]
+        args.swell, args.swell_scale = k["swell"], k["swell_scale"]
+        args.sea_level, args.aquifers = k["sea_level"], k["aquifers"]
+        if args.out is None:
+            args.out = os.path.join(
+                REPO, "src", "main", "resources", "data", "octia",
+                "worldgen", "noise_settings", "thread_%s.json" % pattern)
+        print("pattern %s -> gain=%g bias=%g swell=%g scale=%g sea=%d aquifers=%s"
+              % (pattern, args.gain, args.bias, args.swell, args.swell_scale,
+                 args.sea_level, args.aquifers))
+    if args.out is None:
+        args.out = DEFAULT_OUT
 
     settings, jar = load_vanilla()
     print("vanilla from: %s" % os.path.basename(jar))
@@ -229,12 +353,66 @@ def main():
         print("  WARNING: gain with no bias and no swell is a no-op. "
               "It cannot move a zero crossing.")
 
+    # Provenance, written into the artifact rather than remembered beside it.
+    #
+    # This file emits ~2,250 lines of DERIVED data, and for a day the inputs
+    # that produced the shipped one were unrecoverable from the repo: they had
+    # to be read back out of the expression tree by hand. The usage example at
+    # the top of THIS file names different values than what shipped, so a
+    # reader following the docs regenerated a different world. A derived file
+    # that cannot say what derived it is a file nobody can safely change.
+    #
+    # An unknown key is safe here: Mojang's settings codec reads the fields it
+    # names and ignores the rest, which is why datapacks have used _comment for
+    # years. Verified by generating a world with this key present and reading
+    # the blocks back - see worlds/slices/README.md.
+    if pattern is not None:
+        # The pattern IS the provenance. Recording the derived knobs instead
+        # would invite somebody to edit one of them, and then the terrain would
+        # no longer follow from the word it is named after.
+        flags = ["--pattern %s" % pattern]
+    else:
+        flags = ["--gain %g" % args.gain, "--bias %g" % args.bias,
+                 "--swell %g" % args.swell, "--swell-scale %g" % args.swell_scale]
+        if args.sea_level is not None:
+            flags.append("--sea-level %d" % args.sea_level)
+        if args.aquifers is True:
+            flags.append("--aquifers")
+        elif args.aquifers is False:
+            flags.append("--no-aquifers")
+
+    settings = {
+        "_comment": ("DERIVED - do not hand-edit, regenerate. "
+                     "python tools/make-sky-noise.py %s  "
+                     "(from vanilla %s in %s)"
+                     % (" ".join(flags), VANILLA, os.path.basename(jar))),
+        **settings,
+    }
+
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(settings, f, indent=2)
         f.write("\n")
-    print("wrote %s  (%,d bytes)".replace("%,d", "%d")
-          % (os.path.relpath(args.out, REPO), os.path.getsize(args.out)))
+    # relpath throws across drives on Windows - "path is on mount 'C:', start on
+    # mount 'D:'" - which made --out to any other drive crash AFTER writing the
+    # file correctly. The path is cosmetic here; the write is not.
+    try:
+        shown = os.path.relpath(args.out, REPO)
+    except ValueError:
+        shown = args.out
+    print("wrote %s  (%d bytes)" % (shown, os.path.getsize(args.out)))
+
+    if pattern is not None:
+        preset = write_preset(pattern, REPO)
+        try:
+            shown = os.path.relpath(preset, REPO)
+        except ValueError:
+            shown = preset
+        print("wrote %s" % shown)
+        print("open it with: tools\\new-world.ps1 -Type thread_%s" % pattern)
+        print("NOTE: not tagged into minecraft:normal, so it does NOT appear on")
+        print("      the world-type button. That is deliberate - a pattern world")
+        print("      is reached by finding its thread, not by scrolling a list.")
 
 
 if __name__ == "__main__":

@@ -60,7 +60,18 @@
 param(
     [long]$Seed = 0,
     [string]$Name = '',
-    [ValidateSet('normal', 'amplified', 'large_biomes', 'flat', 'sky')]
+    # Deliberately NOT a ValidateSet any more. It was one, and that was right
+    # while every preset was either vanilla's or octia:sky - but a thread world
+    # is named after the pattern that opens it (octia:thread_2604), and there are
+    # 8^N of those. A closed set cannot hold a generated name, and hardcoding a
+    # regex for one would be a second spelling of what the data already says.
+    #
+    # The cost is real and is accepted: a typo is no longer caught here. It is
+    # caught by the server, which resolves the level-type through the WORLD_PRESET
+    # registry and, when the lookup fails, FALLS BACK TO NORMAL without saying so
+    # in any obvious way. So the check moved rather than vanished - see the note
+    # below, and read the world back with tools/chunk-probe.py.
+    [ValidatePattern('^[a-z0-9_]+$')]
     [string]$Type = 'normal',
     [int]$Chunks = 0
 )
@@ -70,6 +81,16 @@ $repo = Split-Path -Parent $PSScriptRoot
 $gradlew = Join-Path $repo 'gradlew.bat'
 $runDir = Join-Path $repo 'run\worldgen'
 $saves = Join-Path $repo 'run\saves'
+
+# Which namespace a preset id lives in, derived once from one list.
+#
+# This used to be spelled `if ($Type -eq 'sky')` in two separate places, and a
+# third preset made both of them wrong at the same time: thread_0426 resolved as
+# minecraft:thread_0426, which does not exist - and a failed WORLD_PRESET lookup
+# FALLS BACK TO NORMAL without saying anything a person would notice. Two copies
+# of a rule is one copy too many when the rule is about to gain a case.
+$vanillaPresets = @('normal', 'amplified', 'large_biomes', 'flat', 'debug')
+$typeNamespace = if ($vanillaPresets -contains $Type) { 'minecraft' } else { 'octia' }
 
 function Step($text) {
     Write-Host ""
@@ -142,7 +163,7 @@ if (Test-Path -LiteralPath $destination) {
 
 Step "world  $Name"
 Write-Host "  seed    : $Seed"
-Write-Host "  terrain : $(if ($Type -eq 'sky') { 'octia' } else { 'minecraft' }):$Type"
+Write-Host "  terrain : ${typeNamespace}:$Type"
 Write-Host "  into    : $destination"
 
 # ---- server.properties -----------------------------------------------------
@@ -170,7 +191,6 @@ Write-Host "  into    : $destination"
 # octia:sky is not, and a hardcoded namespace here is exactly the kind of thing
 # that silently generates the wrong world - the server falls back to normal and
 # says nothing a person would notice.
-$typeNamespace = if ($Type -eq 'sky') { 'octia' } else { 'minecraft' }
 $levelType = "${typeNamespace}\:$Type"
 @(
     "level-name=$Name",

@@ -1,6 +1,6 @@
 {
-  "_comment": "DERIVED - do not hand-edit, regenerate. python tools/make-sky-noise.py --gain 1 --bias 0.25 --swell 0.3 --swell-scale 0.08 --sea-level 96 --aquifers  (from vanilla data/minecraft/worldgen/noise_settings/floating_islands.json in minecraft-merged-9b5ff62f35-1.21.1-loom.mappings.1_21_1.layered+hash.2198-v2.jar)",
-  "aquifers_enabled": true,
+  "_comment": "DERIVED - do not hand-edit, regenerate. python tools/make-sky-noise.py --pattern 0426  (from vanilla data/minecraft/worldgen/noise_settings/floating_islands.json in minecraft-merged-9b5ff62f35-1.21.1-loom.mappings.1_21_1.layered+hash.2198-v2.jar)",
+  "aquifers_enabled": false,
   "default_block": {
     "Name": "minecraft:stone"
   },
@@ -64,20 +64,20 @@
                         "argument1": 23.4375,
                         "argument2": {
                           "type": "minecraft:add",
-                          "argument1": 0.25,
+                          "argument1": 0.1,
                           "argument2": {
                             "type": "minecraft:add",
                             "argument1": "minecraft:end/base_3d_noise",
                             "argument2": {
                               "type": "minecraft:mul",
-                              "argument1": 0.3,
+                              "argument1": 0.8,
                               "argument2": {
                                 "type": "minecraft:shifted_noise",
                                 "noise": "minecraft:continentalness",
                                 "shift_x": "minecraft:shift_x",
                                 "shift_y": 0.0,
                                 "shift_z": "minecraft:shift_z",
-                                "xz_scale": 0.08,
+                                "xz_scale": 0.06,
                                 "y_scale": 0.0
                               }
                             }
@@ -121,7 +121,7 @@
     "vein_toggle": 0.0
   },
   "ore_veins_enabled": false,
-  "sea_level": 96,
+  "sea_level": -64,
   "spawn_target": [],
   "surface_rule": {
     "type": "minecraft:sequence",
