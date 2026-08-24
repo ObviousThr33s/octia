@@ -36,3 +36,56 @@ the code that made it is worth less than the disk it costs.
 
 If this grows past a few hundred MB, the answer is Git LFS or an external store — not
 quietly deleting history.
+
+---
+
+## `[2026-08-23]` The threshold above has been crossed, and the table above is stale
+
+Both stated flatly rather than fixed by editing, per the house rule on corrections.
+
+**The table names two snapshots. Eighteen are tracked** — 616 files under `worlds/`.
+The 38 MB figure is the two 2026-07-30 snapshots only.
+
+Measured this date:
+
+| | |
+|---|---|
+| `worlds/` on disk | **548.1 MB** in 825 files |
+| of which saves | 467.7 MB |
+| of which PNG | 80.3 MB in 109 files |
+| **`.git`** | **302.6 MB** |
+
+**"A few hundred MB" has arrived.** The paragraph above names Git LFS or an external
+store as the answer at this point, and neither has been set up. Nothing here proposes
+which; it is recorded so the next snapshot is a decision rather than a reflex. The rule
+that it is *not* solved by deleting history stands.
+
+### Screenshots, and which sets are tracked
+
+The 2026-08-10 (2) and 2026-08-17 (32) sets were already tracked. Added this date and
+**untracked as of writing**:
+
+| set | files | size | what it holds |
+|---|---|---|---|
+| `2026-08-22_14.*` | 15 | 2.8 MB | shape A's first light — the sky world, the day it was chosen |
+| `2026-08-23_22.*` | 41 | 14.0 MB | the 22:22–22:27 playtest of the shipped terrain |
+
+The 08-23 set is the evidence behind `docs/ISLANDS.md` §X. Four of its frames carry the
+F6 debug readout, and all four say `obelisks: 1 (within 1024b of you)` — which is what
+put the lattice's survival on `octia:sky` onto that file's not-measured list.
+`2026-08-23_22.27.52.png` puts the player at `130 -11 341`, below the noise band's
+floor, in the dark: the void under the world, photographed.
+
+### `slices/`
+
+[`slices/`](slices/) holds vertical cross-sections read straight out of region files by
+`tools/chunk-probe.py`, with no game running. Seven of them, one per rung of that
+evening's terrain search, all on seed 1 at the same framing.
+
+**81 KB for the set.** The seven saves they were read from are ~90 MB, and given the
+paragraph above they were deliberately *not* snapshotted. A slice is not a substitute
+for a save — you cannot walk it — but for the one question those rungs were asked, it is
+the whole answer, and it is three orders of magnitude cheaper.
+
+They are also the **only surviving record of rungs 1 to 5**: each regenerated
+`sky.json` and only the last version was ever committed.

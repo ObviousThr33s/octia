@@ -1,4 +1,5 @@
 {
+  "_comment": "DERIVED - do not hand-edit, regenerate. python tools/make-sky-noise.py --pattern 0426",
   "dimensions": {
     "minecraft:overworld": {
       "type": "minecraft:overworld",
@@ -8,7 +9,7 @@
           "type": "minecraft:multi_noise",
           "preset": "minecraft:overworld"
         },
-        "settings": "octia:sky"
+        "settings": "octia:thread_0426"
       }
     },
     "minecraft:the_nether": {

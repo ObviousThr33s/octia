@@ -304,3 +304,196 @@ it. The sweep to run is: for N seeds, how far from spawn is the nearest column w
 in it.
 
 `[2026-08-22]`
+
+---
+
+## X. Measured 2026-08-23 — the islands are gone, and one of them is a bathtub
+
+**The standard §VIII set has finally been met for this file.** Seven saves, one seed,
+read block by block out of the region files. The strip and every number below is in
+[`worlds/slices/README.md`](../worlds/slices/README.md); this section states what it
+means for the design.
+
+### §IX's claim "sea level at -64" is no longer true
+
+Two keys in `octia:sky` diverge from vanilla `floating_islands` beyond the density
+term, and both were changed on 2026-08-23 without a line anywhere:
+
+| key | vanilla | `octia:sky` |
+|---|---|---|
+| `sea_level` | −64 | **96** |
+| `aquifers_enabled` | false | **true** |
+
+§IX is left as written, per the house rule. Read that sentence as history.
+
+### The shipped world has no void column and no dry chunk
+
+`chunk-probe.py --profile` over every full chunk, same seed:
+
+| | vanilla `floating_islands` | shipped `octia:sky` |
+|---|---|---|
+| median rock per chunk | 13.21% | **29.20%** |
+| median fluid per chunk | 0 | **18,059 blocks** |
+| completely empty chunks | 3.4% | **0.0%** |
+| chunks with no fluid at all | 76.4% | **0.0%** |
+
+Not one chunk in 1,681 is empty. Not one chunk is dry. **§I's bar is not cleared and
+is not close** — *"if a player can walk off the island and find normal terrain, there
+is no contract, and what has been built is scenery."* Shape A was chosen; what
+generates today is nearer shape B with a water table.
+
+### The last step in the search tuned nothing — it flooded the world
+
+The `tune` rung against the `sea` rung, full chunks only: **18.30% of cells differ,
+99.5% of them below y=96, and 89.5% of the substitutions are `air → water`.** Above
+y=96, 0.5%. Median rock moved from 28.74% to 29.20% — half a percent.
+
+So the terrain shape currently shipping is the `tune` rung's, and everything the last
+change did was fill its caverns.
+
+### `isle` is where the archipelago actually was
+
+The `isle` rung sits at **13.16% rock with 2.4% empty chunks and 77.9% of chunks dry**
+— statistically indistinguishable from vanilla on density, while running octia's own
+swell field. It is the only rung that both keeps the void and composes it. The search
+then went to 41.09%, back to 28.74%, and shipped 29.20% with water in everything.
+
+**If shape A is still the goal, `isle` is the rung to return to**, and the numbers to
+beat are its three. That is a decision for the chair, not for this file — §VII.3 is
+what it turns on.
+
+### §VII.3 — "what is scarce" — is now answerable, and the answer is nothing
+
+§IX said anchorage was scarce "by accident: there is less ground". There is no longer
+less ground. There is more ground than vanilla and water in every chunk of it. The
+accident has been undone, and nothing replaced it on purpose.
+
+### What the terrain being data means, stated because it was asked
+
+Terrain is `data/octia/worldgen/noise_settings/sky.json`, referenced by
+`world_preset/sky.json`, shipped in the jar. **A new world generates exactly this**: a
+fresh seed-1 save, generated headlessly on 2026-08-23 after the provenance comment
+landed, matches the played save to **99.68%** over the compared range, and effectively
+all of the 0.32% is fluid still settling — `bubble_column → water`, lava that had
+chilled to obsidian. About 0.06% is rock.
+
+No Java shapes it. `SkyChoice` moves the world-type button and `Landfall` guarantees
+ground under spawn afterwards; neither decides a block of terrain. That is §IX's
+argument holding up.
+
+**But an existing save keeps its chunks.** Changing `sky.json` only reaches newly
+generated ones, so a world made before a change shows a seam rather than re-shaping,
+and every dev save in `run/saves` is a record of the settings of the hour it was made.
+
+### The inputs to the shipped terrain are now in the file
+
+`sky.json` carries a `_comment` naming the command that produced it —
+
+```
+python tools/make-sky-noise.py --gain 1 --bias 0.25 --swell 0.3 \
+    --swell-scale 0.08 --sea-level 96 --aquifers
+```
+
+— and `make-sky-noise.py` writes that line on every run, so it cannot go missing
+again. The six values were **proven rather than inferred**: regenerating with them
+produces a file identical to the shipped one apart from the comment. Verified as
+harmless by generating a world with the key present.
+
+For a day they were recoverable only by reading the expression tree by hand, and the
+usage example at the top of `make-sky-noise.py` still names `--bias 0.6 --swell 0.9`,
+which builds a *different world* than the one that shipped.
+
+### Still not measured
+
+1. **Island spacing**, asked for in §IX and still unanswered — for N seeds, how far
+   from spawn is the nearest column with ground. It is now a stranger question than it
+   was, because on the shipped settings the answer is almost always zero.
+2. **What the lattice does on this terrain.** `RuinGround.hasFooting` rejects an air
+   floor plane, `ObeliskFeature` wants a 7×5 footprint with headroom over the whole
+   prism and refuses rather than levels, and `ArchFeature` carries no rarity filter on
+   purpose. All four debug readouts from the 22:22–22:27 playtest say
+   `obelisks: 1 (within 1024b of you)`. Nobody has measured the real rate on
+   `octia:sky` against `ROADMAP.md` §V's one-per-840-chunks on ordinary terrain.
+3. **Rungs 1 to 5 are unrecoverable.** Each regenerated `sky.json` and only the last
+   was committed. The slices are the only surviving record of what they made.
+
+### The sea is draining out of the bottom of the world
+
+**This is a live bug, not a taste question, and it is the sharpest thing on this
+page.**
+
+The freshly generated seed-1 save has **3,756 blocks of water below y=0** — below the
+noise band's own floor, where nothing generates at all. They sit in exactly **25 of
+169** chunks, and those 25 are the ones around spawn.
+
+That distribution is the proof. Generation touched all 169 chunks equally; only the
+ones the server actually **ticked** during its five-second run have water down there.
+So this is not generation. It is fluid flow: the sea is pouring off the underside of
+the world, and it will start wherever a player loads chunks.
+
+The spawn column, read with `--column 0 0`:
+
+```
+ -64..-2    - air -
+  -1..38    minecraft:water      <- one block below the band floor already
+  39..40    minecraft:stone
+  41..58    minecraft:water
+  59..63    minecraft:stone
+  64..64    minecraft:gravel
+  65..95    minecraft:water
+  96..141   - air -              <- sea_level 96, and nothing above it
+```
+
+**The cause is the two changed keys meeting a floorless band.** `octia:sky` sets
+`sea_level: 96` and `aquifers_enabled: true` over a band whose `min_y` is **0**, and
+`floating_islands` has no bedrock and no floor. Water placed at the bottom of that
+band has nothing to sit on. Vanilla sets `sea_level` to −64 for precisely this reason:
+so no water is ever placed at all. Its own note in `make-sky-noise.py` said as much
+before either key was moved — *"whether they CAN move without the islands drowning is
+a question for a generated world rather than an argument."* It was a good question and
+the generated world has answered it.
+
+Three consequences, in the order a player meets them:
+
+1. Every water edge is an endless waterfall into the void.
+2. Those are fluid ticks, forever, in every loaded chunk that has one.
+3. It compounds: the played save carries more water than the fresh one at the same
+   seed, and the difference is fluid that had time to move.
+
+Not fixed here. The fix is a decision — drop `sea_level` back toward the band floor,
+or give the band a floor — and §VII.3 is what it turns on.
+
+### And the instrument was wrong three times, which is why none of this was known
+
+All fixed 2026-08-23, all silent until now, all in `chunk-probe.py`:
+
+- **`"air"` was a substring rule and `"air"` is inside `"stairs"`.** Every
+  `stone_brick_stairs` and every trial chamber's `waxed_*_cut_copper_stairs` rendered
+  as **void**, in the one tool built to answer *is there void here*.
+- **`--profile` counted water as solid, and `cave_air` as solid.** The test was
+  `!= "minecraft:air"`, which `cave_air` and `void_air` both pass. So caves inflated
+  every density figure, and on a world with aquifers on a flooded cavern scored
+  exactly like one packed with stone — the difference between an archipelago and a
+  bathtub.
+- **The headline VERDICT was wrong on both kinds of world it was built to tell
+  apart.** Its rule was *"nothing below y=0, or it is not a sky world"*, and it failed
+  twice in opposite directions:
+  - it called the genuine `octia:sky` save **not a sky world**, because of the leaked
+    water above;
+  - and it called **vanilla `floating_islands` not a sky world too** — because a
+    **trial chamber** generates at y −16 to −47, tuff bricks and waxed copper hanging
+    in the void. Structures place in dimension space, −64..320, not in the noise band,
+    so one anchored near the floor goes straight through it. Nothing to do with this
+    mod.
+
+  Presence below the band therefore proves nothing. The tell is a **ratio**: an
+  ordinary overworld has rock under essentially every chunk (measured: 451/451,
+  100%), a floating one under the few that caught a structure (10/1089, 0.9%). And the
+  drain check is now only asked of a floorless band, because on an ordinary world
+  water under y=0 is an ocean doing its job.
+
+Also 57 block kinds had no palette entry and drew magenta, including the whole
+amethyst geode and every ruined-portal block. A name that falls through now prints to
+stderr with a count.
+
+`[2026-08-23]`

@@ -32,9 +32,20 @@
     Full world name. Defaults to the next free SERENITY_[a.b.c.S.A.F.E].project.
 
 .PARAMETER Type
-    Overworld preset: normal, amplified, large_biomes, flat. Default normal.
+    Overworld preset: normal, amplified, large_biomes, flat, sky. Default normal.
     The three existing saves deliberately run three different presets - see
     docs/WORLDS.md - and a placement rule that behaves in all of them is a rule.
+
+    'sky' is Octia's own - octia:sky, the whole Overworld drawn from
+    minecraft:floating_islands with ordinary Overworld biomes on top. It is the
+    only value here that is not in the minecraft namespace, which is why the
+    namespace below is derived rather than assumed. A dedicated server resolves
+    level-type through the WORLD_PRESET registry, and the mod's data is on the
+    classpath under runWorldgen, so this needs no other machinery.
+
+    If the preset ever fails to resolve, the server falls back to normal WITHOUT
+    saying so in any obvious way. tools/world-report.py is how you tell: a sky
+    world has nothing below y=0, an ordinary one has bedrock at -64.
 
 .PARAMETER Chunks
     Radius in chunks to generate around spawn, for measuring ruin density over a
@@ -49,7 +60,18 @@
 param(
     [long]$Seed = 0,
     [string]$Name = '',
-    [ValidateSet('normal', 'amplified', 'large_biomes', 'flat')]
+    # Deliberately NOT a ValidateSet any more. It was one, and that was right
+    # while every preset was either vanilla's or octia:sky - but a thread world
+    # is named after the pattern that opens it (octia:thread_2604), and there are
+    # 8^N of those. A closed set cannot hold a generated name, and hardcoding a
+    # regex for one would be a second spelling of what the data already says.
+    #
+    # The cost is real and is accepted: a typo is no longer caught here. It is
+    # caught by the server, which resolves the level-type through the WORLD_PRESET
+    # registry and, when the lookup fails, FALLS BACK TO NORMAL without saying so
+    # in any obvious way. So the check moved rather than vanished - see the note
+    # below, and read the world back with tools/chunk-probe.py.
+    [ValidatePattern('^[a-z0-9_]+$')]
     [string]$Type = 'normal',
     [int]$Chunks = 0
 )
@@ -59,6 +81,16 @@ $repo = Split-Path -Parent $PSScriptRoot
 $gradlew = Join-Path $repo 'gradlew.bat'
 $runDir = Join-Path $repo 'run\worldgen'
 $saves = Join-Path $repo 'run\saves'
+
+# Which namespace a preset id lives in, derived once from one list.
+#
+# This used to be spelled `if ($Type -eq 'sky')` in two separate places, and a
+# third preset made both of them wrong at the same time: thread_0426 resolved as
+# minecraft:thread_0426, which does not exist - and a failed WORLD_PRESET lookup
+# FALLS BACK TO NORMAL without saying anything a person would notice. Two copies
+# of a rule is one copy too many when the rule is about to gain a case.
+$vanillaPresets = @('normal', 'amplified', 'large_biomes', 'flat', 'debug')
+$typeNamespace = if ($vanillaPresets -contains $Type) { 'minecraft' } else { 'octia' }
 
 function Step($text) {
     Write-Host ""
@@ -131,7 +163,7 @@ if (Test-Path -LiteralPath $destination) {
 
 Step "world  $Name"
 Write-Host "  seed    : $Seed"
-Write-Host "  terrain : minecraft:$Type"
+Write-Host "  terrain : ${typeNamespace}:$Type"
 Write-Host "  into    : $destination"
 
 # ---- server.properties -----------------------------------------------------
@@ -155,7 +187,11 @@ Write-Host "  into    : $destination"
 #                         warning, and an unauthenticated server is exactly the
 #                         thing not to leave listening. No login happens here.
 #   white-list            on and enforced, with an empty whitelist.
-$levelType = "minecraft\:$Type"
+# Derived, not assumed. Every vanilla preset is in the minecraft namespace and
+# octia:sky is not, and a hardcoded namespace here is exactly the kind of thing
+# that silently generates the wrong world - the server falls back to normal and
+# says nothing a person would notice.
+$levelType = "${typeNamespace}\:$Type"
 @(
     "level-name=$Name",
     "level-seed=$Seed",
