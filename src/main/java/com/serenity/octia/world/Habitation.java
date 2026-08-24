@@ -91,7 +91,9 @@ public final class Habitation {
             // reads as scorched ground without needing a block called ash.
             case ANCIENT -> {
                 put(level, spot, Blocks.SOUL_SOIL.defaultBlockState());
-                if (random.nextBoolean()) {
+                // The neighbour did not go through spot, so it asks its own
+                // footing. put stays untouched: its contract is air-and-not-hull.
+                if (random.nextBoolean() && settled(level, spot.relative(Direction.EAST))) {
                     put(level, spot.relative(Direction.EAST), Blocks.SOUL_SOIL.defaultBlockState());
                 }
             }
@@ -146,7 +148,8 @@ public final class Habitation {
 
         Direction facing = Direction.Plane.HORIZONTAL.getRandomDirection(random);
         BlockPos head = foot.relative(facing);
-        if (!free(level, head)) {
+        // Both halves of a bed rest on ground, and spot only vouched for the foot.
+        if (!free(level, head) || !settled(level, head)) {
             return;
         }
 
@@ -212,7 +215,7 @@ public final class Habitation {
             case ANCIENT -> 2 + random.nextInt(3);
         };
         for (int i = 0; i < strands; i++) {
-            BlockPos spot = spot(level, random, anchor);
+            BlockPos spot = looseSpot(level, random, anchor);
             if (spot == null) {
                 continue;
             }
@@ -274,8 +277,30 @@ public final class Habitation {
                 || state.is(Blocks.RED_SAND);
     }
 
-    /** A free surface position around the anchor, or null. */
+    /**
+     * A free, settled surface position around the anchor, or null.
+     *
+     * <p>Every prop that has to stand routes through here, so the footing
+     * question is asked once rather than per prop. That deliberately includes
+     * {@link #light}: a torch pops off a tuft on its first update anyway, and
+     * giving the age switch its own ground knowledge would be two placement
+     * rules where one does. Glow lichen losing tuft-top sites is the accepted
+     * cost.
+     */
     private static BlockPos spot(WorldGenLevel level, RandomSource random, BlockPos anchor) {
+        BlockPos found = RuinGround.scatter(level, random, anchor, SPREAD_MIN, SPREAD_MAX);
+        return found != null && free(level, found) && settled(level, found) ? found : null;
+    }
+
+    /**
+     * A free surface position that is allowed to hang, or null.
+     *
+     * <p>{@link #spot}'s old body, kept for {@link #wear} alone. A cobweb
+     * hangs in vanilla mineshafts, and vanilla carpet itself asks only for
+     * non-air below, so the wear strands keep the looser question - a
+     * decision, not an omission.
+     */
+    private static BlockPos looseSpot(WorldGenLevel level, RandomSource random, BlockPos anchor) {
         BlockPos found = RuinGround.scatter(level, random, anchor, SPREAD_MIN, SPREAD_MAX);
         return found != null && free(level, found) ? found : null;
     }
@@ -290,6 +315,24 @@ public final class Habitation {
      */
     private static boolean free(WorldGenLevel level, BlockPos pos) {
         return level.getBlockState(pos).isAir() && !nearCore(level, pos);
+    }
+
+    /**
+     * Whether the block under this position holds a block up.
+     *
+     * <p>{@link RuinGround#surfaceNear} answers "the block below is not air",
+     * and a grass tuft is not air - the playtest found a decorated pot standing
+     * on one (23.43.26, 264 193 22). Air-only was never the whole question; the
+     * ground has to be ground. This asks the vanilla full-face support question,
+     * one block read, and it is the exact question that was missing: a tuft, a
+     * fence, the gap over a slab and a pot already placed all answer no.
+     *
+     * <p>It lives here and not in {@link RuinGround} because only the dressing
+     * asks it today. The day a second dresser wants it, it moves there -
+     * RuinGround's own extraction rule.
+     */
+    private static boolean settled(WorldGenLevel level, BlockPos pos) {
+        return level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP);
     }
 
     /** True if this position is one of some core's eight ring slots. */

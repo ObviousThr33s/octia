@@ -1,5 +1,9 @@
 package com.serenity.octia.ship;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import com.mojang.serialization.MapCodec;
 import com.serenity.octia.OctiaBlocks;
 import com.serenity.octia.block.Luminaries;
@@ -60,6 +64,34 @@ public class ShipCoreBlock extends Block {
      * cheap once, ruinous per tick. See the class note.
      */
     public static final int CALL_RADIUS = 6;
+
+    /**
+     * How long one player's readout stays silent after it speaks, in ticks.
+     * The 8/23 player clicked the core 26 times in 14 seconds and got the same
+     * three lines and a beacon chime every time; three seconds is the answer to
+     * that, not a rate limit on asking - a silenced click still re-surveys.
+     * Public because the gametest schedules against it.
+     *
+     * <p>provisional - owner tunes by walking the world
+     */
+    public static final int READOUT_COOLDOWN_TICKS = 60;
+
+    /** Clockwise from north, 45 degrees apiece. Indexed by {@link #octant}. */
+    private static final String[] OCTANTS = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+
+    /**
+     * When each player last heard a readout, by game time.
+     *
+     * <p>Transient and static, on purpose. The class forbids itself a
+     * BlockEntity and a cooldown is not worth a SavedData: it is three seconds
+     * of politeness, not state the save owns. Written only from the server
+     * thread - {@link #readout} is the sole writer and every dimension shares
+     * that thread - so a plain HashMap is safe. The accepted residue: an entry
+     * outlives its player's logout, the bound is the session's player count,
+     * and the cost is sixteen bytes each, gone on restart. Priced and accepted
+     * over a WeakHashMap's cleverness.
+     */
+    private static final Map<UUID, Long> LAST_READOUT = new HashMap<>();
 
     public ShipCoreBlock(Properties properties) {
         super(properties);
