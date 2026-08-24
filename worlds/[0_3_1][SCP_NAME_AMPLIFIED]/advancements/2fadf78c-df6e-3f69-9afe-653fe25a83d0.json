@@ -1,0 +1,76 @@
+{
+  "minecraft:recipes/transportation/mangrove_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/decorations/crafting_table": {
+    "criteria": {
+      "unlock_right_away": "2026-08-17 20:40:11 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/acacia_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/cherry_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:desert": "2026-08-17 20:41:34 -0700",
+      "minecraft:sparse_jungle": "2026-08-17 20:54:41 -0700",
+      "minecraft:jungle": "2026-08-17 20:55:27 -0700",
+      "minecraft:river": "2026-08-17 20:53:52 -0700",
+      "minecraft:lukewarm_ocean": "2026-08-17 20:53:03 -0700",
+      "minecraft:savanna": "2026-08-17 20:52:01 -0700",
+      "minecraft:plains": "2026-08-17 20:54:35 -0700",
+      "minecraft:warm_ocean": "2026-08-17 20:51:20 -0700"
+    },
+    "done": false
+  },
+  "minecraft:recipes/transportation/bamboo_raft": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/spruce_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/birch_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/oak_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/jungle_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "minecraft:recipes/transportation/dark_oak_boat": {
+    "criteria": {
+      "in_water": "2026-08-17 20:48:33 -0700"
+    },
+    "done": true
+  },
+  "DataVersion": 3955
+}
