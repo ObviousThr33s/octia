@@ -86,7 +86,7 @@ word when they spell one: `S.A.F.E` is deliberate.
 ## 3. Scope — `|A|B|C|`
 
 ```
-|SEEK|SAGE|HELIOS|ALL|USERS|
+|SEEK|SAGE|DEVOPS|ALL|USERS|
 ```
 
 Pipe-delimited, leading and trailing pipes included. Names an audience.
