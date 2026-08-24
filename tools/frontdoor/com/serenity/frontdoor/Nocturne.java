@@ -52,6 +52,28 @@ public final class Nocturne {
     /** --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent) */
     public static final Color DIVIDER = alpha(TEXT, 0.16f);
 
+    /**
+     * A gate that passed, and a gate that did not. The only two hues in this
+     * class outside the violet and the neutrals.
+     *
+     * <p><b>They have to be outside it, and that is the argument for adding
+     * them rather than reaching for {@code ACCENT_300} and {@code ACCENT_700}.</b>
+     * Everything else here is brand: it says "this is Octia" and nothing more,
+     * so any of it can be swapped for any other of it and only the mood moves.
+     * A test result is not mood. If pass and fail are two steps of one ramp,
+     * they are two brightnesses of the same colour, and the one reading they
+     * must never need is a side-by-side comparison to tell apart - which is
+     * exactly the reading a scrolling log denies you.
+     *
+     * <p>Lightness is matched to the 300 step of the ramps so they sit level
+     * with {@link #ACCENT_300} on {@link #BG} rather than jumping out of the
+     * surface, and both are desaturated well below a terminal's stock green and
+     * red for the same reason the rest of this palette is: nothing here shouts.
+     */
+    public static final Color OK = hex("#7fd6a8");
+    /** @see #OK */
+    public static final Color BAD = hex("#e2796a");
+
     // ---- tonal ramps ------------------------------------------------------
     // Generated upstream in OKLCH on one shared lightness scale, so the same
     // step of any role carries the same visual weight.
@@ -107,6 +129,18 @@ public final class Nocturne {
                     Font.SANS_SERIF);
 
     /**
+     * The one fixed-width family, for output that has to line up in columns.
+     *
+     * <p>The only family here whose fallback is {@link Font#MONOSPACED} rather
+     * than {@code SANS_SERIF}, and that is the whole reason it is a separate
+     * constant instead of another size of the body face. A proportional font
+     * that falls back to another proportional font still reads; a column
+     * gutter that falls back to a proportional font stops being a column.
+     */
+    private static final String MONO_FAMILY =
+            firstInstalled("Cascadia Mono", "Consolas", "JetBrains Mono", Font.MONOSPACED);
+
+    /**
      * Headings. Weight stays at the system's 500 where the family offers it and
      * falls back to regular where it does not - deliberately, because in this
      * system "hierarchy is size and space", never a bolder heading.
@@ -128,6 +162,21 @@ public final class Nocturne {
     /** card-meta: small, tracked a little less than a kicker. */
     public static Font meta(float size) {
         return font(BODY_FAMILY, size, 0.08f);
+    }
+
+    /**
+     * Program output: logs, columns, anything that has to line up.
+     *
+     * <p><b>Tracking is zero and must stay zero.</b> Every other face here is
+     * partly defined by its tracking - that is what separates a kicker from
+     * meta on the same family. This one is defined by the absence of it.
+     * {@link java.awt.font.TextAttribute#TRACKING} adds a fraction of the point
+     * size to every advance, which is exactly the property a fixed-width font
+     * is chosen for destroying. A tracked monospace font is a proportional font
+     * with extra steps, and the gutter it draws drifts one pixel per character.
+     */
+    public static Font mono(float size) {
+        return font(MONO_FAMILY, size, 0f);
     }
 
     // ---- painting helpers -------------------------------------------------
@@ -326,6 +375,7 @@ public final class Nocturne {
         List<String> out = new ArrayList<>();
         out.add(HEADING_FAMILY);
         out.add(BODY_FAMILY);
+        out.add(MONO_FAMILY);
         return out;
     }
 }

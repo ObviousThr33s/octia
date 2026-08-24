@@ -72,11 +72,24 @@ public final class FrontDoor {
             System.out.println("wrote " + out);
             return;
         }
-        if (args.length >= 2 && "--shot".equals(args[0])) {
+        if (args.length >= 2 && ("--shot".equals(args[0]) || "--shot-dev".equals(args[0]))) {
             Path out = Paths.get(args[1]).toAbsolutePath();
-            shoot(out, args.length >= 4
+            Dimension size = args.length >= 4
                     ? new Dimension(Integer.parseInt(args[2]), Integer.parseInt(args[3]))
-                    : new Dimension(1180, 760));
+                    : new Dimension(1180, 760);
+            boolean through = "--shot-dev".equals(args[0]);
+            // On the event thread, not this one. TerminalView.append hops to
+            // the EDT when it is called from anywhere else - which is right for
+            // the reader threads it was written for, and would mean the sample
+            // lines below arrived after the paint that was supposed to show
+            // them. A shot that renders an empty terminal is not a check.
+            SwingUtilities.invokeAndWait(() -> {
+                try {
+                    shoot(out, size, through);
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
             System.out.println("wrote " + out);
             return;
         }
@@ -92,9 +105,40 @@ public final class FrontDoor {
      * appears on screen - which makes it a real check rather than an
      * approximation, and one that can be run without a person watching.
      */
-    private static void shoot(Path out, Dimension size) throws IOException {
+    private static void shoot(Path out, Dimension size, boolean through) throws IOException {
         FrontDoorPanel panel = compose(discoverRepo(), new AtomicReference<>(),
-                () -> { }, () -> { });
+                new AtomicReference<>(), () -> { }, () -> { });
+        if (through) {
+            // Sample output rather than a live run, on purpose: this has to be
+            // renderable on a machine with no game and no Gradle, and what is
+            // being checked is the drawing - the gutter alignment, the four
+            // tones, the wrap - not the plumbing. Every line below is a real
+            // shape one of the two scripts prints.
+            TerminalView t = panel.terminal();
+            t.running("VERIFY");
+            t.append(TerminalView.Lane.DOOR,
+                    "SEEK PLAY |DEV| - verify first (it builds), then the game on -SkipBuild");
+            t.append(TerminalView.Lane.VRFY, "  repo: D:\\Serenity\\octia");
+            t.append(TerminalView.Lane.VRFY, "==> build  (compile, remap, package)");
+            t.append(TerminalView.Lane.VRFY, "BUILD SUCCESSFUL in 4s");
+            t.append(TerminalView.Lane.VRFY, "==> gametest  (headless dedicated server, real game)");
+            t.append(TerminalView.Lane.VRFY, "  pass  shipgametest.acornerpanelcompletesthehull");
+            t.append(TerminalView.Lane.VRFY, "  pass  derelictgametest.thehullisacubeandtheringsurvives");
+            t.append(TerminalView.Lane.VRFY, "  FAIL  crewbenchgametest.thebenchisexactlyasreachableasdeclared");
+            t.append(TerminalView.Lane.VRFY, "        the run declared octia.crew.network=required and no bench"
+                    + " answered. Tried http://127.0.0.1:1234, http://127.0.0.1:11434,"
+                    + " http://127.0.0.1:8080. Start an endpoint, or declare"
+                    + " octia.crew.network=absent and assert the offline contract instead.");
+            t.append(TerminalView.Lane.VRFY, "  60 test(s): 1 failed, 0 errored, 0 skipped");
+            t.append(TerminalView.Lane.VRFY, "VERIFY FAILED");
+            t.append(TerminalView.Lane.DOOR, "VERIFY FAILED (exit 1) - opening the game anyway");
+            t.append(TerminalView.Lane.PLAY, "  mod     : octia 0.2.0-alpha.1  (Minecraft 1.21.1)");
+            t.append(TerminalView.Lane.PLAY, "==> runClient");
+            t.append(TerminalView.Lane.PLAY, "[14:29:16] [main/INFO] (octia) Octia: hull cold,"
+                    + " registry open. Andesite aboard.");
+            t.running("PLAY");
+            panel.through();
+        }
         panel.setSize(size);
         panel.doLayout();
         for (java.awt.Component c : panel.getComponents()) {
@@ -116,12 +160,31 @@ public final class FrontDoor {
 
     /** Builds the panel and everything on it. One definition, two callers. */
     private static FrontDoorPanel compose(Path repo, AtomicReference<FrontDoorPanel> ref,
+                                          AtomicReference<DevRun> runRef,
                                           Runnable onMinimise, Runnable onClose) {
-        DoorwayView door = new DoorwayView("ENTER   /   SEEK PLAY |ALL|",
-                () -> script(repo, "tools\\play.ps1", ref));
+        TerminalView terminal = new TerminalView();
+        DevRun dev = new DevRun(repo, terminal);
+        runRef.set(dev);
+
+        // Through the door, then start. In that order, so the first line of
+        // output has somewhere to land before it is written.
+        Runnable enter = () -> {
+            FrontDoorPanel p = ref.get();
+            if (p != null) {
+                p.through();
+            }
+            dev.start();
+        };
+
+        DoorwayView door = new DoorwayView("ENTER   /   SEEK PLAY |DEV|", enter);
 
         List<PortalButton> calls = new ArrayList<>();
+        // The one primary call. The two below it still exist because a gate you
+        // can only run as a pair is a gate you stop running - sometimes you
+        // want the game without the minute, or the minute without the game.
         calls.add(new PortalButton(PortalButton.Kind.PRIMARY,
+                "SEEK PLAY |DEV|", "both gates", enter));
+        calls.add(new PortalButton(PortalButton.Kind.SECONDARY,
                 "SEEK PLAY |ALL|", "tools\\play.ps1",
                 () -> script(repo, "tools\\play.ps1", ref)));
         calls.add(new PortalButton(PortalButton.Kind.SECONDARY,
@@ -134,7 +197,7 @@ public final class FrontDoor {
                 "SEEK REPO |DEV|", repo.getFileName().toString(),
                 () -> reveal(repo, "", ref)));
 
-        FrontDoorPanel panel = new FrontDoorPanel(CODEX, ARTIFACT, door, calls,
+        FrontDoorPanel panel = new FrontDoorPanel(CODEX, ARTIFACT, door, terminal, calls,
                 onMinimise, onClose);
         ref.set(panel);
         return panel;
@@ -148,9 +211,23 @@ public final class FrontDoor {
         frame.setIconImages(IconFile.frameIcons());
 
         AtomicReference<FrontDoorPanel> ref = new AtomicReference<>();
-        FrontDoorPanel panel = compose(repo, ref,
+        AtomicReference<DevRun> runRef = new AtomicReference<>();
+        FrontDoorPanel panel = compose(repo, ref, runRef,
                 () -> frame.setExtendedState(JFrame.ICONIFIED),
                 frame::dispose);
+
+        // Every way out lands here - the chrome button, Escape, and the window
+        // manager all end in dispose - so this is the one place that has to
+        // remember the door started a game and a build.
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                DevRun dev = runRef.get();
+                if (dev != null) {
+                    dev.stopAll();
+                }
+            }
+        });
 
         frame.setContentPane(panel);
         frame.setFocusTraversalPolicy(new ForwardOnly());

@@ -18,7 +18,7 @@ practice, stated once so a later hand does not have to guess.
 |---|---|
 | the mod | `src/main/java/com/serenity/octia/` — Fabric, Minecraft 1.21.1 |
 | the crew | `src/main/java/com/serenity/octia/crew/` — seats, orders, the gangway |
-| the front door | `tools/frontdoor/` and `tools/frontdoor.ps1` — a desktop window onto the repo |
+| the front door | `SEEK.cmd` at the root opens it — `tools/frontdoor/` and `tools/frontdoor.ps1` are what it opens |
 | the gates | `tools/verify.ps1` locally, `.github/workflows/verify.yml` in CI — the same two gates |
 | the passdown | `AGENTS.md` |
 
