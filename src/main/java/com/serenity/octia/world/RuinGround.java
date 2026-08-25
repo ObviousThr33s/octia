@@ -13,6 +13,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.material.Fluids;
 
+import java.util.List;
+
 /**
  * The ground-handling every Octia ruin needs, in one place.
  *
@@ -340,11 +342,51 @@ final class RuinGround {
     /** As above, but a wet site digs on the seabed instead of refusing it. */
     static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
                    int min, int max, int attempts, boolean wet) {
+        return dig(level, random, centre, min, max, attempts, wet, List.of());
+    }
+
+    /**
+     * As above, with positions the caller would rather the digs took.
+     *
+     * <p><b>Why a ruin gets to say where its own digs go.</b> A scatter answers
+     * "somewhere in the ring", which is the right answer for a wreck that is
+     * only a wreck. It is the wrong answer once the site has a shape somebody
+     * cut - an open working with benches in it - because the digs are then the
+     * evidence of that work and they belong on the steps, not loose in the grass
+     * beside them. A core that reads CALLED should be calling from inside the
+     * story, and that is a difference of a few blocks.
+     *
+     * <p>Preferred positions are spent first and in the order given, so the
+     * caller's own ordering is its priority. Each one is put through
+     * {@link #surfaceNear} with no reach at all, which asks the single question
+     * a scatter result has already passed: air here, something solid under it,
+     * no fluid. A preferred position that fails is dropped and the next is
+     * tried; when they run out the remaining attempts scatter exactly as before.
+     * So this never places more digs than it was asked for and never fewer than
+     * a plain scatter would.
+     *
+     * <p><b>The empty list is the old behaviour, not an approximation of it.</b>
+     * Every existing caller reaches this through the overload above with
+     * {@link List#of()}, the loop below never enters the preferred branch, and
+     * the {@link RandomSource} is drawn from in exactly the same order and the
+     * same number of times. That matters: a change in draw count here would move
+     * every obelisk and every waystation in every existing seed, for a feature
+     * neither of them uses.
+     */
+    static int dig(WorldGenLevel level, RandomSource random, BlockPos centre,
+                   int min, int max, int attempts, boolean wet, List<BlockPos> preferred) {
         int placed = 0;
+        int offered = 0;
         for (int i = 0; i < attempts; i++) {
-            BlockPos spot = wet
-                    ? scatterWet(level, random, centre, min, max)
-                    : scatter(level, random, centre, min, max);
+            BlockPos spot = null;
+            while (spot == null && offered < preferred.size()) {
+                spot = surfaceNear(level, preferred.get(offered++), 0, 0);
+            }
+            if (spot == null) {
+                spot = wet
+                        ? scatterWet(level, random, centre, min, max)
+                        : scatter(level, random, centre, min, max);
+            }
             if (spot == null) {
                 continue;
             }

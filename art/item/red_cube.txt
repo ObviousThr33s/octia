@@ -1,0 +1,27 @@
+# octia:red_cube - the sealed cube.
+#
+# One shape, three bindings. The three cubes are the same andesite box drawn
+# the same way, and the only thing that tells them apart is the ribbon: over
+# the lid, across the seal, and straight down the near edge. That is on
+# purpose - a player who has learned to read one has learned to read all
+# three, and the colour is then the whole message.
+#
+# 'r' is sealed red and docs/PALETTE.md reserves it for this cube alone.
+# Andesite lit on the lid, mid on the left face, dark on the right, which is
+# the same three-tone reading every other andesite thing in this mod gets.
+................
+.......kk.......
+.....kkllkk.....
+...kkllrrllkk...
+.kkllrrrrrrllkk.
+.klllrrrrrrlllk.
+.kmllllrrllllkk.
+.kmmmllrrllkkkk.
+.kmmmmmrrkkkkkk.
+.kmmmmmrrkkkkkk.
+.kmmmmmrrkkkkkk.
+.kkmmmmrrkkkkkk.
+...kkmmrrkkkk...
+.....kkrrkk.....
+.......kk.......
+................

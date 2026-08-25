@@ -1,0 +1,39 @@
+# void_squid - the entity sheet, and the only 16x16 entity sheet in the mod.
+#
+# docs/PALETTE.md reserves 'i' - ink - for the squid and for writing, and this
+# is the animal that reservation was made for. Four keys are spent: k outline,
+# i ink for the lit faces, v void black for the faces turned away, l for the
+# two eyes. The cap is five.
+#
+# This is a UV sheet and not an item sprite, so read it as two islands rather
+# than as a picture:
+#
+#   rows 0-8,  all 16 columns : the mantle, a 4x5x4 box at texOffs(0, 0)
+#     row 0        the sprite border, forced to k
+#     rows 1-3     x4-7 top face, x8-11 bottom face, the rest unused
+#     rows 4-8     x0-3 east, x4-7 north (the eyes), x8-11 west, x12-15 south
+#   rows 9-14, columns 0-3    : one strand, a 1x5x1 box at texOffs(0, 9),
+#                               shared by all eight of them
+#   row 15 and columns 4-15 of the strand band : unused
+#
+# Everything unused is painted k rather than left transparent. pixel.py enforces
+# a closed outline - every drawn pixel touching nothing must be the outline key -
+# and a fully opaque sheet with a k border ring satisfies that rule exactly. It
+# costs the picture nothing here: the animal is ink and void black, so a dark
+# edge is what it would have had anyway.
+kkkkkkkkkkkkkkkk
+kkkkiiiivvvvkkkk
+kkkkiiiivvvvkkkk
+kkkkiiiivvvvkkkk
+kiiiiiiivvvviiik
+kiiiillivvvviiik
+kiiiiiiivvvviiik
+kiiiiiiivvvviiik
+kiiiiiiivvvviiik
+kivkkkkkkkkkkkkk
+kivikkkkkkkkkkkk
+kivikkkkkkkkkkkk
+kivikkkkkkkkkkkk
+kivikkkkkkkkkkkk
+kivikkkkkkkkkkkk
+kkkkkkkkkkkkkkkk

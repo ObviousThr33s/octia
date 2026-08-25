@@ -126,28 +126,7 @@
               "entries": [
                 {
                   "type": "minecraft:item",
-                  "name": "minecraft:string",
-                  "functions": [
-                    {
-                      "function": "minecraft:set_count",
-                      "count": {
-                        "type": "minecraft:uniform",
-                        "min": 1.0,
-                        "max": 2.0
-                      },
-                      "add": false
-                    }
-                  ]
-                },
-                {
-                  "type": "minecraft:item",
-                  "name": "minecraft:torch",
-                  "conditions": [
-                    {
-                      "condition": "minecraft:random_chance",
-                      "chance": 0.5
-                    }
-                  ],
+                  "name": "minecraft:bread",
                   "functions": [
                     {
                       "function": "minecraft:set_count",
@@ -162,17 +141,121 @@
                 },
                 {
                   "type": "minecraft:item",
-                  "name": "octia:andesite_frame_panel",
+                  "name": "minecraft:torch",
+                  "functions": [
+                    {
+                      "function": "minecraft:set_count",
+                      "count": {
+                        "type": "minecraft:uniform",
+                        "min": 2.0,
+                        "max": 6.0
+                      },
+                      "add": false
+                    }
+                  ]
+                },
+                {
+                  "type": "minecraft:alternatives",
                   "conditions": [
                     {
                       "condition": "minecraft:random_chance",
-                      "chance": 0.4
+                      "chance": 0.5
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "minecraft:item",
+                      "name": "minecraft:string",
+                      "conditions": [
+                        {
+                          "condition": "minecraft:random_chance",
+                          "chance": 0.3333
+                        }
+                      ],
+                      "functions": [
+                        {
+                          "function": "minecraft:set_count",
+                          "count": {
+                            "type": "minecraft:uniform",
+                            "min": 1.0,
+                            "max": 2.0
+                          },
+                          "add": false
+                        }
+                      ]
+                    },
+                    {
+                      "type": "minecraft:item",
+                      "name": "minecraft:leather",
+                      "conditions": [
+                        {
+                          "condition": "minecraft:random_chance",
+                          "chance": 0.5
+                        }
+                      ],
+                      "functions": [
+                        {
+                          "function": "minecraft:set_count",
+                          "count": {
+                            "type": "minecraft:uniform",
+                            "min": 1.0,
+                            "max": 2.0
+                          },
+                          "add": false
+                        }
+                      ]
+                    },
+                    {
+                      "type": "minecraft:item",
+                      "name": "octia:andesite_frame_panel",
+                      "functions": [
+                        {
+                          "function": "minecraft:set_count",
+                          "count": {
+                            "type": "minecraft:uniform",
+                            "min": 1.0,
+                            "max": 2.0
+                          },
+                          "add": false
+                        }
+                      ]
                     }
                   ]
                 }
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:ink_sac",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1.0,
+                "max": 2.0
+              },
+              "add": false
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:book",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 4
         }
       ]
     }

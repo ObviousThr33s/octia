@@ -6,7 +6,6 @@ import com.serenity.octia.block.AndesiteFramePanelBlock;
 import com.serenity.octia.block.PanelLight;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;

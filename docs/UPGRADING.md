@@ -110,6 +110,26 @@ DataVersion 3955 and the target. Cheaper permanent fix: stop borrowing a vanilla
 type — nest the payload under one mod-owned root key, or move the state to a
 Fabric attachment, so no vanilla remainder rewrite can reach it.
 
+#### `[2026-08-24]` A third store now borrows it, and it is the one that hurts
+
+`item/CubePockets.java` (`octia_pockets.dat`) joined the two above in the cube
+push, on the same borrowed `DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES`. **The
+checkpoint above covers it too** — this entry exists because the checkpoint named
+only `octia_moorings` and `octia_world`, and a reader diffing fixers would have
+had no reason to think a third file was at risk.
+
+The stakes are higher here than for the other two, and that is worth saying
+plainly. A forgotten mooring is a ship that stops being remembered; the world
+still holds every block the player laid. `octia_pockets` holds **the actual
+contents of every gold and purple cube in the save** — items the player put
+there and can no longer see anywhere else. A remainder rewrite of the shape
+described above does not degrade that; it deletes it, with no crash and no log
+line, exactly as described for the other two.
+
+That asymmetry is the argument for doing the "cheaper permanent fix" rather than
+carrying the checkpoint forever. Whoever bumps Minecraft next should fix all
+three at once, and start with this one.
+
 ### Do not "just pass null"
 
 A future reader will find `@Nullable DataFixTypes` in NeoForge javadocs and

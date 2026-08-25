@@ -41,6 +41,15 @@ import net.minecraft.world.item.component.ItemContainerContents;
  * <p><b>What it refuses.</b> Bindles, and anything already carrying contents of
  * its own. Nesting containers is how a single item ends up holding a save file's
  * worth of items, and vanilla holds the same line for the same reason.
+ *
+ * <p><b>Three siblings, one choreography.</b> {@code [2026-08-24]} the cubes
+ * arrived, and two of the three keep their contents somewhere other than the
+ * stack they are drawn on. Nothing about a bindle changed to make room for
+ * them. What was added is a seam: the click path below asks {@link #roomIn},
+ * {@link #stow} and {@link #drawLast} instead of reaching for the static sums
+ * directly, and a bindle's answers to those three <em>are</em> the static sums.
+ * {@link CubeItem} overrides them and inherits every line of the gesture, which
+ * is why there is one right-click behaviour in this mod and not four.
  */
 public class BindleItem extends Item {
 
@@ -66,10 +75,20 @@ public class BindleItem extends Item {
         bindle.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(held));
     }
 
-    /** Whether a bindle will take this at all. See the class note on nesting. */
+    /**
+     * Whether a bindle will take this at all. See the class note on nesting.
+     *
+     * <p>The cube clause is redundant today, because every cube is a
+     * {@link BindleItem}. It is written out anyway, because the refusal must
+     * not rest on that: a gold or a purple cube carries no
+     * {@link DataComponents#CONTAINER} of its own - its inside lives in
+     * {@link CubePockets} - so the contents clause cannot see it, and a later
+     * cube that stopped extending this class would start nesting in silence.
+     */
     public static boolean mayHold(ItemStack offered) {
         return !offered.isEmpty()
                 && !(offered.getItem() instanceof BindleItem)
+                && !(offered.getItem() instanceof CubeItem)
                 && !offered.has(DataComponents.CONTAINER);
     }
 
@@ -82,10 +101,21 @@ public class BindleItem extends Item {
      * sums a JUnit test pins are the same sums the game runs.
      */
     public static int capacity(ItemStack bindle, ItemStack offered) {
+        return capacityIn(contents(bindle), offered);
+    }
+
+    /**
+     * The same prediction, against a list somebody else is keeping.
+     *
+     * <p>Split out {@code [2026-08-24]} when the cubes arrived. Two of the
+     * three keep their contents in {@link CubePockets}, so the sums had to stop
+     * assuming that the bag and the store are the same object. No arithmetic
+     * moved and none changed - only what it is handed.
+     */
+    public static int capacityIn(List<ItemStack> held, ItemStack offered) {
         if (!mayHold(offered)) {
             return 0;
         }
-        List<ItemStack> held = contents(bindle);
         int[] matching = held.stream()
                 .filter(inside -> ItemStack.isSameItemSameComponents(inside, offered))
                 .mapToInt(inside -> inside.getMaxStackSize() - inside.getCount())
@@ -104,11 +134,29 @@ public class BindleItem extends Item {
      * @return how many items were taken, zero if none were
      */
     public static int add(ItemStack bindle, ItemStack offered) {
-        int fits = capacity(bindle, offered);
+        List<ItemStack> held = contents(bindle);
+        int taken = addTo(held, offered);
+        if (taken > 0) {
+            store(bindle, held);
+        }
+        return taken;
+    }
+
+    /**
+     * The same packing, into a list somebody else is keeping.
+     *
+     * <p>The list is written through, so the caller is the one that saves it -
+     * a stack-backed bag writes the container component back, a pocket-backed
+     * one calls {@link CubePockets#write}. See {@link #capacityIn} for why the
+     * split exists.
+     *
+     * @return how many items were taken, zero if none were
+     */
+    public static int addTo(List<ItemStack> held, ItemStack offered) {
+        int fits = capacityIn(held, offered);
         if (fits <= 0) {
             return 0;
         }
-        List<ItemStack> held = contents(bindle);
         int taken = 0;
 
         // Top up what matches first, then open slots. A bindle that opened a
@@ -130,10 +178,6 @@ public class BindleItem extends Item {
             held.add(offered.copyWithCount(move));
             taken += move;
         }
-
-        if (taken > 0) {
-            store(bindle, held);
-        }
         return taken;
     }
 
@@ -145,17 +189,53 @@ public class BindleItem extends Item {
      */
     public static ItemStack takeLast(ItemStack bindle) {
         List<ItemStack> held = contents(bindle);
+        ItemStack out = takeLastFrom(held);
+        if (!out.isEmpty()) {
+            store(bindle, held);
+        }
+        return out;
+    }
+
+    /**
+     * The same draw, out of a list somebody else is keeping.
+     *
+     * <p>Mutates the list and hands the stack back without saving anything,
+     * for the reason {@link #addTo} does not save either.
+     */
+    public static ItemStack takeLastFrom(List<ItemStack> held) {
         if (held.isEmpty()) {
             return ItemStack.EMPTY;
         }
-        ItemStack out = held.remove(held.size() - 1);
-        store(bindle, held);
-        return out;
+        return held.remove(held.size() - 1);
     }
 
     /** How many slots are in use. */
     public static int slotsUsed(ItemStack bindle) {
         return contents(bindle).size();
+    }
+
+    // ---- Where the contents are kept ----------------------------------------
+
+    /**
+     * How much of an offered stack this bag would take, from this player's hand.
+     *
+     * <p>A bindle's contents are on its own stack, so the player is not
+     * consulted and this is {@link #capacity}. A cube that opens a pocket needs
+     * the player to know <em>which</em> pocket, and needs a server to reach it -
+     * see {@link CubeItem}.
+     */
+    public int roomIn(ItemStack bag, ItemStack offered, Player player) {
+        return capacity(bag, offered);
+    }
+
+    /** Puts what fits in, and says how much went. The pair of {@link #roomIn}. */
+    public int stow(ItemStack bag, ItemStack offered, Player player) {
+        return add(bag, offered);
+    }
+
+    /** Takes the last stack back out, or {@link ItemStack#EMPTY} if there is none. */
+    public ItemStack drawLast(ItemStack bag, Player player) {
+        return takeLast(bag);
     }
 
     // ---- Working it in an inventory -----------------------------------------
@@ -173,7 +253,7 @@ public class BindleItem extends Item {
         }
         ItemStack target = slot.getItem();
         if (target.isEmpty()) {
-            ItemStack out = takeLast(bindle);
+            ItemStack out = drawLast(bindle, player);
             if (out.isEmpty()) {
                 return false;
             }
@@ -183,7 +263,7 @@ public class BindleItem extends Item {
             // than being deleted, which is the entire reason this is not a
             // straight setItem.
             if (!over.isEmpty()) {
-                add(bindle, over);
+                stow(bindle, over, player);
             }
             play(player, false);
             return true;
@@ -192,19 +272,19 @@ public class BindleItem extends Item {
         // bundle uses and the only one that cannot double an item: safeTake is
         // the authority on how many actually left the slot, and only that many
         // are ever offered to the bag.
-        int fits = capacity(bindle, target);
+        int fits = roomIn(bindle, target, player);
         if (fits <= 0) {
             return false;
         }
         ItemStack removed = slot.safeTake(target.getCount(), fits, player);
-        int taken = add(bindle, removed);
+        int taken = stow(bindle, removed, player);
         if (taken < removed.getCount()) {
             // Unreachable while capacity and add agree, and here anyway because
             // the alternative to being wrong about that is deleting somebody's
             // items. Whatever the bag would not hold goes back where it was.
             ItemStack spare = slot.safeInsert(removed.copyWithCount(removed.getCount() - taken));
             if (!spare.isEmpty()) {
-                add(bindle, spare);
+                stow(bindle, spare, player);
             }
         }
         play(player, true);
@@ -224,7 +304,7 @@ public class BindleItem extends Item {
             return false;
         }
         if (other.isEmpty()) {
-            ItemStack out = takeLast(bindle);
+            ItemStack out = drawLast(bindle, player);
             if (out.isEmpty()) {
                 return false;
             }
@@ -232,7 +312,7 @@ public class BindleItem extends Item {
             play(player, false);
             return true;
         }
-        int taken = add(bindle, other);
+        int taken = stow(bindle, other, player);
         if (taken == 0) {
             return false;
         }

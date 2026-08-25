@@ -72,6 +72,59 @@ mixins and one interface. Consequences worth having:
   need `-Dfabric-api.gametest.command=true`, since the command defaults off
   there and on only for clients.
 
+## Two things about the harness, settled by experiment `[2026-08-24]`
+
+Both of these were raised as concerns during the cube push. One was a real defect
+with a one-line fix; the other was a correct reading of vanilla's bytecode that is
+nevertheless wrong about this repo. They are recorded together because the second
+one, if believed, would have condemned the entire suite.
+
+### A class not on the entrypoint list does not run, and one never had
+
+`ArchGameTest` carried nine `@GameTest` methods and had **never been on the
+`fabric-gametest` list in `fabric.mod.json`** — so from the day it was written to
+`[2026-08-24]`, not one of its nine assertions had ever executed. It was added to
+the list and every one of the nine passes; the suite went from 130 to 139.
+
+Nothing warns about this. The class compiles, the methods look like tests, the
+gate goes green, and the count is the only thing that would have told you. **When
+adding a gametest class, the list entry is the test — the file is just where it
+lives.** A count that does not grow after adding a class is the symptom.
+
+### `throw new AssertionError` *does* fail its test here, despite the bytecode
+
+The concern, and it is bytecode-accurate: `GameTestInfo` has exactly two exception
+tables — in `tickInternal()` and `startTest()` — and **both catch
+`java.lang.Exception` and nothing wider**. `GameTestAssertException` extends
+`RuntimeException` and is caught; `java.lang.AssertionError` extends `Error` and is
+not. Since 22 of this repo's 23 gametest classes are built on `throw new
+AssertionError(...)` rather than `helper.fail(...)`, the conclusion drawn was that
+roughly 292 assertion sites could not fail a test, and the green gate meant
+nothing.
+
+**It was tested rather than argued, and it is false.** A throwaway class with two
+deliberately-failing methods — one per form — was put on the entrypoint list and
+run:
+
+```
+2 required tests failed :(
+   - assertprobegametest.probehelperfail
+   - assertprobegametest.probethrownassertionerror
+```
+
+Both forms fail, cleanly, per test. The reason the bytecode reading does not
+decide it is that vanilla's exception tables are not on the path a Fabric gametest
+takes. `FabricGameTestHelper` invokes the test method reflectively and handles
+what comes back — the log line is `(FabricGameTestHelper) Exception occurred when
+invoking test method` — and reflection wraps **any** `Throwable`, `Error`
+included, in an `InvocationTargetException`. The adapter sees it before vanilla's
+narrower catch ever applies.
+
+The general lesson is the one worth keeping: reading the bytecode of the framework
+told us what vanilla catches, and told us nothing about what this stack does,
+because a thin adapter sat in front of it. **The experiment cost three minutes and
+the argument would have cost the suite.**
+
 ## Free, open, installable, playable
 
 | Principle | How it is kept |

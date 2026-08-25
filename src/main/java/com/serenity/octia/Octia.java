@@ -3,6 +3,7 @@ package com.serenity.octia;
 import com.serenity.octia.crew.Crew;
 import com.serenity.octia.crew.Wayfarer;
 import com.serenity.octia.debug.OctiaDebug;
+import com.serenity.octia.entity.OctiaEntities;
 import com.serenity.octia.life.KeepInventory;
 import com.serenity.octia.world.EraEcho;
 import com.serenity.octia.world.HeadlessRun;
@@ -36,6 +37,11 @@ import org.slf4j.LoggerFactory;
  *       not blocks. Second rather than first because the bindle's road
  *       packing reads a block item, and a class that reads
  *       {@code OctiaBlocks} wants that class initialised already.</li>
+ *   <li>{@link OctiaEntities#bootstrap()} - the mod's first EntityType, its
+ *       default attributes, its spawn placement and the biome spawn schedule.
+ *       Here rather than later because it must run before any world loads, and
+ *       before the client entrypoint touches {@code OctiaEntities.VOID_SQUID} -
+ *       which Fabric guarantees by running main entrypoints first.</li>
  *   <li>{@code ServerWorldEvents.LOAD} - reads the per-save switch the moment a
  *       save's Overworld loads, publishes it where the generation workers can
  *       see it, and on a save's first load raises the beacon and seats the
@@ -102,6 +108,15 @@ public final class Octia implements ModInitializer {
         // in the funnel above, because that funnel makes one BlockItem per
         // block and a bindle is not a block - see the seam note there.
         OctiaItems.bootstrap();
+
+        // The mod's first EntityType, and everything that has to be true about
+        // it before a world exists: its default attributes, its spawn placement
+        // rule, and the biome schedule that offers it to the Overworld. Same
+        // contract as the two calls above - registries are open here and are not
+        // open earlier. It also has to run before the client entrypoint reads
+        // OctiaEntities.VOID_SQUID to hang a renderer on it, which Fabric
+        // guarantees by running every main entrypoint before any client one.
+        OctiaEntities.bootstrap();
 
         // The world-create switch, read at the one moment it can be read: the
         // first time a save's Overworld loads. Asking earlier means asking

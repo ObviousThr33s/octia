@@ -107,6 +107,12 @@ public final class OctiaClient implements ClientModInitializer {
         // the only event it wanted.
         HevSuit.bootstrap();
 
+        // The squid, for the same reason and in the same shape: a model layer
+        // that has to exist before any model is baked, and a renderer that has
+        // to exist before any entity is drawn. Both are one-shot registrations,
+        // and both are too late if they wait for the first sighting.
+        VoidSquidRenderer.bootstrap();
+
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof CreateWorldScreen)) {
                 return;

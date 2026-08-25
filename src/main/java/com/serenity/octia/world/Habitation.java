@@ -1,16 +1,22 @@
 package com.serenity.octia.world;
 
+import java.util.Optional;
+
 import com.serenity.octia.ship.ShipCoreBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
+import net.minecraft.world.level.block.entity.PotDecorations;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
@@ -39,6 +45,16 @@ import net.minecraft.world.level.block.state.properties.BedPart;
  *
  * <p><b>No entities, ever.</b> These are things left behind. Beds and hearths
  * imply a person; the person is gone, and the emptiness is the point.
+ *
+ * <p><b>[2026-08-24] The paths keep their word, and the pot is no longer
+ * empty.</b> Both changes answer one sentence the owner said at the close of the
+ * {@code [0_6_8]} playtest, standing on a ruin's radiating dirt: <i>where do
+ * these paths go?</i> They went nowhere - {@link #path} rolled a cardinal at
+ * random and walked it - and the ANCIENT pot beside them was a bare
+ * {@code DECORATED_POT} that broke into four bricks while four pottery sherds
+ * sat unused in {@code archaeology/ruin.json}. The old behaviour is written down
+ * on {@link #path} rather than removed, because a correction here is a new
+ * entry.
  */
 public final class Habitation {
 
@@ -46,23 +62,114 @@ public final class Habitation {
     private static final int SPREAD_MIN = 2;
     private static final int SPREAD_MAX = 5;
 
+    /**
+     * How many strides an aimed path runs before the ruin stops maintaining it.
+     *
+     * <p>Unchanged from the roll this replaced, deliberately. Only the heading
+     * moved, and the envelope a path may write in is what keeps it inside the
+     * chunk that owns the site - provisional - owner tunes by walking the world.
+     */
+    private static final int PATH_STEPS_MIN = 3;
+    private static final int PATH_STEPS_MAX = 6;
+
+    /**
+     * How many arms a crossroads puts out, and how far each one runs.
+     *
+     * <p>Three is the fewest that cannot be mistaken for a path with a kink in
+     * it, and four is every cardinal, which is the most a crossroads can be. The
+     * arms are short because an arm is not a journey: it is the site saying
+     * <i>and that way, and that way</i>, and a long arm would just be four paths
+     * that each promise somewhere and deliver nowhere. Provisional - owner tunes
+     * by walking the world.
+     */
+    private static final int ARMS_MIN = 3;
+    private static final int ARMS_MAX = 4;
+    private static final int ARM_STEPS_MIN = 2;
+    private static final int ARM_STEPS_MAX = 3;
+
+    /**
+     * The sherds an ANCIENT pot can carry.
+     *
+     * <p>These four and no others, because these four are exactly what
+     * {@code data/octia/loot_table/archaeology/ruin.json} already drops out of a
+     * ruin's digs. A pot made of the same four is the same find twice - brushed
+     * out of the gravel, or standing whole beside it - and that is the entire
+     * reason the list is not longer.
+     *
+     * <p><b>They mean nothing, and that is a ruling rather than an oversight.</b>
+     * {@code docs/MYSTERIES.md} threw out a design that assigned these marks
+     * private meanings: <i>the marks are vanilla's, the mod cannot redefine
+     * them, and a cipher needs a key, and a key is a wiki.</i> So the faces are
+     * rolled and nothing reads them back. Anyone who later wants a pot to say
+     * something has to answer that paragraph first.
+     */
+    private static final Item[] SHERDS = {
+            Items.FRIEND_POTTERY_SHERD,
+            Items.HEARTBREAK_POTTERY_SHERD,
+            Items.HOWL_POTTERY_SHERD,
+            Items.DANGER_POTTERY_SHERD,
+    };
+
     private Habitation() {
     }
 
     /**
-     * Dresses one ruin.
+     * Dresses one ruin, letting the lattice decide where its path goes.
      *
      * @param anchor the middle of the ruin; props ring it
      * @param age    how long ago the people left
      */
     public static void dress(WorldGenLevel level, RandomSource random, BlockPos anchor, RuinAge age) {
+        dress(level, random, anchor, age, null);
+    }
+
+    /**
+     * Dresses one ruin, with the path aimed by hand.
+     *
+     * <p>This exists for a caller that already knows where its site's path ought
+     * to run and should not have to re-derive it. A derelict seated against
+     * something it came from is the case: the wreck knows what it is lying
+     * beside, and the lattice does not.
+     *
+     * <p><b>A target in the anchor's own column is not an error.</b> It is a site
+     * with nowhere to point, and it puts out the crossroads - the same answer
+     * {@link Mystery#toward} gives for a position standing on its node, for the
+     * same reason. One rule covers both, so there is no special case to get
+     * wrong. A caller that does not want stubs must not hand this its own
+     * column.
+     *
+     * @param pathTarget the block the path should run toward, or null to ask the
+     *                   lattice
+     */
+    public static void dress(WorldGenLevel level, RandomSource random, BlockPos anchor,
+                             RuinAge age, BlockPos pathTarget) {
         hearth(level, random, anchor, age);
         light(level, random, anchor, age);
         rest(level, random, anchor, age);
         store(level, random, anchor, age);
         work(level, random, anchor, age);
         wear(level, random, anchor, age);
-        path(level, random, anchor, age);
+        path(level, random, anchor, age, pathTarget);
+    }
+
+    /**
+     * Which of the eight ring positions a site's path leaves on, or <b>null</b>
+     * when the site is a crossroads.
+     *
+     * <p>Pure, and public for the reason {@code ObeliskFeature.across()} is: a
+     * gametest cannot stand its plot on a lattice node, so the decision has to be
+     * askable without a world or it goes untested. Nothing in the world reads
+     * this except {@link #path}.
+     *
+     * <p>Null carries one meaning in both branches - <i>there is nowhere to
+     * point from here</i> - and {@link #path} answers it one way.
+     */
+    public static Mystery.Mark aim(long seed, BlockPos anchor, BlockPos pathTarget) {
+        if (pathTarget == null) {
+            return Mystery.toward(seed, anchor.getX(), anchor.getZ());
+        }
+        return Mystery.markFor(pathTarget.getX() - anchor.getX(),
+                pathTarget.getZ() - anchor.getZ());
     }
 
     /** Whether this prop happens at all. */
@@ -177,8 +284,10 @@ public final class Habitation {
         }
 
         if (age == RuinAge.ANCIENT) {
-            // The barrel is gone; what it held is not worth having.
+            // The barrel is gone; what it held is not worth having. The pot
+            // itself is, which is what sherds is for.
             put(level, spot, Blocks.DECORATED_POT.defaultBlockState());
+            sherds(level, random, spot);
             return;
         }
 
@@ -189,6 +298,60 @@ public final class Habitation {
                     : OctiaLoot.RUIN_STORE_OLD);
             chest.setLootTableSeed(random.nextLong());
         }
+    }
+
+    /**
+     * Puts somebody's pottery on the pot that outlived them.
+     *
+     * <p><b>Why this is worth doing at all.</b> A bare decorated pot breaks into
+     * four bricks, which is the same nothing a player would get from a pot they
+     * made themselves out of four bricks - so the one container an ANCIENT ruin
+     * has was, on being found and broken, exactly as informative as the ground it
+     * stood on. A pot with faces on it is the opposite: it is the only object in
+     * these ruins that carries a picture somebody chose, and it is the only thing
+     * here that survives being carried home.
+     *
+     * <p><b>The write is the pattern {@code RuinGround.dig} proved.</b> Put the
+     * block down, ask the level for the block entity it just made, set the data
+     * on that. There is no public setter for a pot's faces in 1.21.1 - the
+     * {@code decorations} field is private and the only door in is
+     * {@code setFromItem}, which applies the {@code POT_DECORATIONS} data
+     * component off an item stack. {@code createDecoratedPotItem} builds exactly
+     * that stack, so the two together are the sanctioned route rather than a
+     * reach through a mixin.
+     *
+     * <p><b>No setChanged, on purpose, and it matches the dig.</b> The chunk is
+     * already unsaved from the {@code setBlock} that made the pot, and
+     * {@code BlockEntity.setChanged} on a generation worker walks back into
+     * {@code ServerLevel} to ask which chunk it is in - the same read
+     * {@code RuinGround.clearOfStructures} goes out of its way to scope. One
+     * write, no round trip.
+     *
+     * <p>At least one face always carries a sherd, and the rest are coin tosses.
+     * A pot with one sherd and three bare faces is the common case and it should
+     * be: these people were leaving, not decorating.
+     */
+    private static void sherds(WorldGenLevel level, RandomSource random, BlockPos pot) {
+        if (!(level.getBlockEntity(pot) instanceof DecoratedPotBlockEntity jar)) {
+            return;
+        }
+        // Which face is certain is rolled first, so that the guarantee costs one
+        // draw rather than a retry loop that could in principle never end.
+        int certain = random.nextInt(4);
+        PotDecorations faces = new PotDecorations(
+                face(random, certain == 0),
+                face(random, certain == 1),
+                face(random, certain == 2),
+                face(random, certain == 3));
+        jar.setFromItem(DecoratedPotBlockEntity.createDecoratedPotItem(faces));
+    }
+
+    /** One face of a pot: a sherd, or the brick that was always there. */
+    private static Optional<Item> face(RandomSource random, boolean certain) {
+        if (!certain && !random.nextBoolean()) {
+            return Optional.empty();
+        }
+        return Optional.of(SHERDS[random.nextInt(SHERDS.length)]);
     }
 
     /** A job somebody was in the middle of. */
@@ -234,17 +397,122 @@ public final class Habitation {
      * it, because a path is the ground being different, not something sitting on
      * the ground. Ancient ruins get none: the whole point of a path is that it
      * is kept, and nobody has walked this one in a long time.
+     *
+     * <p><b>[2026-08-24] It used to lie.</b> The heading was
+     * {@code Direction.Plane.HORIZONTAL.getRandomDirection(random)} - four ruins
+     * in a valley put out four paths that agreed about nothing and led to
+     * nothing, and the owner asked the only question that shape can prompt:
+     * <i>where do these paths go?</i> The honest answers were "nowhere" and
+     * "four different nowheres". A path that is dressing is fine; a path that
+     * looks like evidence and is not is a lie the world tells, and this one had
+     * been telling it since the class was written.
+     *
+     * <p><b>Now it goes where everything else in this mod already goes.</b>
+     * {@link Mystery#toward} gives every position one of eight bearings to its
+     * cell's node, and the obelisks and the arches have been standing on that
+     * same lattice for months. So the path aims at the node, and two ruins in one
+     * cell put out paths that <em>agree</em> - which is the whole trick
+     * {@code Mystery} is built on, arriving in dirt where a player walking with
+     * their eyes down will meet it.
+     *
+     * <p><b>The bearing is {@code Mystery}'s and not
+     * {@code Sightlines.legAt(..).heading()}, and the difference is load
+     * bearing.</b> A leg's heading is the step from one cell to the next; it says
+     * nothing about where inside its cell the node wandered, and with
+     * {@link Sightlines#JITTER} at 96 a straight cardinal walk from an arbitrary
+     * ruin can miss the node by the better part of two hundred blocks. The leg
+     * heading answers "which way does the thread run", which is the obelisk's
+     * question. This is asking "which way is the waypoint from here", which is a
+     * different one.
+     *
+     * <p><b>Diagonals are walked, and that is deliberate.</b> {@code Mystery}
+     * quantises to eight and the ring it was quantised for has eight positions,
+     * so refusing the four diagonals would round half of all bearings onto a
+     * cardinal and put the paths back to being approximately true. A diagonal
+     * step moves one on each axis, so the envelope per axis is what it always
+     * was.
+     *
+     * <p><b>Save-safety.</b> A path is a direction and never a road. It is a
+     * handful of blocks inside the site's own chunk that says which way to walk;
+     * nothing here builds anything a player can cross ground quickly on, and
+     * nothing here reaches into another chunk to meet a neighbour's path.
      */
-    private static void path(WorldGenLevel level, RandomSource random, BlockPos anchor, RuinAge age) {
+    private static void path(WorldGenLevel level, RandomSource random, BlockPos anchor,
+                             RuinAge age, BlockPos pathTarget) {
         if (age == RuinAge.ANCIENT || !rolls(random, age)) {
             return;
         }
-        int steps = 3 + random.nextInt(4);
-        Direction heading = Direction.Plane.HORIZONTAL.getRandomDirection(random);
+        Mystery.Mark heading = aim(level.getSeed(), anchor, pathTarget);
+        if (heading == null) {
+            crossroads(level, random, anchor, age);
+            return;
+        }
+        walk(level, random, anchor, age, heading.dx(), heading.dz(),
+                PATH_STEPS_MIN + random.nextInt(PATH_STEPS_MAX - PATH_STEPS_MIN + 1));
+    }
 
+    /**
+     * What a site standing on a node puts out instead of a path.
+     *
+     * <p>Everywhere else, one path leaves aimed at the waypoint. Here there is no
+     * waypoint to aim at, because this is it - so the site puts out stubs on
+     * three or four cardinals and lets the player work out what that means. It is
+     * the same information the missing panel in a wreck's floor carries, said in
+     * dirt: <i>you have arrived, and this is where the ways part</i>.
+     *
+     * <p><b>Nothing explains this and nothing ever should.</b> A player who has
+     * walked five aimed paths has learned that dirt points somewhere. The first
+     * crossroads breaks that rule, and the only place the exception can be
+     * resolved is by looking around at the place they are standing in - which is
+     * a node, which is where the obelisk and the arch are. The rule teaches the
+     * exception and the exception teaches the lattice.
+     *
+     * <p>Cardinals only, never the diagonals an aimed path can take. Four arms
+     * square to the world read as a junction; eight read as a sunburst, which is
+     * decoration.
+     */
+    private static void crossroads(WorldGenLevel level, RandomSource random,
+                                   BlockPos anchor, RuinAge age) {
+        Direction[] arms = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+        // Shuffled rather than drawn with rejection, so which three of the four
+        // are missed is uniform and the draw count does not depend on the roll.
+        for (int i = arms.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            Direction held = arms[i];
+            arms[i] = arms[j];
+            arms[j] = held;
+        }
+
+        int count = ARMS_MIN + random.nextInt(ARMS_MAX - ARMS_MIN + 1);
+        for (int i = 0; i < count; i++) {
+            walk(level, random, anchor, age, arms[i].getStepX(), arms[i].getStepZ(),
+                    ARM_STEPS_MIN + random.nextInt(ARM_STEPS_MAX - ARM_STEPS_MIN + 1));
+        }
+    }
+
+    /**
+     * The walk itself, once the heading is settled. The block writes and the
+     * wear palette by age are exactly what {@link #path} always did.
+     *
+     * <p><b>The first stride is always one.</b> Everything after it is one or
+     * two, as before. A path whose first block is two out starts with a gap
+     * between the ruin and its own path, which reads as two unrelated things -
+     * and it is the reason a gametest could not say for certain that a path
+     * exists at all. Worth noting that this makes the reach shorter than the roll
+     * it replaced, never longer: eleven blocks at the far end where it was
+     * twelve, so the write stays inside the envelope that keeps a site in its own
+     * chunk.
+     *
+     * @param dx    east-positive unit step, -1, 0 or 1
+     * @param dz    south-positive unit step, -1, 0 or 1
+     * @param steps how many strides to take
+     */
+    private static void walk(WorldGenLevel level, RandomSource random, BlockPos anchor,
+                             RuinAge age, int dx, int dz, int steps) {
         BlockPos walking = anchor;
         for (int i = 0; i < steps; i++) {
-            walking = walking.relative(heading, 1 + random.nextInt(2));
+            int stride = i == 0 ? 1 : 1 + random.nextInt(2);
+            walking = walking.offset(dx * stride, 0, dz * stride);
             BlockPos surface = RuinGround.surfaceNear(level, walking);
             if (surface == null) {
                 continue;

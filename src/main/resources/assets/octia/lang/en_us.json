@@ -8,6 +8,19 @@
 
   "item.octia.sail_rig": "Sail-Rig",
 
+  "item.octia.red_cube": "Red Cube",
+  "item.octia.gold_cube": "Gold Cube",
+  "item.octia.purple_cube": "Purple Cube",
+  "item.octia.cube.empty": "Empty",
+  "item.octia.cube.line": "%s \u00d7 %s",
+  "item.octia.cube.own": "Opens your pocket",
+  "item.octia.cube.road": "Opens the road's one bag",
+  "item.octia.cube.elsewhere": "What is inside is not kept here",
+
+  "entity.octia.void_squid": "Void Squid",
+
+  "itemGroup.octia.items": "Octia",
+
   "generator.octia.sky": "Octia Sky",
 
   "octia.create_world.toggle.on": "Octia: On",
