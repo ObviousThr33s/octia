@@ -116,6 +116,73 @@ def manufactured(name):
     return False
 
 
+# ---- qualification --------------------------------------------------------
+
+def target_version():
+    """The Minecraft version this tree targets, per gradle.properties."""
+    path = os.path.join(os.path.dirname(HERE), "gradle.properties")
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if line.startswith("minecraft_version"):
+                    return line.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    return None
+
+
+def qualify(save):
+    """Prove the thing is a save before spending three minutes reading it.
+
+    The first version tested for a region/ directory and stopped there, which is
+    the weaker half of the question. A truncated save, a directory somebody made
+    by hand, a half-finished copy, and a world written by a Minecraft this tree
+    does not target ALL have a region/ - and all of them read as healthy right up
+    until the numbers come out wrong, three minutes later, with nothing in the
+    output to say why.
+
+    level.dat is the qualification. It names the world, states the version that
+    wrote it, and fails loudly when the save is truncated, all before the first
+    region file is opened. The same word does duty twice here and the pun is
+    exact: nothing probes without the proper level.
+    """
+    if not os.path.isdir(save):
+        sys.exit("no such save: %s" % save)
+
+    dat = os.path.join(save, "level.dat")
+    if not os.path.isfile(dat):
+        # A world kept only as SimpleBackups zips has no live save of its own.
+        # That is not a broken path and should not read like one.
+        zips = [f for f in os.listdir(save) if f.endswith(".zip")]
+        if zips:
+            sys.exit("%s holds no live save - only %d backup zip(s).\n"
+                     "Unzip the newest one somewhere and probe that:\n  %s"
+                     % (os.path.basename(save), len(zips), sorted(zips)[-1]))
+        sys.exit("%s has no level.dat, so it is not a save." % save)
+
+    try:
+        level = R.load_dat(dat) or {}
+    except Exception as exc:
+        sys.exit("%s has a level.dat that will not parse (%s).\n"
+                 "The save is truncated, or it is not a save at all." % (save, exc))
+
+    data = level.get("Data") or {}
+    if not data:
+        sys.exit("%s has a level.dat with no Data compound - not a world save."
+                 % save)
+
+    ident = {
+        "name": data.get("LevelName") or os.path.basename(save),
+        "version": (data.get("Version") or {}).get("Name"),
+        "day": (data.get("Time") or 0) // 24000,
+    }
+
+    if not os.path.isdir(os.path.join(save, "region")):
+        sys.exit("%s has a level.dat but no region/ - the world was named but "
+                 "never generated." % ident["name"])
+    return ident
+
+
 # ---- one pass over the save ----------------------------------------------
 
 def survey(save):
@@ -249,16 +316,7 @@ def main():
     args = ap.parse_args()
 
     save = args.save.rstrip("\\/")
-    if not os.path.isdir(os.path.join(save, "region")):
-        # A world kept only as SimpleBackups zips has no region directory of its
-        # own. That is not a broken path and should not read like one.
-        zips = [f for f in os.listdir(save) if f.endswith(".zip")] \
-            if os.path.isdir(save) else []
-        if zips:
-            sys.exit("%s holds no live save - only %d backup zip(s).\n"
-                     "Unzip the newest one somewhere and probe that:\n"
-                     "  %s" % (os.path.basename(save), len(zips), sorted(zips)[-1]))
-        sys.exit("no region directory under %s" % save)
+    ident = qualify(save)
 
     chunks, score, palette_of, starts = survey(save)
     if not score:
@@ -365,6 +423,12 @@ def main():
         return
 
     print("== %s" % os.path.basename(save))
+    want = target_version()
+    drift = ""
+    if want and ident["version"] and ident["version"] != want:
+        drift = "  <- this tree targets %s" % want
+    print("   level.dat: %s, Minecraft %s, day %d%s"
+          % (ident["name"], ident["version"] or "unstated", ident["day"], drift))
     print("   %d full chunks, %d with anything manufactured" % (chunks, len(score)))
     print("   baseline (manufactured blocks per chunk): p50 %d, p90 %d" % (p50, p90))
     print("   threshold %d  -  %d chunk(s) over it" % (threshold, len(hot) + excluded))
