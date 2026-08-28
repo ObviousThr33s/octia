@@ -84,6 +84,12 @@ jobs:
       #
       # body_path leads and generate_release_notes appends its commit list
       # under it, so a downloader reads what to do before reading what changed.
+      # prerelease is DERIVED, not declared. SemVer already answers this: a
+      # hyphen in the version is what makes it a prerelease, which is the same
+      # rule that makes Fabric's loader order 0.2.0-alpha.1 below 0.2.0. Left
+      # unset, the action defaults to false and GitHub would badge an alpha as
+      # "Latest" - the tag check above exists so the jar cannot lie about its
+      # number, and this is that rule applied to the shelf it sits on.
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
@@ -91,3 +97,4 @@ jobs:
           body_path: build/RELEASE-CARD.md
           generate_release_notes: true
           fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
