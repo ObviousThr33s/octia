@@ -61,3 +61,16 @@ worlds/**/usernamecache.json
 # restored into a world makes Minecraft REFUSE TO OPEN IT. A tracked one is a
 # world that arrives broken in every clone.
 session.lock
+
+# ---- playtest bundles are records, not source -----------------------------
+# tools/playtest.ps1 writes one folder per session: the log, the screenshots it
+# names, and the probe output. The screenshots alone run to megabytes each and
+# nothing in a bundle is source - it is all derived from a log that is itself
+# under run/, which is already ignored above.
+#
+# The same rule as worlds/**/playerdata/ applies to what is inside one. The
+# offline dev client logs its player as "Player330" with a local session id and
+# no Mojang UUID, so a bundle from tools/play.ps1 carries no account. A session
+# played on a LAN or a real server does, for everyone who joined. Read a bundle
+# before you ever push one on purpose.
+playtests/
