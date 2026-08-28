@@ -65,10 +65,18 @@ import java.util.Set;
  *
  * <p><b>Deliberate absences.</b> No {@code RuinGround.dig} - a spring is not
  * a ruin and carries no loot. No {@code Habitation.dress} - the water is the
- * dressing. No {@code RuinRegistry.report} - the ARCH asymmetry, same
- * reasoning: no kind string until something can look one up, and the day the
- * map wants water, one line joins the two public names in
- * {@link OctiaWorldgen}. No {@code RandomSource}, as above.
+ * dressing. No {@code RandomSource}, as above.
+ *
+ * <p><b>And one absence that ended.</b> This class carried "no
+ * {@code RuinRegistry.report} - the ARCH asymmetry" until 2026-08-28, on the
+ * stated trigger "the day the map wants water". The map was not what asked
+ * first; the owner's density dial did. {@code GREENFIELD.md} III.5 leaves
+ * watershed density and the uphill-gate thresholds to be walked and ruled on,
+ * and that ruling needs a count. Springs were the only Octia landmark a
+ * finished save could not be asked about - the 8/24 playtest world's
+ * {@code octia_ruins.dat} listed beacon 1, derelict 11, obelisk 11 and
+ * waystation 9, and had no row for water at all. {@link #place} now reports,
+ * on success only.
  *
  * <p><b>Recorded, not fixed</b> - corrections are new entries, the estate's
  * law. An obelisk plinth and a watershed can meet in one chunk at roughly
@@ -144,7 +152,23 @@ public class WatershedFeature extends Feature<NoneFeatureConfiguration> {
         // The water runs the way the thread runs.
         Sightlines.Heading flow = Sightlines.legAt(seed, origin.getX(), origin.getZ()).heading();
 
-        return carve(level, origin, flow, legs);
+        boolean carved = carve(level, origin, flow, legs);
+
+        // Reported here and not inside carve, deliberately. carve is the
+        // gametest seam - it exists so a test can hand the body a course
+        // without owning the world seed - and a test that carves a spring on
+        // purpose has not found a landmark. Only a spring the world actually
+        // grew is worth recording, which is exactly the ones that come through
+        // this method. DerelictFeature draws the same line in the same place.
+        //
+        // Only on success: carve returns false with zero writes when the
+        // survey refuses, and a registry that lists springs which were never
+        // built would answer the density question with the wrong number - the
+        // one question this record was opened to answer.
+        if (carved) {
+            RuinRegistry.report(level.getLevel(), OctiaWorldgen.WATERSHED, origin);
+        }
+        return carved;
     }
 
     /**

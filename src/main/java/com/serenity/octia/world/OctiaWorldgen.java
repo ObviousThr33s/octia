@@ -96,15 +96,26 @@ public final class OctiaWorldgen {
     private static final String STAIRWAY = "stairway";
 
     /**
-     * The watershed. A landmark of water, and not yet a recorded one.
+     * The watershed. A landmark of water, and now a recorded one.
      *
-     * <p>Private for the ARCH reasoning above, applied verbatim:
-     * {@link WatershedFeature} never calls {@link RuinRegistry#report}, so no
-     * kind string "watershed" ever reaches the store, and a public key would
-     * advertise an answer that is always empty. The day the map wants water,
-     * this line joins the two public names above and that is the whole change.
+     * <p>This line was private for the ARCH reasoning, and the day it named
+     * has arrived. The trigger it wrote down was "the day the map wants
+     * water"; what actually wanted it first was the owner's dial - watershed
+     * density and the uphill-gate thresholds, {@code GREENFIELD.md} III.5.
+     * That ruling cannot be made without counting springs, and until this
+     * moved, springs were the one Octia landmark a save could not be asked
+     * about: {@code octia_ruins.dat} in the 8/24 playtest world answered
+     * beacon 1, derelict 11, obelisk 11, waystation 9, and had no row for
+     * water at all. A density you cannot count is a dial you cannot turn.
+     *
+     * <p>The recorded position is the spring's CELL, not the seat's exact
+     * water level - {@link WatershedFeature#place} reports its origin, which
+     * is the placement position the soul gated on. That is the same precision
+     * {@code world-report.py --ruins} already states for every other kind,
+     * chunk centres give or take eight blocks, and it is the precision a
+     * density question needs.
      */
-    private static final String WATERSHED = "watershed";
+    public static final String WATERSHED = "watershed";
 
     /**
      * The feature type that places authored .nbt ruins. Its registry path is
