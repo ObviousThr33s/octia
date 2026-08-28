@@ -67,12 +67,27 @@ jobs:
           path: build/test-results/gametest/
           if-no-files-found: warn
 
+      # The half a jar cannot carry: which four versions must agree, how to
+      # switch Octia on, a seed that was actually walked, and how to send a
+      # verdict back. Generated rather than written, from the same
+      # gradle.properties the tag was just checked against, so the Fabric API
+      # version in the release notes cannot drift from the one this jar was
+      # built with. pwsh is preinstalled on ubuntu-latest, and this is the same
+      # script the owner runs locally - one card, one source, like the gates.
+      - name: Release card
+        shell: pwsh
+        run: ./tools/release-card.ps1
+
       # build/libs holds the remapped jar and the sources jar that
       # withSourcesJar() produces; Loom's un-remapped dev jar goes to
       # build/devlibs and is correctly not picked up here.
+      #
+      # body_path leads and generate_release_notes appends its commit list
+      # under it, so a downloader reads what to do before reading what changed.
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
           files: build/libs/*.jar
+          body_path: build/RELEASE-CARD.md
           generate_release_notes: true
           fail_on_unmatched_files: true
