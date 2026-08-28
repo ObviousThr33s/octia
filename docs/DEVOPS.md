@@ -154,6 +154,28 @@ Two things had to be true before that sentence was:
   report with zero `<testcase>` nodes since it learned the difference; CI now
   refuses both too, for the same reason and in the same words.
 
+### The actions are pinned to majors, and the majors are checked
+
+Every action here is pinned to a major tag — `@v7`, `@v6`, `@v3` — so patches
+arrive without a commit and a breaking change never does. They were bumped on
+2026-08-28 because the first release run warned that six of them targeted
+Node 20, which is deprecated and was being forced onto Node 24 at runtime.
+
+The bump was verified rather than guessed, and that mattered: the current majors
+were further ahead than the obvious `v4 → v5` guess would have landed —
+`actions/checkout` is on **v7**, `upload-artifact` **v7**, `setup-java` **v6**,
+`gradle/actions` **v6**, `action-gh-release` **v3**. Each one's `action.yml` was
+read at the target tag to confirm it declares `using: node24` natively rather
+than being shimmed onto it, and every input these workflows pass — `java-version`,
+`distribution`, `name`, `path`, `if-no-files-found`, `files`, `body_path`,
+`generate_release_notes`, `fail_on_unmatched_files`, `prerelease` — was confirmed
+to still exist after jumps of up to three majors.
+
+That check is not ceremony. `verify.yml` runs on every push and would surface a
+broken action within minutes, but `release.yml` only runs on a `v*` tag: an input
+silently dropped there would not be discovered until the next release, by which
+point the tag is cut and the jar is the thing that did not publish.
+
 Two more workflows sit beside it, and neither is a second gate.
 
 **`release.yml`** fires on a `v*` tag. It runs *both* gates before it publishes

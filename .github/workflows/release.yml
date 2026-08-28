@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The tag names the release; gradle.properties names the jar inside it.
       # Nothing keeps the two honest, so tagging v0.2.0 against mod_version
@@ -36,16 +36,16 @@ jobs:
 
       # Matches java_version in gradle.properties, as in verify.yml.
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v4
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # No `chmod +x gradlew` step here, deliberately. The bit is in the index
       # (mode 100755) since `git update-index --chmod=+x`; a chmod step would
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gametest-report
           path: build/test-results/gametest/
@@ -91,7 +91,7 @@ jobs:
       # "Latest" - the tag check above exists so the jar cannot lie about its
       # number, and this is that rule applied to the shelf it sits on.
       - name: Publish
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: build/libs/*.jar
           body_path: build/RELEASE-CARD.md
