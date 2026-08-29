@@ -1,0 +1,5 @@
+{
+  "_comment": "The one carrier for every listing on the docket. See docs/ROADMAP.md XIV and world/Docket.java.",
+  "type": "octia:docket",
+  "config": {}
+}

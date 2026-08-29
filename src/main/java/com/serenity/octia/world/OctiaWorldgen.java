@@ -124,6 +124,14 @@ public final class OctiaWorldgen {
      */
     private static final String TEMPLATE_RUIN = "template_ruin";
 
+    /**
+     * The one carrier that stands in for every listing on the docket. Its
+     * registry path is the CARRIER, not a thing that gets built - what gets
+     * built is named by DocketCatalogue, and one placed feature serves them all.
+     * See Docket for why there is no rarity_filter in front of it.
+     */
+    private static final String DOCKET = "docket";
+
     /** Placed features backed by a template. One entry per authored ruin. */
     private static final String[] TEMPLATE_RUINS = {"waystation"};
 
@@ -163,6 +171,7 @@ public final class OctiaWorldgen {
     private static StairwayFeature stairway;
     private static WatershedFeature watershed;
     private static TemplateRuinFeature templateRuin;
+    private static DocketFeature docket;
 
     private OctiaWorldgen() {
     }
@@ -184,6 +193,17 @@ public final class OctiaWorldgen {
         templateRuin = Registry.register(BuiltInRegistries.FEATURE, Octia.id(TEMPLATE_RUIN),
                 new TemplateRuinFeature(TemplateRuinFeature.Config.CODEC));
 
+        // REGISTERED LAST, and the order is load-bearing rather than tidy.
+        // ChunkGenerator.applyBiomeDecoration seeds each placed feature with
+        // setFeatureSeed(decorationSeed, index, step), where index comes from
+        // FeatureSorter's globally sorted per-step list. Registering ANY new
+        // Overworld feature can therefore renumber the existing ones and reseed
+        // them. Going last minimises the disturbance; only a diff of
+        // octia_ruins.dat on a fixed seed settles how much is left, and until
+        // the catalogue has anything in it there is nothing to disturb.
+        docket = Registry.register(BuiltInRegistries.FEATURE, Octia.id(DOCKET),
+                new DocketFeature(NoneFeatureConfiguration.CODEC));
+
         // SURFACE_STRUCTURES rather than a later step: these sit on the ground
         // and want to be there before grass, flowers and trees decorate over
         // them, so a ruin looks weathered into the landscape rather than
@@ -198,6 +218,13 @@ public final class OctiaWorldgen {
         for (String path : TEMPLATE_RUINS) {
             scheduleInOverworld(path);
         }
+
+        // Scheduled last for the reason it is registered last: a new entry in a
+        // decoration step renumbers FeatureSorter's list and reseeds the ones
+        // after it, so the carrier goes at the end where it disturbs least. It
+        // answers false immediately while DocketCatalogue is empty, which is
+        // what it is today.
+        scheduleInOverworld(DOCKET);
     }
 
     /**

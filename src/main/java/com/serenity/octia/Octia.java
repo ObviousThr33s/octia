@@ -12,6 +12,8 @@ import com.serenity.octia.world.OctiaWorldOption;
 import com.serenity.octia.world.OctiaWorldgen;
 import com.serenity.octia.world.RuinRegistry;
 
+import com.serenity.octia.world.DocketCatalogue;
+import com.serenity.octia.world.DocketFeature;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
@@ -132,6 +134,16 @@ public final class Octia implements ModInitializer {
             OctiaWorldOption option = OctiaWorldOption.get(server);
             OctiaWorldgen.setActive(option.enabled());
 
+            // The docket settles here, and is read-only from here on. This is
+            // the last moment before chunks can generate and it is on the
+            // server thread, which is what matters: generation workers only
+            // ever read the catalogue and must never see it half-built. What
+            // Octia itself lists is DocketCatalogue.SHIPPED, which is empty
+            // today. When the contribution seam opens - which waits on the mod
+            // being renamed for the last time, see DocketCatalogue - a
+            // discovered listing joins it right here.
+            DocketCatalogue.freeze(DocketCatalogue.SHIPPED);
+
             if (!option.enabled()) {
                 LOGGER.info("Octia: disabled for this world. Spawn left as vanilla found it.");
             }
@@ -167,7 +179,14 @@ public final class Octia implements ModInitializer {
         // Cleared on the way out so a second world opened in the same launch
         // cannot inherit the first one's answer. Without this the switch leaks
         // between saves, which is the exact failure the switch exists to prevent.
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> OctiaWorldgen.setActive(false));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            OctiaWorldgen.setActive(false);
+            // Emptied for the same reason the flag is cleared: a single-player
+            // client that opens one world and then another must not carry the
+            // first world's listings, or its refusal counts, into the second.
+            DocketCatalogue.clear();
+            DocketFeature.clearTally();
+        });
 
         // Keep-inventory, held on rather than set once. Registered here beside
         // the other per-save decisions because that is what it is: a property of

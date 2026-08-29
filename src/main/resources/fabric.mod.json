@@ -38,7 +38,8 @@
       "${mod_package}.gametest.WatershedGameTest",
       "${mod_package}.gametest.CubeGameTest",
       "${mod_package}.gametest.VoidSquidGameTest",
-      "${mod_package}.gametest.ArchGameTest"
+      "${mod_package}.gametest.ArchGameTest",
+      "${mod_package}.gametest.DocketGameTest"
     ]
   },
   "depends": {
