@@ -60,9 +60,15 @@ public final class Luminaries {
      * it is absorbed at the andesite.
      */
     public static void halo(BlockState state, Level level, BlockPos pos, RandomSource random) {
-        int motes = Halo.motes(state.getLightEmission());
+        // The hour is read here and decided in Halo, because Halo is the half a
+        // test can reach - this method draws particles, and a headless server
+        // never draws one. The day turns in light rather than in a bird: see
+        // Halo.Hour for why a rooster is not available to this world.
+        Halo.Hour hour = Halo.hour(level.getDayTime());
+        int motes = Halo.motes(state.getLightEmission(), hour);
         for (int i = 0; i < motes; i++) {
-            Halo.Mote mote = Halo.at(random.nextDouble(), random.nextDouble(), random.nextDouble());
+            Halo.Mote mote = Halo.at(random.nextDouble(), random.nextDouble(),
+                    Halo.bend(hour, random.nextDouble()));
             level.addParticle(ParticleTypes.ENCHANT,
                     pos.getX() + 0.5,
                     pos.getY() + 0.5,

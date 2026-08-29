@@ -61,6 +61,104 @@ public final class Halo {
     }
 
     /**
+     * What the light is doing at this hour.
+     *
+     * <p>Asked for as "psychedelic tracer mornings then calm hazy nights". The
+     * answer is not a rooster: a chicken is a <b>neolithic</b> animal, and
+     * TRAJECTORY.traj XII rules the neolithic out - the same trap the enchanting
+     * table sets. And VoidSquid says there are no {@code SoundEvent}s in this
+     * mod, so a dawn that announced itself would have to borrow a vanilla sound
+     * to say a thing this world has no word for.
+     *
+     * <p>So the day turns in <b>light</b>, which is the one thing this mod
+     * already speaks in - {@code PanelLight}, {@code Luminaries},
+     * {@code FirstLight}. Nothing is added to the world; what is already lit
+     * behaves differently depending on the hour.
+     */
+    public enum Hour {
+
+        /** Just after sunrise. Twice the motes, thrown wide - they read as tracers. */
+        MORNING,
+
+        /** Ordinary daylight. What shipped in 0.2.0-alpha.1, unchanged. */
+        DAY,
+
+        /** Held close to the block, so the halo reads as a haze rather than a spray. */
+        NIGHT
+    }
+
+    /** A Minecraft day, in ticks. */
+    public static final long DAY_LENGTH = 24000L;
+
+    /** Sunrise is 0. The tracer window closes here. */
+    public static final long MORNING_ENDS = 2000L;
+
+    /** Dusk. Between here and the next sunrise the halo settles. */
+    public static final long NIGHT_BEGINS = 13000L;
+
+    /** Sunrise proper, and the end of the night window. */
+    public static final long NIGHT_ENDS = 23000L;
+
+    /**
+     * Which hour a level's day time falls in.
+     *
+     * <p>Takes the raw {@code getDayTime()} and wraps it itself, because that
+     * counter runs for the life of a world and is not bounded to one day. Negative
+     * is handled too - {@code /time set} accepts anything and a world that has had
+     * its clock wound backwards should still have a morning.
+     */
+    public static Hour hour(long dayTime) {
+        long t = Math.floorMod(dayTime, DAY_LENGTH);
+        // Morning WRAPS, and the first draft did not. Sunrise is at 23000, not
+        // at 0, so a window of 0..2000 left 23000..23999 falling through to DAY -
+        // an hour of ordinary daylight sitting in the dark, right where the sun
+        // actually comes up. The three windows now tile the whole day with no
+        // gap, which is what theThreeHoursLandWhereTheSkyDoes exists to hold.
+        if (t >= NIGHT_ENDS || t < MORNING_ENDS) {
+            return Hour.MORNING;
+        }
+        if (t >= NIGHT_BEGINS) {
+            return Hour.NIGHT;
+        }
+        return Hour.DAY;
+    }
+
+    /**
+     * How many motes a luminary is worth at this hour.
+     *
+     * <p>Morning doubles the count and nothing else changes it. Night is
+     * deliberately <b>not</b> reduced: the halo is most visible in the dark, and
+     * thinning it there would take the effect away exactly when it can be seen.
+     * Night is made calm by pulling the motes in, not by having fewer of them.
+     */
+    public static int motes(int lightLevel, Hour hour) {
+        int base = motes(lightLevel);
+        return hour == Hour.MORNING ? base * 2 : base;
+    }
+
+    /**
+     * The {@code out} roll, bent toward the shell this hour wants.
+     *
+     * <p>An enchant mote is given a destination and falls to it, so how far out
+     * it starts is how far it travels, which is how long its streak is. Morning
+     * pushes the roll toward {@link #OUTER} - long falls, and they read as
+     * tracers. Night pulls it toward {@link #INNER} - short falls that sit on the
+     * block as a haze.
+     *
+     * <p>Both curves are their own inverse in the sense that matters here: they
+     * map 0 to 0 and 1 to 1, so no mote ever leaves the shell that
+     * {@link #at} already guarantees. The hour changes where motes crowd, never
+     * where they are allowed to be.
+     */
+    public static double bend(Hour hour, double out) {
+        return switch (hour) {
+            case MORNING -> 1.0 - (1.0 - out) * (1.0 - out);
+            case NIGHT -> out * out;
+            case DAY -> out;
+        };
+    }
+
+    /**
      * A point on the shell, from three rolls of a die between 0 and 1.
      *
      * <p>Takes its randomness as arguments rather than holding a generator,
