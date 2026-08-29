@@ -515,7 +515,122 @@ obstacle, and it is one long in `OctiaDebug.Snapshot` away from not being one.
 - **Stratigraphy.** Deeper digs draw from older loot tables. Archaeology that
   means something vertically instead of being flat everywhere.
 - **The ledger.** A lectern at spawn that gains a line every time you brush a
-  dig. The world keeping your record, in KEG notation.
+  dig. The world keeping your record, in KEG notation. **See XIV** - it wants to
+  be the same ledger, not a second one.
+
+---
+
+## XIV. OCTIA_CORE - one core to an island, and a record nobody has to be trusted about
+
+**Wanted, 2026-08-28, in the owner's words:** *"like an enchantment table but
+cooler... every island makes one OG enchantment table... then all the islands in
+war win out with better enchanting tables... but this is the OCTIA_CORE"*, and
+then the constraint: *"MUST BE BLOCKCHAIN OPEN"*.
+
+### What is already built, which is most of it
+
+This is the unusual entry where the observation is that the machinery exists and
+nobody had noticed it lined up.
+
+| piece | what it already does |
+|---|---|
+| `ship/ShipCoreBlock` | **one per hull.** Surveys the panels around it, reads ADRIFT / MOORED / CALLED |
+| `ship/ShipMoorings` | SavedData of every core, keyed by `BlockPos` and **dimensionless** - the same position in another world is the same mooring, and a gametest pins it |
+| `block/Luminaries` + `block/Halo` | enchant motes on every lit Octia block. One rule applied to **light** rather than to a list |
+| `ship/FirstLight` | the moment a hull becomes a ship |
+| `block/PanelLight` | dark / generic / styled, and the core reads its state from what surrounds it |
+| `world/EraEcho` | **cores already feel each other at range, across dimensions, with falloff** |
+
+`Luminaries.java:49` is the tell: *"Vanilla spells it out: the enchanting table
+calls this at the table's..."* - the mote code in this mod was written by reading
+the enchanting table's own particle call. The visual language shipped in
+0.2.0-alpha.1.
+
+`EraEcho` is the war, already half-written. `ashipisfeltfromanotherworld` and
+`distantmooringsarenotfelt` are passing gametests today: cores sense each other,
+and distance decides whether they do.
+
+**And the scarcity became free on the same day.** Islands were not discrete while
+the sea drained through the world; since the band got a floor (ISLANDS.md XI) they
+are. One core to an island is enforced by geography rather than by a rule that has
+to be written and defended.
+
+### What is missing
+
+Three things, and they are small beside the above.
+
+1. **A core has no strength.** Three named states, not a scale. A war needs a
+   number, and `ShipStatus` is not it.
+2. **Nothing contests.** Cores feel each other through `EraEcho` and then do
+   nothing about it.
+3. **No enchanting happens.** A core wears the motes without the table.
+
+### The tension, named rather than skipped
+
+**A vanilla enchanting table is covered in written script and floats a book. That
+is a written grammar, and TRAJECTORY.traj XII rules one out.** An Octia core that
+is just an enchanting table with andesite on it breaks the mesolithic rule on
+sight, and it would break it in the most visible possible place.
+
+There is already a way through, and PALETTE.md wrote it before this entry existed:
+the `i` key is **reserved** - *"Ink means writing, and writing has a source in this
+world - the squid. Nothing else is drawn in it, so a glyph is always legible as a
+glyph."* So writing does exist here, it has a source, and the source is the void
+squid that already swims in the band under the islands. A core's marks are made in
+ink by a hand, not printed in a forerunner alphabet. That keeps the rule, and it
+gives the squid a reason to be near a core.
+
+`MINUTES.md` 4 is not threatened: the war is between **cores**, not settlements.
+Nobody lives on the island. Ruins stay uninhabited.
+
+### The record, and why it is not a blockchain
+
+*"Blockchain open"* is asking for four properties, and they are worth having:
+
+- **append-only** - the record is never overwritten, so history is the artifact
+- **hash-linked** - each entry names the previous entry's hash, so truncation and
+  tampering are visible rather than silent
+- **plain and readable** - anybody with the save can read who won what, without
+  running the mod
+- **verifiable without trust** - you check the chain yourself
+
+It is **not** asking for consensus, mining, tokens or peers, and those should not
+be built. Consensus answers *"who is telling the truth when several parties
+disagree"*, and inside one save there is exactly one writer: the server. There is
+nothing to reach agreement about, so a distributed protocol would buy none of the
+four properties above and cost a network stack.
+
+**The ledger half earns its place on its own, because it fixes a hazard this repo
+has already written down.** UPGRADING.md records that `ShipMoorings`,
+`OctiaWorldOption` and `CubePockets` all borrow
+`DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES`, and that a future vanilla remainder
+rewrite deletes their contents **with no crash and no log line**. Opaque NBT that
+vanishes quietly is exactly the failure an append-only hash-linked log cannot
+have. Break the chain and the next read says so out loud.
+
+Shape:
+
+```
+seq | prev-hash | tick | core-pos | act | what happened
+```
+
+### What would close it
+
+- `CoreLedger` as pure arithmetic with no Minecraft imports, the way `Sightlines`
+  and `Bindle` already are, so the chain is JUnit-testable without a world.
+- Gametests: **a chain of one verifies**, **a hand-edited entry fails
+  verification**, **a truncated chain is caught**, **a core writes one entry when
+  it moors and none when it is merely surveyed**.
+- A strength on the core that something can win, derived from the panels it
+  already surveys rather than stored beside them.
+- The lectern in XIII is the reader for this, not a second ledger.
+
+**Not scheduled here:** cross-server war, where cores on different people's
+servers contest. That is the one place real consensus would earn its keep, and it
+is the honest reason to keep the ledger format open and readable from the first
+line rather than retrofitting it. It is a long way past 0.3.0.
+
+`[2026-08-28]`
 
 ---
 
