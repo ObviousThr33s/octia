@@ -573,8 +573,51 @@ the opposite.
 
 Three things, and they are small beside the above.
 
-1. **A core has no strength.** Three named states, not a scale. A war needs a
-   number, and `ShipStatus` is not it.
+1. ~~**A core has no strength.** Three named states, not a scale. A war needs a
+   number, and `ShipStatus` is not it.~~ **Answered 2026-08-28: not a scale.
+   TRAIT SELECTION.** A strength was the weak version of this and it is worth
+   saying why it was wrong. A number makes a war a comparison; traits make it a
+   *selection*, which is the thing that was actually being asked for when the
+   islands were said to "win out with better enchanting tables".
+
+   **The genotype is already in the world and is already surveyed.**
+   `ShipCoreBlock.hullIntact` validates a 3x3x3 shell of `andesite_frame_panel`
+   around the core - **26 panels** - and each one carries a `PanelLight` of
+   `DARK`, `GENERIC` or `STYLED`. The core reads that shell on placement, on
+   neighbour change, and whenever a player clicks it. Then it throws the pattern
+   away: it asks "are they all there" and answers a boolean.
+
+   That shell is a configuration a player laid by hand, one block at a time. It
+   is the phenotype and the build instruction at once, and four things follow
+   that no other scheme gets for free:
+
+   - **Nothing new is stored.** The traits are block states in the world, so they
+     inherit no part of the `DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES` hazard in
+     UPGRADING.md that every `SavedData` store in this mod does.
+   - **It is legible without a screen.** You walk up to a rival's core and *look*
+     at which panels are lit. No tooltip, no GUI, no written grammar - so it
+     stays inside TRAJECTORY.traj XII where an enchanting table's script does
+     not.
+   - **It is a build, not a stat.** Choosing traits means laying panels, which is
+     the one verb this mod already has.
+   - **It is pure arithmetic over 26 values**, so it is JUnit-testable with no
+     world, the way `Docket`, `Halo`, `Sightlines` and `Bindle` already are.
+
+   **`EraEcho` is the selection pressure, and it already ships.** Cores sense
+   each other at range, across dimensions, with falloff - `ashipisfeltfromanotherworld`
+   and `distantmooringsarenotfelt` are passing gametests today. What is missing
+   is only that sensing another core does nothing.
+
+   **The real design question, stated so it is not mistaken for solved.** Three
+   states across 26 panels is 3^26, about 2.5 x 10^12 configurations. Nobody
+   wants two and a half trillion traits. The work is choosing a *small* reading
+   of that shell - a count of `STYLED`, a symmetry, which face carries the light,
+   whether the ring is closed - so that a handful of legible traits fall out of a
+   pattern a person can see and remember. That reading is the whole design and it
+   is not done.
+
+   Note the two ramps already agree: `PanelLight` is 0/7/15 and `ShipStatus` is
+   0/7/15. Whatever the reading turns out to be, it has one scale to speak in.
 2. **Nothing contests.** Cores feel each other through `EraEcho` and then do
    nothing about it.
 3. **No enchanting happens.** A core wears the motes without the table.
