@@ -550,10 +550,24 @@ the enchanting table's own particle call. The visual language shipped in
 `distantmooringsarenotfelt` are passing gametests today: cores sense each other,
 and distance decides whether they do.
 
-**And the scarcity became free on the same day.** Islands were not discrete while
-the sea drained through the world; since the band got a floor (ISLANDS.md XI) they
-are. One core to an island is enforced by geography rather than by a rule that has
-to be written and defended.
+**"One to an island" has nothing to hang on, and this was got wrong first.** The
+first draft of this entry claimed the floor made islands discrete, so geography
+would enforce one core each. It does not. ISLANDS.md X measured **0.0% empty
+chunks out of 1,681**, XI left that miss explicitly untouched, and the contained
+ocean now *guarantees* it - every chunk has water below y=96, so no chunk is ever
+empty and nothing separates one island from the next.
+
+Worse, **there is no island object to count.** `world/Isle` is the radius profile
+of the single emergency island `Landfall` raises when a spawn column is empty; the
+world's islands are a continuous swell field with no id, no extent and no
+enumeration. Nothing in the mod can answer "which island am I on".
+
+So the unit is not an island. **The only quantiser this mod owns is
+`Sightlines.cell` - `Math.floorDiv(coord, 512)`** - and one core per cell is a
+rule that can actually be written, tested and defended. If a real island
+abstraction ever arrives it can take over; until then, saying "island" in this
+entry means the cell, and pretending otherwise builds on a measurement that says
+the opposite.
 
 ### What is missing
 
