@@ -188,6 +188,7 @@ tasks.processResources {
         "mod_entrypoint" to "$modPackage.$modMainClass",
         "minecraft_version" to minecraftVersion,
         "fabric_loader_version" to fabricLoaderVersion,
+        "fabric_api_version" to fabricApiVersion,
         "java_version" to javaVersion.toString(),
     )
 
