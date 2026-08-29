@@ -79,6 +79,12 @@ tasks.test {
     systemProperty("octia.release.act", project.property("mod_act") as String)
     systemProperty("octia.release.milestone", project.property("mod_milestone") as String)
     systemProperty("octia.release.flags", project.property("mod_flags") as String)
+
+    // DocketTest reads Docket.java's own source to assert there is no double or
+    // float anywhere in the draw. Handed the directory rather than trusting the
+    // test's working directory, which nobody set deliberately and which Loom is
+    // free to change.
+    systemProperty("octia.projectDir", projectDir.absolutePath)
 }
 
 java {
