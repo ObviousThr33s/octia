@@ -34,6 +34,25 @@ jobs:
           fi
           echo "$GITHUB_REF_NAME matches mod_version=$declared"
 
+      # Without this the release is titled with the bare tag, and a shelf of
+      # them reads as a column of numbers. The act is what says where in the
+      # story a build sits - see docs/NOTATION.md - so it goes in the title,
+      # while mod_version stays the thing the tag is checked against above.
+      # Read from the same file for the same reason: a hand-typed act would
+      # drift from the one the release card prints two steps down.
+      - name: Compose the release title
+        id: title
+        run: |
+          set -euo pipefail
+          prop() { sed -n "s/^$1=[[:space:]]*//p" gradle.properties | head -n1 | tr -d '\r'; }
+          name=$(prop mod_name); version=$(prop mod_version)
+          act=$(prop mod_act); milestone=$(prop mod_milestone)
+          case "$act" in
+            ONE|TWO|THREE|FOUR|FIVE) ;;
+            *) echo "::error::mod_act is spelled ONE..FIVE, never numeric, and says '$act'"; exit 1 ;;
+          esac
+          echo "title=$name $version - ACT $act, MILESTONE $milestone" >> "$GITHUB_OUTPUT"
+
       # Matches java_version in gradle.properties, as in verify.yml.
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -93,6 +112,7 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v3
         with:
+          name: ${{ steps.title.outputs.title }}
           files: build/libs/*.jar
           body_path: build/RELEASE-CARD.md
           generate_release_notes: true

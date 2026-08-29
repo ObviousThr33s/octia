@@ -1,0 +1,24 @@
+{
+  "_comment": "The floor under octia:sky. Vanilla minecraft:overworld byte for byte, extracted 2026-08-28 from data/minecraft/dimension_type/overworld.json in the 1.21.1 jar per AGENTS.md V, with three keys changed: min_y -64 -> 0, height 384 -> 256, logical_height 384 -> 256. Those three make the WORLD end where the noise band ends. octia:sky's noise settings already declare min_y 0 and height 256, so under minecraft:overworld the rows from -64 to -1 existed and were never generated - open air with no bedrock beneath a sea_level of 96, which is why chunk-probe.py read THE SEA IS DRAINING in 5152 sections of SERENITY_[0_5_6_S_E_A]_project and 4717 of run/saves/[0_6_9]. Water cannot fall out of the bottom of a world; it could only fall out of the part of the world nothing had built. See docs/ISLANDS.md X.",
+  "ambient_light": 0.0,
+  "bed_works": true,
+  "coordinate_scale": 1.0,
+  "effects": "minecraft:overworld",
+  "has_ceiling": false,
+  "has_raids": true,
+  "has_skylight": true,
+  "height": 256,
+  "infiniburn": "#minecraft:infiniburn_overworld",
+  "logical_height": 256,
+  "min_y": 0,
+  "monster_spawn_block_light_limit": 0,
+  "monster_spawn_light_level": {
+    "type": "minecraft:uniform",
+    "max_inclusive": 7,
+    "min_inclusive": 0
+  },
+  "natural": true,
+  "piglin_safe": false,
+  "respawn_anchor_works": false,
+  "ultrawarm": false
+}

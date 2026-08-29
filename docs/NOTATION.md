@@ -97,11 +97,37 @@ It also appears as a divisor in the Mobius endpoint note:
 aberration = d(theta)/d(arc) / |SCOPE|
 ```
 
-**One thing is still undecided, and the code reflects that rather than hiding
-it.** Written as an alternation, `|A|B|C|` reads as a *selector* — pick one.
-Divided by, it implies a *cardinality* — how many. Those are different
-functions and give different aberration curves. `Scope` exposes both
-`size()` and `members()` and commits to neither until KEG says which.
+**Settled 2026-08-28 by KEG.** This stood open for a long time: `|A|B|C|` reads
+as a *selector* — pick one — but the Mobius note divides by it, which implies a
+*cardinality* — how many. The resolution is that the question was never which
+reading was right. It was **who was reading**.
+
+| reading | the pipes are | the divisor is |
+|---|---|---|
+| `SIMPLEX` | a selector — one channel at a time | **1** |
+| `MULTIPLEX` | a count — every channel at once | `size()` |
+
+Both are correct and they serve different consumers, so `Scope.Reading` names
+them and `Scope.divisor(Reading)` gives the denominator. A simplex reader
+divides by one however wide the scope is written, because they are only ever on
+one channel. That is the part that was not obvious, and it is why committing to
+a single reading would have been wrong in both directions.
+
+**And a scope is read from an end.** `Scope.Endian.LEFT` reads it as written,
+`RIGHT` from the far end, so `|A|B|C|` selects `A` or `C` with no character
+changing. `Scope.cycle()` rotates one step — `|A|B|C|` to `|B|C|A|` — so a scope
+can be walked through its own channels. Only the simplex reading can observe any
+of it: a multiplex reader is on every channel already, so turning the list
+around changes nothing it can see. That asymmetry is the point rather than a
+gap.
+
+The dev saves named `ENDIAN_RIGHT` and `MODE_WORLD_ENDIAN_KEG_` are the in-world
+record of the endian half, and the rule at the top of this page still holds — if
+they and this document disagree, the world is right.
+
+This is for **both machine and user**: the same pipes a person reads off a sign
+are the ones a server divides by. Nothing in `Scope` is fast and none of it needs
+to be — a scope is a handful of short strings, read once.
 
 ---
 

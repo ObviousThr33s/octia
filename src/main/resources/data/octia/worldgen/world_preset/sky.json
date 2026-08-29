@@ -1,7 +1,8 @@
 {
+  "_comment": "The overworld here is typed octia:sky, not minecraft:overworld, and that is the whole fix for the draining sea. The two files disagreed: octia:sky's noise settings say min_y 0 / height 256, while minecraft:overworld says min_y -64 / height 384, so 64 rows of world existed that the generator never wrote to. See data/octia/dimension_type/sky.json and docs/ISLANDS.md X. The Nether and the End stay exactly vanilla.",
   "dimensions": {
     "minecraft:overworld": {
-      "type": "minecraft:overworld",
+      "type": "octia:sky",
       "generator": {
         "type": "minecraft:noise",
         "biome_source": {

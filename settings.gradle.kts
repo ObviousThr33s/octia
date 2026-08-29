@@ -1,6 +1,55 @@
 pluginManagement {
+    // A host that is MISSING an artifact is not the problem this solves - Gradle
+    // already walks on to the next repository for a 404. A host that is DOWN is a
+    // different failure: the build either dies at plugin resolution or sits on a
+    // connect timeout. docs/TRAJECTORY.traj XV is that failure, written down - the
+    // beamline work went unverified because maven.fabricmc.net could not be reached
+    // from this machine, and there was no second address to try.
+    //
+    // Fabric publishes the same artifacts on three hosts. Checked 2026-08-28:
+    // fabric-loader-0.19.3.jar is 1976502 bytes and fabric-loom-1.11.8.jar is
+    // 1159795 bytes on all three, so these are mirrors and not three spellings of
+    // one machine. Borrowed from Turnip-Labs/bta-example-mod, which solved it first.
+    //
+    // Bounded on purpose: a probe that can hang has only replaced one stall with
+    // another. Local functions because pluginManagement must be the first block in
+    // a settings script - nothing, declarations included, may precede it.
+    fun isRepoHealthy(url: String): Boolean = try {
+        val conn = java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection
+        conn.requestMethod = "HEAD"
+        conn.connectTimeout = 2000
+        conn.readTimeout = 2000
+        conn.instanceFollowRedirects = true
+        try { conn.responseCode in 200..399 } finally { conn.disconnect() }
+    } catch (_: Exception) {
+        false
+    }
+
+    fun repoUrlWithFallbacks(vararg candidates: String): String {
+        val log = org.gradle.api.logging.Logging.getLogger("octia.settings")
+        for (url in candidates) {
+            if (isRepoHealthy(url)) {
+                if (url != candidates.first()) {
+                    log.lifecycle("octia: ${candidates.first()} did not answer; using $url")
+                }
+                return url
+            }
+        }
+        // Nothing answered, which usually means this machine is offline rather than
+        // Fabric being down. Hand back the primary so Gradle reports the real failure
+        // against the address everyone recognises, not a mirror nobody expected.
+        log.warn("octia: no Fabric maven answered a HEAD within 2s; using ${candidates.first()}")
+        return candidates.first()
+    }
+
     repositories {
-        maven("https://maven.fabricmc.net/") { name = "Fabric" }
+        maven(
+            repoUrlWithFallbacks(
+                "https://maven.fabricmc.net/",
+                "https://maven2.fabricmc.net/",
+                "https://maven3.fabricmc.net/",
+            )
+        ) { name = "Fabric" }
         mavenCentral()
         gradlePluginPortal()
     }

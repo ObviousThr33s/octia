@@ -153,6 +153,47 @@ official recommendation to cite. That is why this file exists.
 
 ---
 
+## `octia:sky` changed height on 2026-08-28 — old sky saves will not survive it
+
+Not a Minecraft-version hazard like the rest of this file, but the same shape of
+problem: a save made before this change and opened after it is the dangerous case.
+
+**What changed.** `data/octia/worldgen/world_preset/sky.json` used to type its
+overworld `minecraft:overworld` (`min_y -64`, `height 384`) while the noise settings
+said `min_y 0`, `height 256`. It now types it `octia:sky`, a new dimension type in
+`data/octia/dimension_type/sky.json` that matches the band. This is what stopped the
+sea draining out of the bottom of the world — see docs/ISLANDS.md XI.
+
+**Why an existing save is at risk.** Chunks generated under the old preset carry
+sections from y = -64 upward, and their `level.dat` records the old height. Opening
+one against a dimension type that now starts at y = 0 means the world is being told
+it is 128 blocks shorter than the chunks in it. Minecraft has no data fixer for
+this, because nothing in vanilla ever changes a dimension's height under an existing
+save.
+
+**What to do.**
+
+- **New worlds are fine.** `FLOORCHECK_0_7_0` was generated after the change and
+  probes clean.
+- **Old sky saves: back them up before opening.** `tools/backup-world.ps1 -World
+  "<name>" -Label before-floor` writes to `D:\Serenity\world-backups`, outside the
+  repo. Quit to the title screen first, as AGENTS.md IV says, or the last few
+  minutes of building are still in memory and will not be in the snapshot.
+- **The affected dev saves, by measurement rather than by guess** — every save whose
+  probe says `THE SEA IS DRAINING`. As of 2026-08-28 that is
+  `run/saves/SERENITY_[0_5_6_S_E_A]_project` (5,152 sections) and
+  `run/saves/[0_6_9] (1)` (4,717). Check any other with
+  `python tools/chunk-probe.py <save>`.
+- **Ordinary worlds are untouched.** The preset only retypes the overworld inside
+  `octia:sky`; a `normal` or `amplified` save never referenced it. Confirmed: all
+  seven saves under `worlds/` probe as ordinary terrain with bedrock at -64.
+
+**The tell that it went wrong** is the one this whole file is about — silence. A
+world that opens and looks slightly off is worse than one that refuses, so probe
+rather than trust the title screen.
+
+---
+
 ## Things checked and found already correct
 
 Recorded so nobody spends the research twice.

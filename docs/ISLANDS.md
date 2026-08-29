@@ -32,6 +32,12 @@ That is the bar. Octia should either take the contract seriously or place island
 for a different stated reason - but not place them for the Skyblock reason and then
 quietly leave the ground in.
 
+> **Read §XI with this.** On 2026-08-28 the sky world was given a floor and the sea
+> was kept rather than drained, so what is under the islands today is an ocean and
+> not a void. The contract above still holds — an ocean is not normal terrain and
+> there is no ground under it — but the bar is now met a different way than this
+> section imagines, and §XI names what that costs.
+
 ---
 
 ## II. What Octia already brings to it
@@ -497,3 +503,75 @@ amethyst geode and every ruined-portal block. A name that falls through now prin
 stderr with a count.
 
 `[2026-08-23]`
+
+---
+
+## XI. Fixed and decided 2026-08-28 — the band has a floor, and the ocean stays
+
+Two things settled on the same day. The first was a bug and had one right answer.
+The second was a taste call and KEG made it: **keep the ocean.**
+
+### The floor
+
+§X called the draining sea "the sharpest thing on this page" and left the fix as a
+choice between dropping `sea_level` and giving the band a floor. It was neither,
+quite. **Two files disagreed about how tall the world was.**
+
+| file | says |
+|---|---|
+| `data/octia/worldgen/noise_settings/sky.json` | `min_y: 0`, `height: 256` |
+| `data/octia/worldgen/world_preset/sky.json` → `minecraft:overworld` | `min_y: -64`, `height: 384` |
+
+So 64 rows of world existed that the generator never wrote to — open air, no
+bedrock, no floor — and the sea at `sea_level: 96` poured into them. Water was not
+falling out of the bottom of the world. It was falling out of the part of the world
+that nothing had built.
+
+The fix is `data/octia/dimension_type/sky.json`: vanilla `minecraft:overworld`
+extracted byte for byte from the 1.21.1 jar per AGENTS.md V, with three keys changed
+— `min_y` to 0, `height` and `logical_height` to 256 — and `world_preset/sky.json`
+typing its overworld `octia:sky` instead of `minecraft:overworld`. The world now
+ends where the band ends and there is nowhere left to drain to.
+
+**Measured the same way §X was, seed 1, 289 chunks, `tools/chunk-probe.py`:**
+
+| | shipped `[0_5_6_S_E_A]` | floored `FLOORCHECK_0_7_0` |
+|---|---|---|
+| fluid below y=0 | **5,152 sections** | **none** |
+| rock below y=0 | 32/1681 | **0/289 (0.0%)** |
+| probe verdict | `THE SEA IS DRAINING.` | `floating islands over void, as asked for.` |
+
+### The ocean
+
+The floor did not empty the world. It **contained** the sea — 1,558 water sections
+remain, and now they behave. The spawn column reads:
+
+```
+   0.. 95   water          the sea, at sea_level 96
+  96..141   - air -        46 blocks of open air
+ 142..169   stone          an island
+ 173..198   the mast, and octia:ship_core lit at the top
+```
+
+**§I's contract is not broken by this, and that is why the ocean can stay.** The bar
+was never "void" for its own sake — it was *"if a player can walk off the island and
+find normal terrain, there is no contract."* An ocean is not normal terrain. You
+cannot walk off onto it, farm it as it stands, or find the ground under it: rock
+below y=0 measures 0.0%. The scarcity contract survives.
+
+**What it does cost, stated plainly so nobody rediscovers it in a playtest.** A fall
+into water is survivable. Under a void, falling off an island was the sky world's
+principal danger and it was absolute. Under an ocean it is a swim and a climb. That
+is a real change to how the world plays, it was accepted knowingly, and anything
+that depends on falling being fatal — the sail rig's stakes above all — must be
+re-asked against it.
+
+### Still not cleared
+
+The density miss from §X is untouched. Median rock is still 29.20% against vanilla
+`floating_islands`' 13.21%, and the `isle` rung (13.16% rock, 77.9% dry) is still the
+rung to return to if the archipelago is wanted. **That is a separate decision and it
+is still open.** Fixing the leak did not make the islands the right shape; it made
+them the right shape's problem again.
+
+`[2026-08-28]`

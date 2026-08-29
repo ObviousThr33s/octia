@@ -49,6 +49,49 @@ RAMP = {
 OUTLINE = "k"
 CLEAR = "."
 
+# ---- the sky ramp, computed rather than kept -------------------------------
+# docs/PALETTE.md rules that a sky colour is named in three words and that the
+# sky is not a second palette: it is RAMP above, warmth removed, hue turned to
+# blue, LIGHTNESS HELD. Holding lightness is the load-bearing part - it is what
+# makes PALE_BLUE_GREY exactly as bright as the `l` andesite highlight, so a lit
+# hull against the sky reads as one material lit two ways.
+#
+# This is a FUNCTION and not a table on purpose. A second table would be a second
+# source of truth, and the note above RAMP already asks for one copy of that
+# problem, not two - move a ramp colour and the sky follows it in the same commit.
+SKY_HUE = 210.0 / 360.0
+SKY_SAT = 0.15
+
+# The void is not sky and takes no blue. It is listed in the doc for completeness
+# and is exempt from the transform, which is why it is named here rather than
+# silently skipped.
+SKY_EXEMPT = {"v"}
+
+SKY_NAMES = {
+    "b": "COLD_BONE_WHITE",
+    "l": "PALE_BLUE_GREY",
+    "m": "DEEP_BLUE_GREY",
+    "k": "DARK_BLUE_GREY",
+    "v": "FAR_VOID_BLACK",
+}
+
+
+def sky_colour(key):
+    """The sky colour derived from one ramp key, as an (r, g, b) triple."""
+    import colorsys
+
+    r, g, b, _ = RAMP[key]
+    if key in SKY_EXEMPT:
+        return (r, g, b)
+    h, lightness, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+    out = colorsys.hls_to_rgb(SKY_HUE, lightness, SKY_SAT)
+    return tuple(round(c * 255) for c in out)
+
+
+def sky_ramp():
+    """Every sky colour, in the order docs/PALETTE.md lists them: light to dark."""
+    return [(SKY_NAMES[k], k, RAMP[k][:3], sky_colour(k)) for k in ("b", "l", "m", "k", "v")]
+
 
 def read_grid(path):
     """Read an art file into a list of rows, dropping comments and blank lines.
@@ -67,17 +110,56 @@ def read_grid(path):
     return rows
 
 
-def faults(rows):
+EGADS = "# EGADS "
+
+
+def read_egads(path):
+    """The reason a sprite declares for departing from the discretionary rules.
+
+    A line `# EGADS <reason>` at the top of an art file. Returns the reason, or
+    None when the file makes no such claim.
+
+    WHY THIS EXISTS. Every rule below is a good rule and one of them will
+    eventually be wrong for one sprite. A checker with no way to say "this one is
+    deliberate" does not get obeyed - it gets bypassed, and a person who runs
+    pixel.py once, loses, and hand-writes the PNG afterwards has taken the sprite
+    out of every check at once rather than out of one. So the hatch is here, it
+    costs a sentence, and it is never quiet: main() prints what was waived and
+    why, every run, pass or fail.
+
+    It waives only what is discretionary - the colour cap and the closed
+    outline. It cannot waive 16x16 or an unknown key, because those are not
+    opinions about taste: a grid of the wrong size is not a sprite, and a key
+    with no entry in RAMP has no colour to write.
+    """
+    with open(path, "r", encoding="ascii") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped.startswith(EGADS.strip() + " "):
+                reason = stripped[len(EGADS.strip()):].strip()
+                return reason or "(no reason given)"
+            if stripped and not stripped.startswith("#"):
+                # The picture has started. A declaration below the art is a
+                # comment about it, not a claim on it.
+                return None
+    return None
+
+
+def faults(rows, egads=None):
     """Every rule in docs/PALETTE.md that a machine can decide, in one pass.
 
-    Returns a list of complaints in plain sentences. An empty list means the
-    grid obeys the shape rules; it does not mean the sprite is good.
+    Returns `(complaints, waived)`. Both are lists of plain sentences: the first
+    stops the compile, the second is what `# EGADS` allowed through and is
+    printed rather than swallowed. An empty `complaints` means the grid obeys the
+    shape rules; it does not mean the sprite is good.
     """
     found = []
+    waived = []
 
+    # ---- structural. EGADS cannot reach these ----------------------------
     if len(rows) != SIZE:
         found.append("the grid is %d rows; a sprite is %d" % (len(rows), SIZE))
-        return found
+        return found, waived
 
     for n, row in enumerate(rows):
         if len(row) != SIZE:
@@ -85,21 +167,29 @@ def faults(rows):
                          % (n + 1, len(row), SIZE))
 
     if found:
-        return found
+        return found, waived
 
     unknown = sorted({c for row in rows for c in row} - set(RAMP))
     if unknown:
         found.append("off the ramp: %s - see docs/PALETTE.md"
                      % ", ".join("'%s'" % c for c in unknown))
-        return found
+        return found, waived
+
+    # ---- discretionary. EGADS moves these from fatal to noted ------------
+    discretionary = []
 
     spent = sorted({c for row in rows for c in row} - {CLEAR})
     if len(spent) > MAX_COLOURS:
-        found.append("%d colours spent (%s); the cap is %d"
-                     % (len(spent), "".join(spent), MAX_COLOURS))
+        discretionary.append("%d colours spent (%s); the cap is %d"
+                             % (len(spent), "".join(spent), MAX_COLOURS))
 
-    found.extend(outline_faults(rows))
-    return found
+    discretionary.extend(outline_faults(rows))
+
+    if egads:
+        waived.extend(discretionary)
+    else:
+        found.extend(discretionary)
+    return found, waived
 
 
 def outline_faults(rows):
@@ -159,18 +249,57 @@ def png(rows):
 def main(argv):
     parser = argparse.ArgumentParser(
         description="Compile an ASCII sprite grid into a PNG on the estate ramp.")
-    parser.add_argument("source", help="the art file - 16 lines of 16 keys")
+    # nargs="?" on source too, because --sky compiles nothing and needs no art
+    # file. Without it, printing the sky ramp would require naming a sprite that
+    # has nothing to do with it.
+    parser.add_argument("source", nargs="?", help="the art file - 16 lines of 16 keys")
     parser.add_argument("target", nargs="?",
                         help="where the PNG goes; omitted with --check")
     parser.add_argument("--check", action="store_true",
                         help="validate the grid and write nothing")
+    parser.add_argument("--sky", action="store_true",
+                        help="print the sky ramp derived from the sprite ramp, and exit")
     args = parser.parse_args(argv)
 
+    if args.sky:
+        # The table in docs/PALETTE.md is this output pasted in. Regenerate it
+        # here rather than editing the doc by hand, so the two cannot disagree.
+        print("sky ramp - RAMP with hue %d, saturation %.2f, lightness held"
+              % (round(SKY_HUE * 360), SKY_SAT))
+        for name, key, base, out in sky_ramp():
+            exempt = "  (exempt - the void takes no blue)" if key in SKY_EXEMPT else ""
+            print("  %-16s %s  #%02X%02X%02X  ->  #%02X%02X%02X%s"
+                  % (name, key, base[0], base[1], base[2], out[0], out[1], out[2], exempt))
+        return 0
+
+    if not args.source:
+        parser.error("an art file is required unless --sky is given")
     if not args.check and not args.target:
         parser.error("a target path is required unless --check is given")
 
     rows = read_grid(args.source)
-    complaints = faults(rows)
+    egads = read_egads(args.source)
+    complaints, waived = faults(rows, egads)
+
+    # Printed before the verdict and to stderr, so it is seen on a pass as well
+    # as a failure, and so a pipe that only keeps stdout still cannot lose it. A
+    # waiver nobody reads is the same as no rule at all.
+    if waived:
+        sys.stderr.write("%s: EGADS - %s\n" % (args.source, egads))
+        for allowed in waived:
+            sys.stderr.write("  allowed: %s\n" % allowed)
+    elif egads and not complaints:
+        # Worth saying, but only on a pass. A declaration that waives nothing is
+        # either a rule that got fixed and a note left behind, or a
+        # misunderstanding of what EGADS reaches, and both want deleting.
+        #
+        # Suppressed when the sprite is failing anyway: a structural fault
+        # returns before the discretionary rules are even reached, so "nothing
+        # needed waiving" would be true, useless, and read as reassurance
+        # printed directly above a refusal.
+        sys.stderr.write("%s: EGADS declared but nothing needed waiving - %s\n"
+                         % (args.source, egads))
+
     if complaints:
         sys.stderr.write("%s does not obey docs/PALETTE.md:\n" % args.source)
         for complaint in complaints:
@@ -179,7 +308,8 @@ def main(argv):
 
     if args.check:
         spent = sorted({c for row in rows for c in row} - {CLEAR})
-        print("%s: ok, %d colours (%s)" % (args.source, len(spent), "".join(spent)))
+        print("%s: ok, %d colours (%s)%s"
+              % (args.source, len(spent), "".join(spent), " [EGADS]" if waived else ""))
         return 0
 
     with open(args.target, "wb") as handle:

@@ -30,6 +30,16 @@ base {
 
 repositories {
     mavenCentral()
+
+    // The other half of the outage guard in settings.gradle.kts, and it needs no
+    // probe. That one picks ONE host because Gradle resolves a plugin from the
+    // repository it was told about; this is dependency resolution, where Gradle
+    // walks every declared repository in order, so naming the mirrors is the whole
+    // fix. fabric-loader and fabric-api below otherwise resolve through the single
+    // address Loom injects, which is the address that was already unreachable once.
+    maven("https://maven.fabricmc.net/") { name = "Fabric" }
+    maven("https://maven2.fabricmc.net/") { name = "FabricMirror2" }
+    maven("https://maven3.fabricmc.net/") { name = "FabricMirror3" }
 }
 
 dependencies {
@@ -54,6 +64,21 @@ tasks.test {
     testLogging {
         events("passed", "failed", "skipped")
     }
+
+    // What the release calls itself, handed to ReleaseNotationTest so it can
+    // check that the properties actually parse as KEG notation. Passed in
+    // rather than read off disk by the test: a test that reads
+    // gradle.properties itself depends on a working directory nobody set
+    // deliberately, and would become a second parser for a file the build
+    // already parses. See docs/NOTATION.md.
+    systemProperty("octia.release.name", modName)
+    systemProperty("octia.release.version", version.toString())
+    // project.property, not the bare property(): inside tasks.test the receiver
+    // is the Test task, whose own property() looks the name up on the task and
+    // fails configuration with "unknown property 'mod_act'".
+    systemProperty("octia.release.act", project.property("mod_act") as String)
+    systemProperty("octia.release.milestone", project.property("mod_milestone") as String)
+    systemProperty("octia.release.flags", project.property("mod_flags") as String)
 }
 
 java {

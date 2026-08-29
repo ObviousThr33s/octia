@@ -52,7 +52,8 @@ foreach ($line in (Get-Content -LiteralPath $gp)) {
     }
 }
 
-$need = @('mod_version', 'minecraft_version', 'fabric_loader_version', 'fabric_api_version', 'java_version')
+$need = @('mod_version', 'minecraft_version', 'fabric_loader_version', 'fabric_api_version', 'java_version',
+          'mod_name', 'mod_act', 'mod_milestone', 'mod_flags')
 $missing = @($need | Where-Object { -not $props.ContainsKey($_) })
 if ($missing.Count) {
     # Refused rather than papered over. A card with a blank where a version
@@ -67,9 +68,58 @@ $api        = $props['fabric_api_version']
 $java       = $props['java_version']
 $jar        = "octia-$modVersion.jar"
 
+# ---- where the release stands, in KEG notation ----------------------------
+# The four-line block from docs/NOTATION.md, assembled from gradle.properties
+# rather than typed. The version triple inside the bracket is mod_version with
+# any SemVer prerelease cut off: the bracket takes major.minor.patch and nothing
+# else, so 0.2.0-alpha.1 enters it as 0.2.0 and the -alpha.1 is carried by the
+# flags instead. Act.parse() would throw on a bad act at runtime; this is the
+# same refusal, made before a card is written rather than after it ships.
+$actName = $props['mod_act'].Trim().ToUpperInvariant()
+if ($actName -notin @('ONE', 'TWO', 'THREE', 'FOUR', 'FIVE')) {
+    throw "mod_act is spelled ONE..FIVE, never numeric, and got '$($props['mod_act'])'"
+}
+$milestone = 0
+if (-not [int]::TryParse($props['mod_milestone'].Trim(), [ref]$milestone) -or $milestone -lt 0) {
+    throw "mod_milestone is a zero-based number, and got '$($props['mod_milestone'])'"
+}
+$triple = ($modVersion -split '-', 2)[0]
+if ($triple -notmatch '^\d+\.\d+\.\d+$') {
+    throw "mod_version does not open with a major.minor.patch triple: '$modVersion'"
+}
+$artifact = "{0}_[{1}.{2}]_build" -f $props['mod_name'].ToUpperInvariant(), $triple, $props['mod_flags'].Trim()
+$kegBlock = "ACT $actName`nMILESTONE $milestone`n$artifact`nSEEK KEG |ALL|"
+
+# ---- what changed, read never typed ---------------------------------------
+# CHANGELOG.md is the half a commit list cannot carry. Read as UTF-8 explicitly:
+# Get-Content in Windows PowerShell 5.1 decodes a BOM-less file as CP1252, which
+# would turn every non-ASCII character in the changelog into mojibake inside a
+# document published under the project's name.
+$changelogPath = Join-Path $repo 'CHANGELOG.md'
+if (-not (Test-Path -LiteralPath $changelogPath)) { throw "no CHANGELOG.md at $changelogPath" }
+$changelog = [System.IO.File]::ReadAllText($changelogPath, [System.Text.Encoding]::UTF8)
+
+# Everything under "## <this version>" up to the next "## " at the start of a
+# line. Escaped, because a version string contains dots and 0.2.0-alpha.1 would
+# otherwise also match 0x2y0-alpha!1.
+$pattern = '(?ms)^##[ \t]+' + [regex]::Escape($modVersion) + '[ \t]*\r?$(.*?)(?=^##[ \t]|\z)'
+$match = [regex]::Match($changelog, $pattern)
+if (-not $match.Success) {
+    # Same refusal as the missing-version one above, for the same reason. A
+    # release whose notes silently omit what changed is the failure OCTIA.md
+    # already records once: a status line written nowhere outranks nothing.
+    throw "CHANGELOG.md has no '## $modVersion' section. Add one before cutting this release."
+}
+$changes = $match.Groups[1].Value.Trim()
+if (-not $changes) { throw "the '## $modVersion' section of CHANGELOG.md is empty" }
+
 # ---- the card -------------------------------------------------------------
 
 $card = @"
+``````
+$kegBlock
+``````
+
 ## What you need
 
 Four things, and they must all agree. These numbers are read out of
@@ -146,6 +196,10 @@ loader orders it correctly. Things are provisional on purpose: the sail rig's
 top speed, the watershed's density, and whether the whole thing holds its
 austere andesite register are all still open questions, and a playtester's
 reaction is how they get settled.
+
+## What changed
+
+$changes
 "@
 
 if ($Out -eq '-') {
