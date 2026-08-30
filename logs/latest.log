@@ -1,0 +1,89 @@
+[23:44:07] [Datafixer Bootstrap #0/INFO]: 295 Datafixer optimizations took 3205 milliseconds
+[23:44:12] [Render thread/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[23:44:13] [Render thread/INFO]: Setting user: ObviousThr33s
+[23:44:13] [Render thread/INFO]: Backend library: LWJGL version 3.4.1+2
+[23:44:14] [Render thread/INFO]: Using graphics backend OpenGL, using drivers: 3.3.0 NVIDIA 580.97
+[23:44:14] [Render thread/INFO]: Using graphics device: NVIDIA GeForce RTX 3070/PCIe/SSE2 (NVIDIA Corporation)
+[23:44:14] [Render thread/INFO]: Using graphics device extensions: GL_ARB_multi_draw_indirect, GL_ARB_buffer_storage, GL_ARB_shader_draw_parameters, GL_ARB_base_instance, GL_KHR_debug, GL_ARB_draw_indirect, GL_ARB_clip_control, GL_ARB_vertex_attrib_binding, GL_ARB_direct_state_access, GL_EXT_texture_filter_anisotropic
+[23:44:14] [Render thread/INFO]: Reloading ResourceManager: vanilla
+[23:44:15] [Worker-Main-6/INFO]: Found unifont_pua-17.0.01.hex, loading
+[23:44:15] [Worker-Main-4/INFO]: Found unifont_all_no_pua-17.0.01.hex, loading
+[23:44:15] [Worker-Main-1/INFO]: Found unifont_jp_patch-17.0.01.hex, loading
+[23:44:17] [Render thread/INFO]: OpenAL initialized on device OpenAL Soft on Speakers (Realtek High Definition Audio)
+[23:44:17] [Render thread/INFO]: Sound engine started
+[23:44:17] [Render thread/INFO]: Created: 512x256x0 minecraft:textures/atlas/particles.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 128x128x0 minecraft:textures/atlas/decorated_pot.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 2048x1024x0 minecraft:textures/atlas/armor_trims.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 512x256x0 minecraft:textures/atlas/paintings.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 1024x512x0 minecraft:textures/atlas/shield_patterns.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 2048x2048x4 minecraft:textures/atlas/blocks.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 512x512x0 minecraft:textures/atlas/chest.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 256x128x0 minecraft:textures/atlas/celestials.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 1024x512x0 minecraft:textures/atlas/banner_patterns.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 1024x512x0 minecraft:textures/atlas/items.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 1024x1024x0 minecraft:textures/atlas/gui.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 128x64x0 minecraft:textures/atlas/map_decorations.png-atlas
+[23:44:17] [Render thread/INFO]: Created: 512x512x0 minecraft:textures/atlas/shulker_boxes.png-atlas
+[23:45:43] [Render thread/INFO]: Stopping!
+ recipes
+[23:44:50] [Render thread/INFO]: Loaded 1688 advancements
+[23:45:01] [Server thread/INFO]: Starting integrated minecraft server version 26.2
+[23:45:01] [Server thread/INFO]: Generating keypair
+[23:45:01] [Server thread/INFO]: Selecting global world spawn...
+[23:45:05] [Server thread/INFO]: Loading 0 persistent chunks...
+[23:45:05] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:05] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:overworld
+[23:45:05] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_nether
+[23:45:05] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_end
+[23:45:05] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[23:45:05] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[23:45:05] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[23:45:05] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+[23:45:06] [Server thread/INFO]: Loading 47 chunks for player spawn...
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:06] [Server thread/INFO]: Preparing spawn area: 16%
+[23:45:07] [Server thread/INFO]: Preparing spawn area: 29%
+[23:45:07] [Server thread/INFO]: Preparing spawn area: 57%
+[23:45:08] [Server thread/INFO]: Preparing spawn area: 57%
+[23:45:08] [Server thread/INFO]: Time elapsed: 6876 ms
+[23:45:09] [Server thread/INFO]: ObviousThr33s[local:E:8095679b] logged in with entity id 28 at (-66.5, 69.0, 24.5)
+[23:45:09] [Server thread/INFO]: ObviousThr33s joined the game
+[23:45:09] [Server thread/INFO]: Changing view distance to 16, from 10
+[23:45:09] [Server thread/INFO]: Changing simulation distance to 12, from 0
+[23:45:09] [Render thread/INFO]: Resizing Dynamic Transforms UBO, capacity limit of 2 reached during a single frame. New capacity will be 4.
+[23:45:09] [Render thread/INFO]: Loaded 2 advancements
+[23:45:09] [Render thread/INFO]: Resizing Dynamic Transforms UBO, capacity limit of 4 reached during a single frame. New capacity will be 8.
+[23:45:09] [Render thread/INFO]: Resizing Dynamic Transforms UBO, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[23:45:09] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 2 reached during a single frame. New capacity will be 8.
+[23:45:09] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[23:45:10] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 16 reached during a single frame. New capacity will be 32.
+[23:45:12] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 32 reached during a single frame. New capacity will be 64.
+[23:45:14] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 64 reached during a single frame. New capacity will be 128.
+[23:45:19] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 128 reached during a single frame. New capacity will be 256.
+[23:45:25] [Render thread/INFO]: Resizing Chunk Sections UBO, capacity limit of 256 reached during a single frame. New capacity will be 512.
+[23:45:36] [Server thread/INFO]: Saving and pausing game...
+[23:45:37] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:overworld
+[23:45:37] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_nether
+[23:45:37] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_end
+[23:45:39] [Server thread/INFO]: Stopping server
+[23:45:39] [Server thread/INFO]: Saving players
+[23:45:39] [Server thread/INFO]: ObviousThr33s lost connection: Disconnected
+[23:45:39] [Server thread/INFO]: ObviousThr33s left the game
+[23:45:39] [Server thread/INFO]: Stopping singleplayer server as player logged out
+[23:45:39] [Server thread/INFO]: Saving worlds
+[23:45:39] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:overworld
+[23:45:41] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_nether
+[23:45:41] [Server thread/INFO]: Saving chunks for level 'ServerLevel[[0.8.0] OCTIA]'/minecraft:the_end
+[23:45:41] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[23:45:41] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[23:45:41] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[23:45:41] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+[23:45:42] [Render thread/INFO]: Stopping!
