@@ -1,7 +1,8 @@
 name: verify
 
-# The same two gates tools/verify.ps1 runs locally: build, then in-world tests
-# on a headless dedicated server. No display, no Mojang account, no secrets.
+# The same three gates tools/verify.ps1 runs locally: the atlas, then build,
+# then in-world tests on a headless dedicated server. No display, no Mojang
+# account, no secrets.
 
 on:
   push:
@@ -19,6 +20,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      # Pinned rather than taken from whatever the runner happens to ship, for
+      # the same reason the Gradle wrapper is checked in: the gate must not
+      # change interpreter under us between runs. tools/atlas.py imports nothing
+      # outside the standard library, so no install step follows this one.
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # Cheapest gate first. Proves the art grids, the one tensor, and every
+      # shipped PNG are in step before anything spends a minute compiling.
+      - name: Atlas
+        run: python tools/atlas.py --check
 
       # Matches java_version in gradle.properties. Kept explicit rather than
       # letting the foojay resolver download a JDK on every CI run.

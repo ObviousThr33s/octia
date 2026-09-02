@@ -226,9 +226,17 @@ def png(rows):
     """Serialise the grid as a 32-bit RGBA PNG.
 
     Hand-rolled because the alternative is a dependency. Filter byte 0 (none)
-    on every scanline: at 16x16 there is nothing to gain from filtering and a
-    reader can follow this by eye.
+    on every scanline: at these sizes there is nothing to gain from filtering
+    and a reader can follow this by eye.
+
+    The size comes from the grid rather than from SIZE, because an entity UV
+    sheet is not 16x16 and a writer that can only make one size cannot repaint
+    one. `faults` is what decides whether a given size is allowed; this only
+    writes what it is handed.
     """
+    height = len(rows)
+    width = len(rows[0]) if rows else 0
+
     raw = bytearray()
     for row in rows:
         raw.append(0)
@@ -239,11 +247,114 @@ def png(rows):
         out = struct.pack(">I", len(body)) + tag + body
         return out + struct.pack(">I", zlib.crc32(tag + body) & 0xFFFFFFFF)
 
-    header = struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0)
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
     return (b"\x89PNG\r\n\x1a\n"
             + chunk(b"IHDR", header)
             + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
             + chunk(b"IEND", b""))
+
+
+def unfilter(kind, line, prior, bpp):
+    """Undo one PNG scanline filter, in place.
+
+    `png` above only ever writes filter 0, but the textures that predate this
+    tool were written by encoders that had opinions, so a reader that only
+    handles 0 would refuse most of the mod's own art. All five are here; the
+    arithmetic is straight out of the PNG spec, section 7.
+    """
+    if kind == 0:
+        return
+    if kind == 1:  # Sub - the pixel to the left
+        for i in range(bpp, len(line)):
+            line[i] = (line[i] + line[i - bpp]) & 0xFF
+    elif kind == 2:  # Up - the pixel above
+        for i in range(len(line)):
+            line[i] = (line[i] + prior[i]) & 0xFF
+    elif kind == 3:  # Average - the mean of left and above, rounded down
+        for i in range(len(line)):
+            left = line[i - bpp] if i >= bpp else 0
+            line[i] = (line[i] + ((left + prior[i]) >> 1)) & 0xFF
+    elif kind == 4:  # Paeth - whichever of left/above/above-left is nearest
+        for i in range(len(line)):
+            a = line[i - bpp] if i >= bpp else 0
+            b = prior[i]
+            c = prior[i - bpp] if i >= bpp else 0
+            p = a + b - c
+            pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+            if pa <= pb and pa <= pc:
+                pred = a
+            elif pb <= pc:
+                pred = b
+            else:
+                pred = c
+            line[i] = (line[i] + pred) & 0xFF
+    else:
+        raise ValueError("scanline filter %d is not one of the five" % kind)
+
+
+def unpng(data):
+    """Read a 32-bit RGBA PNG back into pixels - the inverse of `png` above.
+
+    Returns `(width, height, rows)`, where a row is a list of `(r, g, b, a)`
+    tuples. It lives here rather than in the atlas tool because the inverse of
+    a function belongs beside it: move one and the other is in the diff.
+
+    Deliberately narrow. 8-bit RGBA, not interlaced, is what this mod's art is
+    and what `png` emits, so anything else is refused **by name** instead of
+    guessed at. A texture tool that quietly mangles an unexpected colour type
+    is worse than one that stops.
+    """
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG - the eight-byte signature is wrong")
+
+    width = height = None
+    idat = bytearray()
+    pos = 8
+    while pos + 8 <= len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        tag = data[pos + 4:pos + 8]
+        body = data[pos + 8:pos + 8 + length]
+        pos += 12 + length  # length, tag, body, CRC
+
+        if tag == b"IHDR":
+            width, height, depth, colour, _comp, _filt, interlace = \
+                struct.unpack(">IIBBBBB", body)
+            if depth != 8:
+                raise ValueError("bit depth %d; this reader does 8" % depth)
+            if colour != 6:
+                raise ValueError(
+                    "colour type %d; this reader does 6 (RGBA) - see the ramp, "
+                    "every key of which carries an alpha" % colour)
+            if interlace:
+                raise ValueError("interlaced; this reader does not de-interlace")
+        elif tag == b"IDAT":
+            # Split across chunks is legal and common. Concatenate, then inflate
+            # once - the compressed stream is continuous across the split.
+            idat.extend(body)
+        elif tag == b"IEND":
+            break
+
+    if width is None:
+        raise ValueError("no IHDR chunk - the file has no header")
+
+    raw = zlib.decompress(bytes(idat))
+    stride = width * 4
+    prior = bytearray(stride)
+    rows = []
+    at = 0
+    for y in range(height):
+        kind = raw[at]
+        at += 1
+        line = bytearray(raw[at:at + stride])
+        at += stride
+        if len(line) != stride:
+            raise ValueError("scanline %d is short: %d bytes, wanted %d"
+                             % (y, len(line), stride))
+        unfilter(kind, line, prior, 4)
+        rows.append([tuple(line[x * 4:x * 4 + 4]) for x in range(width)])
+        prior = line
+
+    return width, height, rows
 
 
 def main(argv):

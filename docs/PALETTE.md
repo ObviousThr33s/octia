@@ -148,4 +148,168 @@ The `art/` tree is the source of record. A texture is regenerated from its grid,
 hand-edited as a PNG - a PNG edited directly is a correction that the next regeneration
 silently throws away.
 
-`[2026-08-24]`
+## The whole atlas as one tensor
+
+Set down 2026-09-01, on the owner's instruction: *"make the texture atlas one AI tensor
+for the entire game."*
+
+A sprite on this ramp is not a picture that happens to be small. It is a grid of symbols
+from a closed alphabet, which is a **tensor of palette indices** wearing a PNG costume.
+`tools/atlas.py` takes the costume off. Every texture the mod ships is cut into 16x16
+tiles and stacked into one array:
+
+```
+assets/octia/atlas/atlas.safetensors   sprites (44,16,16) uint8, palette (103,4) uint8, + manifest
+assets/octia/atlas/atlas.npy           the sprites alone, for numpy.load
+assets/octia/atlas/palette.npy         the palette alone
+assets/octia/atlas/atlas.json          the manifest again, in text a reviewer can read
+art/atlas-sheet.png                    the whole game as one 128x128 picture, from --sheet
+art/UNRAMPED.md                        the ramp measurement, from --report
+```
+
+The tensor lives under `assets/` rather than beside the grids because **it ships**: the
+mod reads it at runtime to paint the atlas map, so it has to be inside the jar. `art/`
+keeps what a person edits and what a person reads; `assets/` keeps what the game loads.
+
+Forty-four tiles: twelve 16x16 textures at one tile each, plus `hev_suit.png` and
+`icon.png`, which are 64x64 and therefore sixteen tiles apiece. **The uniform tile is the
+whole trick.** Without it the game is a bag of differently shaped arrays; with it, it is
+one stack, and `palette[sprites[n]]` is any texture in the mod as RGBA.
+
+Nothing here generates art. This is the ruling at the top of this file held to: the
+tensor is a *record* of what is drawn, not a machine for drawing it.
+
+### Why the palette is 103 colours and not eleven
+
+The first design stored ramp indices and nothing else, which would have been the prettier
+answer. **Measurement killed it.** `tools/atlas.py --report` was pointed at the fourteen
+shipped textures and found that **four are on the ramp - the four this tool wrote.**
+
+The other ten predate `pixel.py`. They are anti-aliased, they spend seventeen to
+twenty-five colours inside a 16x16, and the sentences above about where each ramp colour
+"comes from" turn out to describe an *eyeballed* derivation rather than a sampled one:
+`andesite_frame_panel.png` contains no pixel of `#3B3B3F` at all. Its nearest is
+`#3A3C3E`, two units away. Worse, several colours in the shipped art have no ramp
+representative at any distance - the cyan beacon glow at `#6BC5D3` is 77 from its nearest
+key, the warm gold at `#E0BB73` is 80, and the HEV suit's green at `#7CFF4A` is 125.
+
+So a ramp-only tensor would have covered four textures out of fourteen and called itself
+"the entire game", which is the one thing it must not do. The palette instead starts with
+the ramp and continues with whatever is actually on disk:
+
+```
+palette[0:11]    the eleven keys above, in this table's order - k m l g b i p y r v .
+palette[11:]     every other colour the shipped art contains, sorted
+```
+
+That keeps three things at once. The whole game fits, losslessly, with **no pixel
+changed**. Ramp indices are constants: `k` is 0 today and 0 forever, because a ramp key
+holds its slot whether or not any texture uses it. And **the split at eleven is itself
+the measurement** - `on_ramp` in the manifest says which textures are clean, so bringing
+one onto the ramp later is a number that goes up rather than an argument that gets had.
+`art/UNRAMPED.md` is that measurement written out, colour by colour, and it is
+regenerated rather than maintained.
+
+### The source of record, stated honestly
+
+The section above says `art/` is the source of record. That is true of four textures and
+false of ten, and the tensor does not paper over it. Each entry in the manifest carries
+`source: art` or `source: png`, and the two are gated differently: a texture with a grid
+must match what the grid compiles to, and a texture without one is read from its PNG
+because there is nothing else to read. **The count of `art` sources is the progress meter
+on this file's central claim.** It is 4/14. It was 4/14 before the tensor existed; the
+only new thing is that it now says so on every run.
+
+### The atlas map
+
+Set down 2026-09-01, on the owner's instruction: *"show me the changed texture atlas as
+a map texture on the world load. every character gets one texture atlas map and they cant
+get rid of it."*
+
+`com.serenity.octia.atlas.AtlasMap` paints the tensor onto a filled map and holds one in
+every player's inventory. This is not a whimsical delivery mechanism, it is the shape of
+the data: **a Minecraft map is a 128x128 grid of bytes where each byte names a colour,
+and the tensor is an N-by-16-by-16 grid of bytes where each byte names a colour.** They
+are the same object. 128 is eight tiles of sixteen, so forty-four tiles land in an 8x8
+grid of sixty-four with twenty squares spare, and the sheet grows downward as the mod
+does without anything having to move. `atlas.py --sheet` prints the layout and writes the
+same picture as a PNG.
+
+**Locked, and that is the load-bearing part.** Vanilla repaints a map from the terrain
+whenever a player holds one in its own dimension. `MapItemSavedData.locked()` is the
+vanilla mechanism for freezing that - it is what a cartography table does - so the art
+survives being carried around with no mixin on the update path. The failure this avoids
+is the quiet kind: an unlocked atlas works in a screenshot and is gone an hour later.
+`MapItem.inventoryTick` was read out of the 1.21.1 jar to confirm the other half - that
+`tickCarriedBy` runs *before* the `locked` branch, so a locked map still sends its image
+to the client and only skips the repaint. Standing order: when a version-dependent detail
+matters, open the artifact and look.
+
+**Held, not given.** Handing the map out once at join would be undone by the first Q
+press, so the inventory is checked every tick and the map put back when missing - the
+same pattern and the same reasoning as [keep-inventory](../src/main/java/com/serenity/octia/life/KeepInventory.java).
+"Cannot be removed" is a property that has to be maintained, not one that can be set. A
+copy thrown on the floor is swept, but only in the tick where one actually went missing
+and only near the player who dropped it; a standing scan of every item entity would cost
+more than the mechanic is worth.
+
+**One map, not one per player.** Every copy carries the same `MapId`, so the save stores
+a single `map_N.dat`. That id is remembered in its own `SavedData`, because
+`getFreeMapId` hands out a new one on every call and the obvious version of this mints a
+fresh map on every world load and leaves the old ones behind forever.
+
+**The one place this pipeline snaps a colour.** Minecraft offers 62 base colours at four
+brightnesses and nothing else, so the 103-entry palette is quantised to the nearest map
+colour. That is allowed here and refused everywhere else in this file, and the difference
+is worth stating: the ramp is what the art *is*, and must not be approximated; this map
+is a *picture of* the art. The snap happens once over 103 palette entries rather than
+once over 11,264 texels - which is the first practical dividend of storing indices
+instead of colours, and a preview of the argument in the next section.
+
+### Shaders, and what an index tensor is actually for
+
+Held in mind 2026-09-01, on the owner's note: *"keep in mind super secret shaders."*
+There are none in this mod today - no `assets/octia/shaders/`, no `PostChain`, no core
+shader override - so this is a constraint being kept, not a thing being integrated with.
+
+**The scope of the claim above, stated before a shader falsifies it.** This tensor holds
+every texture *asset*. It does not hold what is on screen. Minecraft's post-processing
+chain - the machinery behind the old Super Secret Settings button, still present in
+1.21.1 and still what spectator vision runs through - changes the frame without touching
+a file. The moment a `.fsh` lands here, "the whole game is in this tensor" is true of the
+art and false of the image, and it should be said that way rather than discovered later.
+This file has already been wrong once in exactly this shape: `art/` was the source of
+record for four textures while the sentence claimed fourteen.
+
+**And the reason to store indices rather than colours.** An index tensor plus a small
+palette is not merely a tidy way to write the art down - it is the exact layout a palette
+shader wants. An index texture and a 103x1 lookup table, and the whole game recolours on
+a uniform update rather than on a reimport. The sky derivation at the top of this file -
+hue 210, saturation 0.15, **lightness held** - is already written as a function over the
+ramp rather than a second table of hexes, which means it is one step from being that
+function *in a fragment shader*, applied to the palette instead of baked into it. Ship
+state (adrift, called, moored), void corruption, damage flash, and time of day are all
+palette animations from there, not new textures.
+
+Two things follow, and both are free to hold now. Keep the palette small and ordered -
+`palette[0:11]` being the ramp is what makes a swap meaningful, and every texture brought
+onto the ramp shrinks the part a shader cannot reason about. And note that vanilla's
+stitcher throws indices away: it stitches RGBA into `blocks.png`, so a palette shader
+would need this mod to own its own atlas upload. That is runtime reach this tensor
+deliberately does not have yet. The data being ready for it costs nothing; the Java to
+use it is a separate decision, and not this one.
+
+### The gate
+
+`tools/verify.ps1` and `.github/workflows/verify.yml` run `atlas.py --check` first, ahead
+of the build, because it costs milliseconds. It fails when the tensor is stale against
+`art/`, when any shipped PNG disagrees with the tensor, when a texture ships without
+being in the tensor at all, or when a grid a human wrote does not survive the codec.
+
+The PNG comparison is on **decoded pixels, not bytes** - zlib output varies between
+Python versions and pixel equality is the property that actually matters. A missing
+`python` fails the gate rather than skipping it, on the same reasoning
+[BENCH.md](BENCH.md) gives for the crew bench: a gate that quietly does nothing is worse
+than no gate, because a green run then reads as proof.
+
+`[2026-08-24]` `[2026-09-01]`

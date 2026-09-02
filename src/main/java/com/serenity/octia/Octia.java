@@ -1,5 +1,6 @@
 package com.serenity.octia;
 
+import com.serenity.octia.atlas.AtlasMap;
 import com.serenity.octia.crew.Crew;
 import com.serenity.octia.crew.Wayfarer;
 import com.serenity.octia.debug.OctiaDebug;
@@ -195,6 +196,12 @@ public final class Octia implements ModInitializer {
         // ones above, so that deleting this one line disables the mechanic
         // completely and leaves nothing behind in the world.
         KeepInventory.bootstrap();
+
+        // The atlas map. Registered beside KeepInventory because it is the same
+        // kind of thing and uses the same mechanism: a property of an Octia save
+        // that is held every tick rather than set once. Gated on the same
+        // create-screen switch, so a world that asked for vanilla stays vanilla.
+        AtlasMap.bootstrap();
 
         // The crew. Registered here rather than lazily on first command because
         // the muster hangs off server start and stop, and a hook installed after

@@ -3,11 +3,14 @@
     Build the mod and prove it works - headless, no account, no window.
 
 .DESCRIPTION
-    Two gates, cheapest first:
+    Three gates, cheapest first:
 
-      1. `gradlew build` - compiles, remaps, and packages. Catches type errors
+      1. `atlas.py --check` - proves the art grids, the one tensor, and every
+         shipped texture are in step. Milliseconds; runs before the build so a
+         stale texture does not cost a compile.
+      2. `gradlew build` - compiles, remaps, and packages. Catches type errors
          and mapping drift.
-      2. `gradlew runGametest` - boots a real dedicated server, loads the mod,
+      3. `gradlew runGametest` - boots a real dedicated server, loads the mod,
          runs every @GameTest, and writes a JUnit XML report.
 
     This is the modern Fabric answer to what Forge popularised with its own
@@ -73,6 +76,28 @@ Write-Host "  repo: $repo" -ForegroundColor Green
 
 # A stale report would be read as a pass if the run itself died early.
 if (Test-Path $report) { Remove-Item $report -Force }
+
+# ---- Atlas ----------------------------------------------------------------
+# Every texture in the mod compiles into one tensor, art/atlas.safetensors, and
+# every shipped PNG is derived from it. This checks the three are in step: the
+# art grids, the tensor, and the textures on disk. It is the cheapest gate here
+# by orders of magnitude, so it runs first.
+#
+# Failing hard when python is missing is deliberate. BENCH.md settles the same
+# question for the crew bench - a gate declares its dependency and never skips -
+# and a texture gate that quietly does nothing is worse than no texture gate,
+# because a green run then reads as proof the textures are current.
+Step "atlas  (art grids, tensor, and textures in step)"
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) {
+    throw "no python on PATH, so the atlas gate cannot run. See docs/PALETTE.md."
+}
+& $python.Source (Join-Path $repo 'tools\atlas.py') --check
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`nATLAS GATE FAILED - build not attempted." -ForegroundColor Red
+    Write-Host "Run: python tools\atlas.py --build" -ForegroundColor Yellow
+    exit 1
+}
 
 if ($Clean) {
     Step "clean"
