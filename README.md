@@ -165,6 +165,7 @@ octia/
 │  ├─ TRAJECTORY.traj                   the sketch: glyphs, caves, the lattice
 │  ├─ EMPERORS.traj                     the glyph alphabet, tested on Rome
 │  ├─ NEPTUNES_OCEAN.md                 the sea under the islands, as a series
+│  ├─ FLOOR.md                          the bottom of that sea: a project space
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next

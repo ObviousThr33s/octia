@@ -23,7 +23,8 @@ against the world is a rumour, and the world is the source of truth
 turns out wrong gets a dated correction under it, the way `ISLANDS.md`
 §XII carries its own.
 
-The series is open at the top. The first chapter is below.
+The series is open at the top. The first chapter is below. The bottom of
+the sea has its own project space, `FLOOR.md`, opened the same day.
 
 ---
 
