@@ -19,11 +19,15 @@ anything stands on it.
 
 **Read from the files that make the world.**
 
-| file | what it says about the bottom |
-|---|---|
-| `dimension_type/sky.json` | `min_y: 0`, `height: 256`. The world ends at y=0. There is no y=-1. |
-| `noise_settings/sky.json` | `sea_level: 96`, aquifers on. Derived from vanilla `floating_islands` by `make-sky-noise.py`; never hand-edited. |
-| its surface rules | one `vertical_gradient`, deepslate, true at and below 0, false at and above 8. It rewrites **stone** into deepslate. There is no bedrock rule anywhere in the file. Vanilla's overworld has a `bedrock_floor` gradient; `floating_islands` never did, and this file inherits that absence. |
+- `dimension_type/sky.json`: `min_y: 0`, `height: 256`. The world ends
+  at y=0. There is no y=-1.
+- `noise_settings/sky.json`: `sea_level: 96`, aquifers on. Derived from
+  vanilla `floating_islands` by `make-sky-noise.py`; never hand-edited.
+- its surface rules: one `vertical_gradient`, deepslate, true at and
+  below 0, false at and above 8. It rewrites **stone** into deepslate.
+  There is no bedrock rule anywhere in the file. Vanilla's overworld has
+  a `bedrock_floor` gradient; `floating_islands` never did, and this
+  file inherits that absence.
 
 **Not measured today.** The only save in this checkout, `[0_8_0] OCTIA`,
 is a shell: `level.dat`, no region directory, zero chunks, seed unread.
@@ -39,7 +43,7 @@ seed 1, 289 chunks, on `FLOORCHECK_0_7_0`:
 |---|---|
 | fluid below y=0 | none |
 | rock below y=0 | 0 of 289 chunks |
-| the spawn column | `0..95 water`, `96..141 air`, `142..169 stone`, the mast above |
+| the spawn column | water 0..95, air 96..141, stone 142..169, mast above |
 
 That column is the floor, read from the bottom up: water at y=0, and
 under the water, the end of the world.
