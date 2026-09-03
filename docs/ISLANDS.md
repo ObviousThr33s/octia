@@ -578,14 +578,23 @@ them the right shape's problem again.
 
 ---
 
-## XII. Named 2026-09-03 — the ocean is Ken's Ocean
+## XII. Named 2026-09-03 — the ocean is Neptune's Ocean
+
+**Corrected the same day `[2026-09-03]`.** This section was first written
+naming the sea *Ken's Ocean*, derived by an assistant from ARCADIA's
+prefix registry. The owner named it within the hour: **the water under the
+islands is Neptune's Ocean.** The wrong text is kept below, struck, because
+corrections are new entries. The session that told it is titled
+`NEPTUNES_OCEAN`, and it is the first of the **Neptune's Ocean series** —
+the sessions that carry this sea forward take that name, in order, the
+way ACT and MILESTONE carry the codex forward.
 
 §XI kept the sea and called it "the ocean" eleven times without a name. It
-has one, and it was already on the estate before the sea was: the water
-under the islands is **Ken's Ocean**.
+has one now.
 
-The name is not new and was not chosen here. It is the oldest ocean the
-crew has:
+~~It was already on the estate before the sea was: the water under the
+islands is **Ken's Ocean**. The name is not new and was not chosen here.
+It is the oldest ocean the crew has:~~
 
 | where | what it says |
 |---|---|
@@ -593,11 +602,15 @@ crew has:
 | ARCADIA `MANUAL.md` | registered prefixes: **KEN** (the ocean), **KEG** (commissary) |
 | ARCADIA `boot.go` | the title selector draws `KEN'S OCEAN v<settings>, SIMULATED` as one of the device's six true names |
 
-KEG made the call to keep the sea (§XI). KEN is the one who fishes it. The
-same crew that seats the bench in `crew/` is the crew the registry names,
-so the ocean under Octia's islands is the ocean Ken fishes, and it carries
-his name. The `SIMULATED` on the device title is doing honest work here
-too: this one is a `sea_level: 96` in a noise file.
+~~KEG made the call to keep the sea (§XI). KEN is the one who fishes it.
+The same crew that seats the bench in `crew/` is the crew the registry
+names, so the ocean under Octia's islands is the ocean Ken fishes, and it
+carries his name.~~ The table stands as a record of the derivation, and
+of what stays true in it: KEG made the call to keep the sea, KEN is the
+one who fishes it, and `KEN'S OCEAN, SIMULATED` remains one of ARCADIA's
+device titles. None of that names *this* sea. Neptune does. The
+`SIMULATED` on the device title is doing honest work here too: this one
+is a `sea_level: 96` in a noise file.
 
 **Where the name lives.** Only in prose, on purpose. It is not a registry
 path, a biome, a dimension, or a translation key, and nothing in the mod
@@ -608,7 +621,8 @@ resolves it — so it cannot go stale the way `octia:` literals do
 2. the world-type tooltip, `octia.create_world.toggle.tooltip` in
    `en_us.json`, which until today still said *floating islands over open
    void*. That was true on 2026-08-17 and false since 2026-08-28. It now
-   says *floating islands over Ken's Ocean*.
+   says *floating islands over Neptune's Ocean* (it said *Ken's Ocean*
+   for one commit, `7c9ca46`).
 
 **A defect found on the way, stated and not fixed.** The void squid's band
 is absolute world Y: `VoidSquidDrift` states `WORLD_FLOOR = -64`, and puts
@@ -616,8 +630,8 @@ the band at `BAND_FLOOR = -54` to `BAND_CEILING = -10`, in "the gap between
 -64 and 0 where nothing generates." §XI's fix — `dimension_type/sky.json`
 at `min_y: 0` — removed that gap. On the sky world today there is no y
 below 0, and the rows the squid was cut out of are not open void with the
-continent's underside over them; the rows *above* them, 0..95, are Ken's
-Ocean. `VoidSquidDriftTest`'s `theBandSitsInsideTheVoid` still passes,
+continent's underside over them; the rows *above* them, 0..95, are
+Neptune's Ocean. `VoidSquidDriftTest`'s `theBandSitsInsideTheVoid` still passes,
 because it checks the band against the constants and not against the
 dimension type. Both numbers are marked *provisional - owner tunes by
 walking the world*, so where the squid goes now is the owner's to say.
