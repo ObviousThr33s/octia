@@ -587,7 +587,8 @@ islands is Neptune's Ocean.** The wrong text is kept below, struck, because
 corrections are new entries. The session that told it is titled
 `NEPTUNES_OCEAN`, and it is the first of the **Neptune's Ocean series** —
 the sessions that carry this sea forward take that name, in order, the
-way ACT and MILESTONE carry the codex forward.
+way ACT and MILESTONE carry the codex forward. The series has a file,
+`NEPTUNES_OCEAN.md`, and each session tells one chapter in it.
 
 §XI kept the sea and called it "the ocean" eleven times without a name. It
 has one now.

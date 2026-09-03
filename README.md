@@ -164,6 +164,7 @@ octia/
 │  ├─ BINDLES.md                        the bindle, and what it carries
 │  ├─ TRAJECTORY.traj                   the sketch: glyphs, caves, the lattice
 │  ├─ EMPERORS.traj                     the glyph alphabet, tested on Rome
+│  ├─ NEPTUNES_OCEAN.md                 the sea under the islands, as a series
 │  ├─ WORLDS.md                         the dev saves, and what generates now
 │  ├─ SIGHTLINES.md                     the survey, the lattice, the arch
 │  ├─ ROADMAP.md                        what is wrong, missing, wanted next
