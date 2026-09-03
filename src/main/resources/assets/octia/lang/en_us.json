@@ -25,7 +25,7 @@
 
   "octia.create_world.toggle.on": "Octia: On",
   "octia.create_world.toggle.off": "Octia: Off",
-  "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, the world type becomes Octia Sky - floating islands over open void, with ordinary biomes on them - a lit mast stands at spawn the moment the world opens, a derelict lies within a short walk of it, and andesite ruins are scattered out through the world for you to find. Pick any other world type yourself and the switch leaves it alone.",
+  "octia.create_world.toggle.tooltip": "Whether Octia is active in this world. Decided now and fixed for the life of the save. When on, the world type becomes Octia Sky - floating islands over Ken's Ocean, with ordinary biomes on them - a lit mast stands at spawn the moment the world opens, a derelict lies within a short walk of it, and andesite ruins are scattered out through the world for you to find. Pick any other world type yourself and the switch leaves it alone.",
 
   "key.categories.octia": "Octia",
   "key.octia.debug": "Debug map",

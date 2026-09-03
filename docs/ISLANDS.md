@@ -575,3 +575,51 @@ is still open.** Fixing the leak did not make the islands the right shape; it ma
 them the right shape's problem again.
 
 `[2026-08-28]`
+
+---
+
+## XII. Named 2026-09-03 — the ocean is Ken's Ocean
+
+§XI kept the sea and called it "the ocean" eleven times without a name. It
+has one, and it was already on the estate before the sea was: the water
+under the islands is **Ken's Ocean**.
+
+The name is not new and was not chosen here. It is the oldest ocean the
+crew has:
+
+| where | what it says |
+|---|---|
+| ARCADIA `bin/logs/logKEN0001.txt` | the prefix registry, first entries: *KEN -- for the one who fishes the ocean.* |
+| ARCADIA `MANUAL.md` | registered prefixes: **KEN** (the ocean), **KEG** (commissary) |
+| ARCADIA `boot.go` | the title selector draws `KEN'S OCEAN v<settings>, SIMULATED` as one of the device's six true names |
+
+KEG made the call to keep the sea (§XI). KEN is the one who fishes it. The
+same crew that seats the bench in `crew/` is the crew the registry names,
+so the ocean under Octia's islands is the ocean Ken fishes, and it carries
+his name. The `SIMULATED` on the device title is doing honest work here
+too: this one is a `sea_level: 96` in a noise file.
+
+**Where the name lives.** Only in prose, on purpose. It is not a registry
+path, a biome, a dimension, or a translation key, and nothing in the mod
+resolves it — so it cannot go stale the way `octia:` literals do
+(`NAMING.md`). It is written down in exactly two places:
+
+1. this section;
+2. the world-type tooltip, `octia.create_world.toggle.tooltip` in
+   `en_us.json`, which until today still said *floating islands over open
+   void*. That was true on 2026-08-17 and false since 2026-08-28. It now
+   says *floating islands over Ken's Ocean*.
+
+**A defect found on the way, stated and not fixed.** The void squid's band
+is absolute world Y: `VoidSquidDrift` states `WORLD_FLOOR = -64`, and puts
+the band at `BAND_FLOOR = -54` to `BAND_CEILING = -10`, in "the gap between
+-64 and 0 where nothing generates." §XI's fix — `dimension_type/sky.json`
+at `min_y: 0` — removed that gap. On the sky world today there is no y
+below 0, and the rows the squid was cut out of are not open void with the
+continent's underside over them; the rows *above* them, 0..95, are Ken's
+Ocean. `VoidSquidDriftTest`'s `theBandSitsInsideTheVoid` still passes,
+because it checks the band against the constants and not against the
+dimension type. Both numbers are marked *provisional - owner tunes by
+walking the world*, so where the squid goes now is the owner's to say.
+
+`[2026-09-03]`
