@@ -96,6 +96,17 @@ public final class OctiaWorldgen {
     private static final String STAIRWAY = "stairway";
 
     /**
+     * The lightwell. A dug landmark, and not yet a recorded one.
+     *
+     * <p>Private on the ARCH precedent: {@link LightwellFeature} never calls
+     * {@link RuinRegistry#report}, so a public kind would advertise a key that
+     * answers with an empty list. It has more reason than most to become public
+     * one day - a well is the largest thing this mod cuts and the hardest to
+     * come across by accident - and on that day this line joins the two above.
+     */
+    private static final String LIGHTWELL = "lightwell";
+
+    /**
      * The watershed. A landmark of water, and now a recorded one.
      *
      * <p>This line was private for the ARCH reasoning, and the day it named
@@ -169,6 +180,7 @@ public final class OctiaWorldgen {
     private static ObeliskFeature obelisk;
     private static ArchFeature arch;
     private static StairwayFeature stairway;
+    private static LightwellFeature lightwell;
     private static WatershedFeature watershed;
     private static TemplateRuinFeature templateRuin;
     private static DocketFeature docket;
@@ -188,6 +200,8 @@ public final class OctiaWorldgen {
                 new ArchFeature(NoneFeatureConfiguration.CODEC));
         stairway = Registry.register(BuiltInRegistries.FEATURE, Octia.id(STAIRWAY),
                 new StairwayFeature(NoneFeatureConfiguration.CODEC));
+        lightwell = Registry.register(BuiltInRegistries.FEATURE, Octia.id(LIGHTWELL),
+                new LightwellFeature(NoneFeatureConfiguration.CODEC));
         watershed = Registry.register(BuiltInRegistries.FEATURE, Octia.id(WATERSHED),
                 new WatershedFeature(NoneFeatureConfiguration.CODEC));
         templateRuin = Registry.register(BuiltInRegistries.FEATURE, Octia.id(TEMPLATE_RUIN),
@@ -212,7 +226,8 @@ public final class OctiaWorldgen {
         // Same decoration step either way, so this is also the order they run in
         // a chunk. Nothing depends on that today; the two lists are kept apart
         // because only the second one is meant to grow without touching Java.
-        for (String path : new String[] {DERELICT, DERELICT_STATION, OBELISK, ARCH, STAIRWAY, WATERSHED}) {
+        for (String path : new String[] {DERELICT, DERELICT_STATION, OBELISK, ARCH, STAIRWAY,
+                LIGHTWELL, WATERSHED}) {
             scheduleInOverworld(path);
         }
         for (String path : TEMPLATE_RUINS) {
@@ -275,6 +290,11 @@ public final class OctiaWorldgen {
     /** The switchback stair. For tests that place one directly. */
     public static StairwayFeature stairway() {
         return stairway;
+    }
+
+    /** The dug well. For tests that cut one directly. */
+    public static LightwellFeature lightwell() {
+        return lightwell;
     }
 
     /** The spring and its bowls. For tests that place one directly. */

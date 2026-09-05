@@ -35,6 +35,7 @@
       "${mod_package}.gametest.BeamlineDerelictGameTest",
       "${mod_package}.gametest.SailRigGameTest",
       "${mod_package}.gametest.StairwayGameTest",
+      "${mod_package}.gametest.LightwellGameTest",
       "${mod_package}.gametest.WatershedGameTest",
       "${mod_package}.gametest.CubeGameTest",
       "${mod_package}.gametest.VoidSquidGameTest",
